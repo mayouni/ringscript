@@ -1,0 +1,386 @@
+ring_list_h
+Parent: ListBlocks
+Type: void *
+pValue
+Type: struct ListBlocks *
+pNext
+Type: unsigned int
+nType
+END:
+Type: ListBlocks
+struct ListBlocks
+Type: ListBlocks
+Mark: ->
+struct ListBlocks *
+Type: ListBlocks
+Mark: ->
+ListBlocks *
+Parent: List
+Type: struct Items *
+pFirst
+Type: struct Items *
+pLast
+Type: unsigned int
+nSize
+Type: unsigned int
+nNextItem
+Type: struct Items *
+pLastItem
+Type: struct Item **
+pItemsArray
+Type: struct HashTable *
+pHashTable
+Type: struct ListBlocks *
+pBlocks
+Type: ListGCData
+vGC
+END:
+Type: List
+struct List
+Type: List
+Mark: ->
+struct List *
+Type: List
+Mark: ->
+List *
+RING_LIST_KEYINDEX
+RING_LIST_MAXSIZE
+RING_LIST_MAXSIZEWITHOUTLISTCACHE
+RING_LISTERROR_COLUMNNOTFOUND
+RING_LISTERROR_PROPERTYNOTFOUND
+RING_LISTOFOBJS_FINDNUMBER
+RING_LISTOFOBJS_FINDSTRING
+RING_LISTOFOBJS_FINDCPOINTER
+RING_LISTOFOBJS_FINDLISTREF
+RING_LISTBLOCKTYPE_ITEM
+RING_LISTBLOCKTYPE_ITEMS
+RING_LISTBLOCKTYPE_LIST
+ring_list_isdouble_gc(pState,pList,nIndex)
+ring_list_isint_gc(pState,pList,nIndex)
+ring_list_gethashtable_gc(pState,pList)
+ring_list_getint_gc(pState,pList,nIndex)
+ring_list_getpointer_gc(pState,pList,nIndex)
+ring_list_getpointertype_gc(pState,pList,nIndex)
+ring_list_getfuncpointer_gc(pState,pList,nIndex)
+ring_list_callfuncpointer_gc(pState,pList,nIndex,pPointer)
+ring_list_getdouble_gc(pState,pList,nIndex)
+ring_list_getstring_gc(pState,pList,nIndex)
+ring_list_getstringobject_gc(pState,pList,nIndex)
+ring_list_getstringsize_gc(pState,pList,nIndex)
+ring_list_getsize_gc(pState,pList)
+ring_list_incdouble_gc(pState,pList,nIndex)
+ring_list_deletelastitem_gc(pState,pList)
+ring_list_isdouble(pList,nIndex)
+ring_list_isint(pList,nIndex)
+ring_list_gethashtable(pList)
+ring_list_getint(pList,nIndex)
+ring_list_getpointer(pList,nIndex)
+ring_list_getpointertype(pList,nIndex)
+ring_list_getfuncpointer(pList,nIndex)
+ring_list_callfuncpointer(pList,nIndex,pPointer)
+ring_list_getdouble(pList,nIndex)
+ring_list_getstring(pList,nIndex)
+ring_list_getstringobject(pList,nIndex)
+ring_list_getstringsize(pList,nIndex)
+ring_list_getsize(pList)
+ring_list_incdouble(pList,nIndex)
+ring_list_deletelastitem(pList)
+ring_list_new_gc
+Type: List *
+pList
+ring_list_new2_gc
+Type: unsigned int
+x
+Type: Items *
+pItems,*pItemsLast
+ring_list_delete_gc
+ring_list_deletecontent_gc
+ring_list_copy_gc
+Type: unsigned int
+x,nMax
+Type: List *
+pNewList2
+ring_list_deleteallitems_gc
+Type: Items *
+pItems,*pItemsNext
+ring_list_finishdelete_gc
+Type: ListBlocks *
+pBlocks
+ring_list_copy_tohighlevel_gc
+Type: unsigned int
+x
+Type: List *
+pNewList2
+ring_list_addblock_gc
+Type: ListBlocks *
+pBlocks
+ring_list_clearcache_gc
+ring_list_setcache_gc
+ring_list_newitem_gc
+Type: Items *
+pItems
+ring_list_newitembyitemsptr_gc
+ring_list_getitem_gc
+Type: Items *
+pItems
+Type: Item *
+pItem
+Type: unsigned int
+x, lUseListCache
+ring_list_deleteitem_gc
+Type: unsigned int
+x
+Type: Items *
+pItems,*pItemsPrev
+ring_list_gettype_gc
+Type: Item *
+pItem
+ring_list_setint_gc
+Type: Item *
+pItem
+ring_list_addint_gc
+ring_list_setpointer_gc
+Type: Item *
+pItem
+ring_list_setpointerandtype_gc
+Type: Item *
+pItem
+ring_list_addpointer_gc
+ring_list_addpointerandtype_gc
+Type: Item *
+pItem
+ring_list_setdouble_gc
+Type: Item *
+pItem
+ring_list_adddouble_gc
+ring_list_setstring_gc
+Type: Item *
+pItem
+Type: String *
+pString
+ring_list_setstring2_gc
+Type: Item *
+pItem
+Type: String *
+pString
+ring_list_addstring_gc
+ring_list_addstring2_gc
+ring_list_newlist_gc
+Type: Item *
+pItem
+ring_list_setlist_gc
+Type: Item *
+pItem
+ring_list_newlistbyptr_gc
+Type: Item *
+pItem
+ring_list_getlist_gc
+Type: Item *
+pItem
+Type: List *
+pList2
+ring_list_setfuncpointer_gc
+Type: Item *
+pItem
+ring_list_addfuncpointer_gc
+ring_list_isfuncpointer_gc
+ring_list_insertitem_gc
+Type: Items *
+pItems, *pPos
+ring_list_insertint_gc
+ring_list_insertdouble_gc
+ring_list_insertpointer_gc
+ring_list_insertstring_gc
+ring_list_insertstring2_gc
+ring_list_insertfuncpointer_gc
+ring_list_insertlist_gc
+Type: Item *
+pItem
+Type: List *
+pList2
+ring_list_isiteminsidelist_gc
+Type: unsigned int
+x
+Type: Item *
+pItem2
+Type: List *
+pList2
+ring_list_deliteminsidelist_gc
+Type: unsigned int
+x
+Type: Item *
+pItem2
+Type: List *
+pList2
+ring_list_getitemcontainer_gc
+Type: Items *
+pItems
+Type: unsigned int
+x
+ring_list_isstring_gc
+ring_list_isnumber_gc
+ring_list_islist_gc
+ring_list_ispointer_gc
+ring_list_findstring_gc
+Type: unsigned int
+x,nCount
+Type: List *
+pList2
+ring_list_finddouble_gc
+Type: unsigned int
+x,nCount
+Type: List *
+pList2
+ring_list_findpointer_gc
+Type: unsigned int
+x
+ring_list_findlistref_gc
+Type: unsigned int
+x,nCount
+Type: List *
+pList2, *pList3
+ring_list_sortnum_gc
+Type: unsigned int
+x,y,nMid
+Type: double
+nMidvalue
+ring_list_sortstr_gc
+Type: unsigned int
+x,y,nMid
+Type: const char *
+pMidvalue
+ring_list_binarysearchnum_gc
+Type: unsigned int
+nFirst,nMid,nLast
+ring_list_binarysearchstr_gc
+Type: unsigned int
+nFirst,nMid,nLast
+Type: int
+nRes
+ring_list_swap_gc
+Type: Item *
+pItem
+Type: Items *
+pItems, *pItems2
+ring_list_genarray_gc
+Type: unsigned int
+x
+Type: Item **
+pArray
+Type: Items *
+pItems
+ring_list_deletearray_gc
+ring_list_genhashtable_gc
+Type: unsigned int
+x
+ring_list_genhashtable2_gc
+Type: unsigned int
+x
+Type: List *
+pList2
+ring_list_swaptwolists_gc
+Type: List
+pTempList
+ring_list_new
+ring_list_genarray
+ring_list_delete
+ring_list_deletearray
+ring_list_newitem
+ring_list_deleteitem
+ring_list_getitem
+ring_list_gettype
+ring_list_setint
+ring_list_addint
+ring_list_setpointer
+ring_list_addpointer
+ring_list_setfuncpointer
+ring_list_addfuncpointer
+ring_list_isfuncpointer
+ring_list_setdouble
+ring_list_adddouble
+ring_list_setstring
+ring_list_setstring2
+ring_list_addstring
+ring_list_addstring2
+ring_list_newlist
+ring_list_setlist
+ring_list_copy
+ring_list_deleteallitems
+ring_list_getlist
+ring_list_isstring
+ring_list_isnumber
+ring_list_islist
+ring_list_ispointer
+ring_list_insertitem
+ring_list_insertint
+ring_list_insertdouble
+ring_list_insertpointer
+ring_list_insertstring
+ring_list_insertstring2
+ring_list_insertfuncpointer
+ring_list_insertlist
+ring_list_sortstr
+ring_list_genhashtable
+ring_list_genhashtable2
+ring_list_findstring
+ring_list_finddouble
+ring_list_findpointer
+ring_list_swap
+ring_list_swaptwolists
+ring_list_findinlistofobjs_gc
+Type: unsigned int
+x,nCount,nPos
+Type: List *
+pList2
+ring_list_findcpointer_gc
+Type: unsigned int
+x,nCount
+Type: List *
+pList2, *pList3
+ring_list_getdoublecolumn_gc
+Type: unsigned int
+nPos
+ring_list_getstringcolumn_gc
+Type: unsigned int
+nPos
+Type: static char
+nullstring[]
+ring_list_addcustomringpointer_gc
+Type: Item *
+pItem
+ring_list_addringpointer_gc
+ring_list_addcpointer_gc
+Type: List *
+pList2
+ring_list_print_gc
+ring_list_print2_gc
+Type: unsigned int
+x,t,nSize
+Type: double
+y
+Type: const char *
+cStr
+Type: List *
+pList2
+Type: char
+cOptions[RING_SMALLBUF]
+Type: char
+cString[RING_MEDIUMBUF]
+ring_list_printobj_gc
+Type: List *
+pList2,*pList3
+Type: unsigned int
+x
+Type: char
+cStr[RING_MEDIUMBUF]
+ring_list_isobject_gc
+ring_list_iscpointerlist_gc
+ring_list_cpointercmp_gc
+ring_list_addringpointer
+ring_list_addcpointer
+ring_list_print
+ring_list_print2
+ring_list_printobj
+ring_list_isobject
+ring_list_iscpointerlist
+ring_list_cpointercmp

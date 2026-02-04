@@ -1,0 +1,14 @@
+getter
+setter
+nice
+getter
+setter
+good
+getter
+setter
+great
+getter
+setter
+getter
+-4
+0

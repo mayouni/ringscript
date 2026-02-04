@@ -1,0 +1,112 @@
+ring_vm_loadfunc
+ring_vm_loadfunc2
+Type: List *
+pList, *pList2, *pOptionalFunctions
+Type: int
+y, nPos
+Type: FuncCall *
+pFuncCall
+Type: CFunction *
+pCFunc
+Type: CFunction
+vCFunc
+ring_vm_call
+ring_vm_call2
+Type: List *
+pList
+Type: FuncCall *
+pFuncCall
+ring_vm_aftercfunction
+ring_vm_preparecallmethod
+Type: List *
+pList
+ring_vm_return
+Type: FuncCall *
+pFuncCall
+Type: void *
+pThisObject, *pCallerThisObject
+Type: int
+lThisCheck
+ring_vm_returnn
+ring_vm_returnnull
+ring_vm_newfunc
+Type: unsigned int
+x,nSP,nMax,lFreeParameter
+Type: List *
+aRefList,*pVar,*pRef
+Type: char *
+pParameter
+Type: const char *
+cParameters
+Type: char
+cPara[RING_FUNCPARA_EXPECTEDSIZE]
+Type: FuncCall *
+pFuncCall
+ring_vm_blockflag
+ring_vm_blockflag2
+Type: List *
+pList
+ring_vm_removeblockflag
+Type: List *
+pList
+ring_vm_movetoprevscope
+Type: Item *
+pItem
+Type: List *
+pList,*pList2,*pList3
+ring_vm_createtemplist
+Type: List *
+pList, *pList2
+Type: int
+nID
+Type: unsigned int
+x, lFound
+ring_vm_anonymous
+Type: char *
+cStr
+Type: FuncCall *
+pFuncCall
+Type: char
+lCanCallAsMethod
+Type: List *
+pList
+ring_vm_prevtempmem
+Type: List *
+pTemp
+Type: FuncCall *
+pFuncCall
+Type: int
+x
+ring_vm_freetemplistsins
+ring_vm_timetofreetemplists
+ring_vm_freetemplists
+Type: List *
+pTempMem, *pList, *pList2
+Type: unsigned int
+x,x2,lFound,nStart,lListsDeleted
+Type: FuncCall *
+pFuncCall
+ring_vm_retitemref
+Type: FuncCall *
+pFuncCall
+ring_vm_funccallnew
+Type: FuncCall *
+pFuncCall
+ring_vm_funccalldelete
+Type: FuncCall *
+pFuncCall
+ring_vm_funccalluseloadfuncp
+ring_vm_funccallbeforecall
+Type: FuncCall *
+pFuncCall
+ring_vm_funccallparacount
+Type: FuncCall *
+pFuncCall
+Type: unsigned int
+x
+ring_vm_optionalfunc
+Type: VM *
+pVM
+ring_vm_findfuncusinghashtable
+Type: List *
+pFuncList

@@ -1,0 +1,38 @@
+ring_vm_callfuncwithouteval
+Type: unsigned int
+nPC
+ring_vm_callfunction
+Type: unsigned int
+nCurrentFuncCall
+ring_vm_runcode
+Type: unsigned int
+nEvalReturnPC,lEvalReallocationFlag,nPC,nRunVM,nSP,nFuncSP,nCFuncSP,nCFuncParaCount,nLineNumber
+Type: List *
+pStackList
+ring_vm_eval
+Type: unsigned int
+nPC,nCont,nLastPC,nRunVM,x,nSize,nMark,nIns,lUpdate
+Type: unsigned int
+aPara[2]
+Type: Scanner *
+pScanner
+Type: List *
+pIR
+ring_vm_returneval
+Type: unsigned int
+aPara[2]
+ring_vm_mainloopforeval
+Type: unsigned int
+nDontDelete,nType,nOut,nSP,nFuncSP,nCFuncSP,nCFuncParaCount,nInClassRegion,nInsideEval,nStartPC
+Type: List *
+pStackList
+Type: double
+nNumber
+Type: String *
+pString
+Type: void *
+pPointer, *pAssignment
+ring_vm_cleanevalcode
+ring_vm_useextrabytecode
+Type: unsigned int
+x

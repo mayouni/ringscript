@@ -1,0 +1,23 @@
+ring_vm_jumpfor
+Type: double
+nStart,nEnd,nStep
+ring_vm_jumpzero
+Type: List *
+pList
+Type: Item *
+pItem
+ring_vm_jumpone
+Type: List *
+pList
+Type: Item *
+pItem
+ring_vm_jumpone2
+Type: List *
+pList
+Type: Item *
+pItem
+ring_vm_jumpzero2
+Type: List *
+pList
+Type: Item *
+pItem

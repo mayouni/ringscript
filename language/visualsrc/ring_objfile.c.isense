@@ -1,0 +1,91 @@
+ring_objfile_h
+RING_OBJFILE_READFROMFILE
+RING_OBJFILE_READFROMSTRING
+RING_OBJFILE_ITEMSPERFUNCTION
+RING_OBJFILE_ITEMSPERFUNCTION2
+RING_OBJFILE_VERSION
+RING_OBJFILE_VERSIONSTRINGSIZE
+RING_OBJFILE_MINSIZE
+RING_OBJFILE_KEYSIZE
+RING_OBJFILE_KEYSTRSIZE
+RING_OBJFILE_KEYSTRING
+RING_OBJFILE_FILETYPESTR
+RING_OBJFILE_FILETYPESTRCOUNT
+ring_objfile_writefile
+Type: char
+cFileName[RING_HUGEBUF]
+ring_objfile_writecontent
+fObj
+ring_objfile_writelist
+Type: List *
+pList2
+Type: unsigned int
+x,x2,lCont
+Type: char *
+cString
+Type: char
+cKey[RING_OBJFILE_KEYSTRSIZE]
+ring_objfile_readfile
+ring_objfile_readstring
+ring_objfile_readfromsource
+Type: List *
+pListFunctions, *pListClasses, *pListPackages, *pListCode, *pListFiles, *pListStack
+Type: int
+lFail
+ring_objfile_processfile
+fObj
+Type: long int
+nSize
+Type: size_t
+nCount
+Type: char *
+cBuffer
+Type: unsigned int
+lOutput
+ring_objfile_processstring
+Type: signed char
+c
+Type: int
+nActiveList,nValue,nBraceEnd,nOutput
+Type: double
+dValue
+Type: char *
+cString, *cData
+Type: char
+cKey[RING_OBJFILE_KEYSTRSIZE]
+Type: char
+cFileType[RING_MEDIUMBUF]
+Type: List *
+pList
+ring_objfile_xorstring
+Type: unsigned int
+x
+ring_objfile_readc
+Type: unsigned int
+x
+ring_objfile_getc
+ring_objfile_writeCfile
+fCode, *fCode2
+Type: char
+cCodeFileName[RING_HUGEBUF]
+Type: int
+nSize,x,nFunction
+ring_objfile_writelistcode
+Type: List *
+pList2
+Type: unsigned int
+x,x2,x3,nMax
+Type: char
+cList[RING_SMALLBUF]
+Type: char *
+cString
+Type: char
+cFileName[RING_HUGEBUF]
+ring_objfile_writebytecode
+Type: unsigned int
+x,x2,nReg,x3,nMax
+Type: List *
+pIns
+Type: char *
+cString
+ring_objfile_updateclassespointers

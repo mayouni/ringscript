@@ -1,0 +1,35 @@
+ring_items_h
+Parent: Items
+Type: struct Item *
+pValue
+Type: struct Items *
+pNext
+Type: struct Items *
+pPrev
+Type: unsigned char
+lDelete
+END:
+Type: Items
+struct Items
+Type: Items
+Mark: ->
+struct Items *
+Type: Items
+Mark: ->
+Items *
+ring_items_new_gc
+Type: Items *
+pItems
+Type: char *
+pMem
+Type: Item *
+pItem
+ring_items_delete_gc
+Type: char *
+pMem
+Type: Item *
+pItem
+ring_items_print_gc
+ring_items_new
+ring_items_delete
+ring_items_print

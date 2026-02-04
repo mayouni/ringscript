@@ -1,0 +1,25 @@
+1
+2
+3
+4
+********************
+Pass Error!
+********************
+one
+one
+********************
+getCatch()
+getDone()
+getOther()
+getElse()
+catch: NULL
+done: NULL
+other: NULL
+else: NULL
+
+getcatch
+getdone
+getother
+getelse
+
+********************

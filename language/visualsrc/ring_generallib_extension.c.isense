@@ -1,0 +1,415 @@
+ring_generallib_extension_h
+C_EXPRCODESIZE
+ring_vm_generallib_loadfunctions
+ring_vm_generallib_version
+ring_vm_generallib_nothing
+ring_vm_generallib_optionalfunc
+Type: RingState *
+pRingState
+Type: VM *
+pVM
+Type: const char *
+cFunc
+Type: List *
+pList
+ring_vm_generallib_isstring
+ring_vm_generallib_isnumber
+ring_vm_generallib_islist
+Type: VM *
+pVM
+ring_vm_generallib_type
+Type: List *
+pList
+ring_vm_generallib_isnull
+Type: char *
+cStr
+ring_vm_generallib_isobject
+Type: VM *
+pVM
+ring_vm_generallib_ispointer
+ring_vm_generallib_hex
+cStr
+ring_vm_generallib_dec
+Type: RING_UNSIGNEDLONGLONG
+x
+Type: int
+nOutput
+ring_vm_generallib_number
+Type: VM *
+pVM
+Type: double
+x
+Type: int
+y, nSize, lHex, lSign, lDot
+Type: const char *
+cStr
+ring_vm_generallib_string
+Type: double
+nNum1
+Type: char
+cStr[RING_MEDIUMBUF]
+ring_vm_generallib_str2hex
+Type: unsigned char *
+cString
+Type: int
+x,nMax
+Type: char *
+cString2
+Type: unsigned char
+bVal
+Type: static const char
+cHexChars[]
+ring_vm_generallib_hex2str_hex2nibble
+Type: unsigned char
+bVal
+ring_vm_generallib_hex2str
+Type: const char *
+cString
+Type: char *
+cString2
+Type: int
+x,i,nMax
+Type: unsigned char
+bVal, bNibble
+ring_vm_generallib_str2list
+Type: char *
+cStr
+Type: int
+x,nSize,nStart
+Type: List *
+pList
+ring_vm_generallib_list2str
+Type: List *
+pList
+Type: String *
+pString
+Type: unsigned int
+x,nStart,nMax
+cStr
+ring_vm_generallib_str2hexcstyle
+cStr
+Type: unsigned char *
+cString
+Type: int
+x,nMax
+Type: char *
+cString2
+ring_vm_generallib_ascii
+Type: int
+x
+Type: unsigned char *
+cString
+ring_vm_generallib_char
+Type: int
+x
+Type: char
+cStr[RING_CHARBUF]
+ring_vm_generallib_left
+Type: double
+nNum1
+Type: const char *
+cStr
+Type: unsigned int
+x,nNewSize
+Type: char *
+cString
+ring_vm_generallib_right
+Type: double
+nNum1
+Type: const char *
+cStr
+Type: unsigned int
+x,nSize,nNewSize
+Type: char *
+cString
+ring_vm_generallib_trim
+Type: const char *
+cStr
+Type: int
+x,nSize,nPos1,nPos2
+Type: char *
+cNewStr
+ring_vm_generallib_copy
+Type: const char *
+cStr
+Type: int
+x,nSize,nStrSize,nPos,i
+Type: char *
+cRetStr
+ring_vm_generallib_substr
+Type: char *
+cStr,*cStr2,*cStr3,*cString
+Type: double
+nNum1,nNum2
+Type: unsigned int
+nParaCount,x,nPos,nMark,nSize,nTransform,nSize2
+Type: String *
+pString
+ring_vm_generallib_lower
+ring_vm_generallib_upper
+ring_vm_generallib_lines
+Type: const char *
+cStr
+Type: int
+x,nSize,nCount
+ring_vm_generallib_strcmp
+ring_vm_generallib_len
+Type: VM *
+pVM
+ring_vm_generallib_eval
+Type: const char *
+cStr
+Type: VM *
+pVM
+ring_vm_generallib_raise
+ring_vm_generallib_assert
+ring_vm_generallib_filename
+Type: VM *
+pVM
+Type: FuncCall *
+pFuncCall
+Type: int
+lFunctionCall,x
+Type: const char *
+cOldFile
+Type: const char *
+cFile
+ring_vm_generallib_prevfilename
+ring_vm_generallib_isfunc
+Type: char *
+cStr
+Type: int
+nSize,x
+ring_vm_generallib_isalnum
+ring_vm_generallib_isalpha
+ring_vm_generallib_iscntrl
+ring_vm_generallib_isdigit
+ring_vm_generallib_isgraph
+ring_vm_generallib_islower
+ring_vm_generallib_isprint
+ring_vm_generallib_ispunct
+ring_vm_generallib_isspace
+ring_vm_generallib_isupper
+ring_vm_generallib_isxdigit
+ring_vm_generallib_callgc
+ring_vm_generallib_varptr
+Type: const char *
+cStr , *cStr2
+ring_vm_generallib_intvalue
+Type: const char *
+cStr
+ring_vm_generallib_object2pointer
+Type: List *
+pList
+ring_vm_generallib_pointer2object
+Type: List *
+pList
+Type: VM *
+pVM
+ring_vm_generallib_nullpointer
+ring_vm_generallib_space
+Type: char *
+cString
+Type: unsigned int
+nStrSize
+ring_vm_generallib_ptrcmp
+Type: List *
+pList, *pList2
+ring_vm_generallib_pointer2string
+ring_vm_generallib_setpointer
+Type: List *
+pList
+Type: RING_UNSIGNEDINTEGERPOINTER
+nNum
+ring_vm_generallib_getpointer
+Type: List *
+pList
+Type: RING_UNSIGNEDINTEGERPOINTER
+nNum
+ring_vm_generallib_memcpy
+Type: void *
+pDest
+Type: const void *
+pSrc
+Type: size_t
+nNum
+Type: List *
+pList
+ring_vm_generallib_state_init
+Type: RingState *
+pState
+ring_vm_generallib_state_runcode
+Type: RingState *
+pRingState
+ring_vm_generallib_state_delete
+ring_vm_generallib_state_runfile
+ring_vm_generallib_state_findvar
+Type: RingState *
+pRingState
+Type: List *
+pList
+ring_vm_generallib_state_newvar
+Type: RingState *
+pRingState
+Type: List *
+pList
+ring_vm_generallib_state_runobjectfile
+ring_vm_generallib_state_main
+Type: char *
+cStr
+Type: int
+nArgc
+Type: char *
+pArgv[2]
+ring_vm_generallib_state_setvar
+Type: List *
+pList, *pList2, *pList3
+Type: VM *
+pVM
+Type: RingState *
+pRingSubState
+ring_vm_generallib_state_new
+Type: RingState *
+pState
+ring_vm_generallib_state_mainfile
+Type: RingState *
+pRingState
+Type: char *
+cStr
+Type: int
+nArgc, lOutput
+Type: char *
+pArgv[2]
+ring_vm_generallib_state_filetokens
+Type: RingState *
+pState
+Type: char *
+cFile
+Type: List *
+pList
+Type: int
+lCase,lComments,lScannerCommands
+ring_vm_generallib_state_stringtokens
+Type: RingState *
+pState
+Type: char *
+cString
+Type: List *
+pList
+Type: int
+lCase,lComments,lScannerCommands
+ring_vm_generallib_state_scannererror
+Type: RingState *
+pState
+ring_vm_generallib_state_runcodeatins
+Type: RingState *
+pRingState
+Type: unsigned int
+nPC
+ring_vm_generallib_state_resume
+Type: RingState *
+pRingState
+ring_vm_generallib_see
+Type: char *
+cString
+Type: unsigned int
+x
+cStr
+Type: List *
+pList
+Type: VM *
+pVM
+ring_vm_generallib_give
+Type: int
+x
+cLine
+ring_vm_generallib_print
+Type: List *
+pList
+Type: char
+cStr[RING_MEDIUMBUF]
+Type: VM *
+pVM
+ring_vm_generallib_print2str
+ring_vm_generallib_puts
+Type: List *
+pList
+Type: char
+cStr[RING_MEDIUMBUF]
+Type: VM *
+pVM
+ring_vm_generallib_getnumber
+Type: int
+x
+cLine
+Type: double
+nNum
+ring_vm_generallib_customprint
+cStr
+Type: int
+x,nSize,nPos
+cCode
+Type: char *
+cString
+Type: String *
+pRingCode
+Type: VM *
+pVM
+ring_vm_generallib_input
+Type: char
+cInput[RING_LARGEBUF]
+Type: char *
+cLine
+Type: int
+nSize
+ring_vm_generallib_getchar
+Type: char
+cStr[RING_CHARBUF]
+ring_vm_generallib_clock
+Type: clock_t
+nNum1
+ring_vm_generallib_clockspersecond
+ring_vm_generallib_time
+Type: time_t
+vTimer
+Type: char
+cBuffer[RING_SMALLBUF]
+Type: struct tm*
+vTimeInfo
+ring_vm_generallib_timelist
+Type: time_t
+vTimer
+Type: char
+cBuffer[RING_SMALLBUF]
+Type: struct tm*
+vTimeInfo
+Type: List *
+pList
+ring_vm_generallib_date
+Type: time_t
+vTimer
+Type: char
+cBuffer[RING_SMALLBUF]
+Type: struct tm*
+vTimeInfo
+ring_vm_generallib_adddays
+Type: const unsigned char *
+cStr
+Type: char
+cBuffer[RING_SMALLBUF]
+Type: int
+x,nDay,nMonth,nYear,nDaysInMonth
+Type: int
+aDaysInMonth[12]
+ring_vm_generallib_diffdays
+Type: const unsigned char *
+cStr, *cStr2
+Type: struct tm
+vTimeInfo,vTimeInfo2
+Type: time_t
+vTimer,vTimer2
+Type: char
+cBuffer[RING_SMALLBUF]
+Type: double
+nResult
+ring_vm_generallib_adddays_isleapyear

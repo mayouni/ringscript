@@ -1,0 +1,214 @@
+ring_api_h
+RING_API_MISS1PARA
+RING_API_MISS2PARA
+RING_API_MISS3PARA
+RING_API_MISS4PARA
+RING_API_BADPARATYPE
+RING_API_BADPARACOUNT
+RING_API_BADPARARANGE
+RING_API_BADPARALENGTH
+RING_API_BADPARAVALUE
+RING_API_NOTPOINTER
+RING_API_NULLPOINTER
+RING_API_EMPTYLIST
+RING_API_INTERNALFAILURE
+RING_API_RANGEEXCEEDED
+RING_OUTPUT_RETLIST
+RING_OUTPUT_RETLISTBYREF
+RING_OUTPUT_RETNEWREF
+RING_VARVALUE_INT
+RING_VARVALUE_FLOAT
+RING_API_MINLISTSIZEFORUSINGBLOCKS
+RING_API_STATE
+RING_API_PARACOUNT
+RING_API_GETSTRING(nPara)
+RING_API_GETNUMBER(nPara)
+RING_API_GETPOINTER(nPara)
+RING_API_ISSTRING(nPara)
+RING_API_ISNUMBER(nPara)
+RING_API_ISPOINTER(nPara)
+RING_API_GETPOINTERTYPE(nPara)
+RING_API_ERROR(cError)
+RING_API_ISLIST(nPara)
+RING_API_GETLIST(nPara)
+RING_API_RETNUMBER(nNumber)
+RING_API_RETSTRING(cStr)
+RING_API_RETSTRING2(cStr,nSize)
+RING_API_RETSTRINGSIZE(nSize)
+RING_API_RETLIST(pList)
+RING_API_NEWLIST
+RING_API_RETCPOINTER(pPtr,cType)
+RING_API_GETCPOINTER(nPara,cType)
+RING_API_GETSTRINGRAW
+RING_API_GETSTRINGSIZE(nPara)
+RING_API_SETNULLPOINTER(nPara)
+RING_API_GETCPOINTERSTATUS(nPara)
+RING_API_ISCPOINTERNOTASSIGNED(nPara)
+RING_API_VARPOINTER(cName,cType)
+RING_API_INTVALUE(nPara)
+RING_API_FLOATVALUE(nPara)
+RING_API_GETINTPOINTER(nPara)
+RING_API_GETFLOATPOINTER(nPara)
+RING_API_GETDOUBLEPOINTER(nPara)
+RING_API_ACCEPTINTVALUE(nPara)
+RING_API_ACCEPTFLOATVALUE(nPara)
+RING_API_IGNORECPOINTERTYPE
+RING_API_ISCPOINTER(nPara)
+RING_API_ISOBJECT(nPara)
+RING_API_GETCPOINTER2POINTER(nPara,cType)
+RING_API_RETMANAGEDCPOINTER(pPtr,cType,pFreeFunc)
+RING_API_RETLISTBYREF(pList)
+RING_API_RETNEWREF(pList)
+ring_vm_funcregister(cName,pFunc)
+RING_API_REGISTER(cName,pFunc)
+RING_API_MALLOC(nSize)
+RING_API_CALLOC(nCount,nSize)
+RING_API_REALLOC(pPtr,nOldSize,nNewSize)
+RING_API_FREE(pPtr)
+RING_API_FREEFUNC
+RING_FUNC(cName)
+RING_LIBINIT
+RING_API_GETCHARPOINTER(nPara)
+RING_API_ISLISTORNULL(nPara)
+RING_API_IGNORETHISDIMENSION
+RING_API_NEWLISTUSINGBLOCKS1D(nSize)
+RING_API_NEWLISTUSINGBLOCKS2D(nRows,nCols)
+RING_API_CALLERSCOPE
+RING_API_SCOPESCOUNT
+ring_vm_loadcfunctions
+ring_vm_funcregister2
+Type: CFunction *
+pCFunc
+ring_vm_api_isstring
+Type: VM *
+pVM
+ring_vm_api_isnumber
+Type: VM *
+pVM
+ring_vm_api_isptr
+Type: VM *
+pVM
+ring_vm_api_setptr
+Type: VM *
+pVM
+ring_vm_api_getstring
+Type: VM *
+pVM
+ring_vm_api_getstringsize
+Type: VM *
+pVM
+ring_vm_api_getnumber
+Type: VM *
+pVM
+ring_vm_api_getpointer
+Type: VM *
+pVM
+ring_vm_api_getpointertype
+Type: VM *
+pVM
+ring_vm_api_getlist
+Type: int
+nType
+Type: Item *
+pItem
+Type: List *
+pList
+ring_vm_api_islist
+Type: int
+nType
+ring_vm_api_islistornull
+Type: int
+nType
+ring_vm_api_ispointer
+Type: List *
+pList, *pList2
+Type: VM *
+pVM
+ring_vm_api_retlist
+ring_vm_api_retcpointer2
+Type: List *
+pList
+Type: Item *
+pItem
+ring_vm_api_getcpointer
+Type: List *
+pList
+ring_vm_api_setcpointernull
+Type: List *
+pList
+ring_vm_api_varptr
+Type: VM *
+pVM
+Type: List *
+pList, *pActiveMem
+Type: Item *
+pItem
+ring_vm_api_varvalue
+Type: VM *
+pVM
+Type: List *
+pList, *pActiveMem
+Type: Item *
+pItem
+ring_vm_api_iscpointerlist
+ring_vm_api_iscpointer
+ring_vm_api_isobject
+Type: VM *
+pVM
+ring_vm_api_cpointercmp
+ring_vm_api_getcpointer2pointer
+Type: List *
+pList
+Type: Item *
+pItem
+ring_vm_api_retcpointer
+ring_vm_api_retlist2
+Type: List *
+pRealList,*pTempMem,*pVariableList
+Type: VM *
+pVM
+ring_vm_api_intvalue
+ring_vm_api_floatvalue
+ring_vm_api_newlist
+Type: List *
+pList
+Type: VM *
+pVM
+ring_vm_api_newlistusingblocks
+Type: List *
+pList, *pList2, *pList3, *pSubLists
+Type: unsigned int
+x, y, lUseBlocks
+Type: Items *
+pItems
+Type: Item *
+pItem
+Type: VM *
+pVM
+ring_vm_api_callerscope
+Type: VM *
+pVM
+ring_vm_api_scopescount
+Type: VM *
+pVM
+ring_vm_api_paracount
+Type: VM *
+pVM
+ring_vm_api_ignorecpointertypecheck
+Type: VM *
+pVM
+ring_vm_api_retnumber
+Type: VM *
+pVM
+ring_vm_api_retstring
+Type: VM *
+pVM
+ring_vm_api_retstring2
+Type: VM *
+pVM
+ring_vm_api_retstringsize
+Type: VM *
+pVM
+ring_vm_api_getstringraw
+Type: VM *
+pVM

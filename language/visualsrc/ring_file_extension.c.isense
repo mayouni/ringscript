@@ -1,0 +1,213 @@
+ring_file_extension_h
+RING_VM_FILE_BUFFERSIZE
+RING_VM_POINTER_FILE
+RING_VM_POINTER_FILEPOS
+RING_API_BADDIRECTORY
+RING_NUMDATA_SIZE
+RING_PATHTYPE_NOTKNOWN
+RING_PATHTYPE_NOTFOUND
+RING_PATHTYPE_FILE
+RING_PATHTYPE_DIR
+Parent: NumData
+Type: int
+iNumber
+Type: float
+fNumber
+Type: double
+dNumber
+cBytes
+END:
+Type: NumData
+NumData
+S_ISREG(m)
+S_ISDIR(m)
+stat _stat
+ring_vm_file_loadfunctions
+ring_vm_file_fopen
+Type: FILE *
+pFile
+ring_vm_file_fclose
+Type: FILE *
+pFile
+ring_vm_file_fflush
+Type: FILE *
+pFile
+ring_vm_file_freopen
+Type: FILE *
+pFile
+Type: FILE *
+pFile2
+ring_vm_file_tempfile
+Type: FILE *
+pFile
+ring_vm_file_fseek
+Type: int
+nResult
+Type: FILE *
+pFile
+ring_vm_file_ftell
+Type: FILE *
+pFile
+ring_vm_file_rewind
+Type: FILE *
+pFile
+ring_vm_file_fgetpos
+Type: fpos_t *
+pPos
+Type: int
+nResult
+Type: FILE *
+pFile
+ring_vm_file_fsetpos
+Type: int
+nResult
+Type: FILE *
+pFile
+Type: fpos_t *
+pPos
+ring_vm_file_clearerr
+Type: FILE *
+pFile
+ring_vm_file_feof
+Type: FILE *
+pFile
+ring_vm_file_ferror
+Type: FILE *
+pFile
+ring_vm_file_perror
+ring_vm_file_rename
+ring_vm_file_remove
+ring_vm_file_fgetc
+Type: int
+c
+cStr
+Type: FILE *
+pFile
+ring_vm_file_fgets
+Type: char *
+cStr
+Type: int
+nSize
+Type: FILE *
+pFile
+Type: char *
+cResult
+ring_vm_file_fputc
+Type: int
+c
+Type: FILE *
+pFile
+ring_vm_file_fputs
+Type: int
+c
+Type: FILE *
+pFile
+ring_vm_file_ungetc
+Type: int
+c
+Type: FILE *
+pFile
+ring_vm_file_fread
+Type: char *
+cStr
+Type: int
+nSize
+Type: int
+nResult
+Type: FILE *
+pFile
+ring_vm_file_fwrite
+Type: int
+nResult
+Type: FILE *
+pFile
+ring_vm_file_read
+Type: FILE *
+pFile
+Type: long int
+nSize
+Type: size_t
+nCount
+Type: char *
+cBuffer
+ring_vm_file_write
+Type: FILE *
+pFile
+ring_vm_file_int2bytes
+Type: NumData
+uData
+ring_vm_file_float2bytes
+Type: NumData
+uData
+ring_vm_file_double2bytes
+Type: NumData
+uData
+ring_vm_file_bytes2int
+Type: NumData
+uData
+Type: int
+x
+ring_vm_file_bytes2float
+Type: NumData
+uData
+Type: int
+x
+ring_vm_file_bytes2double
+Type: NumData
+uData
+Type: int
+x
+ring_vm_file_freefunc
+Type: FILE *
+pFile
+ring_fexists_general
+Type: struct _stat
+sb
+Type: wchar_t
+cPath[MAX_PATH]
+Type: int
+nLen1,nFileNameSize
+Type: struct stat
+sb
+ring_direxists
+Type: struct stat
+sb
+ring_getpathtype
+Type: struct stat
+sb
+ring_getfilesize
+Type: struct stat
+sb
+ring_vm_file_fexists
+ring_vm_file_direxists
+ring_vm_file_getpathtype
+ring_vm_file_getfilesize
+ring_vm_file_dir
+Type: const char *
+cStr
+Type: List *
+pList, *pList2
+Type: WIN32_FIND_DATA
+fdFile
+Type: HANDLE
+hFind
+Type: String *
+pString
+Type: DIR *
+pDir
+Type: struct dirent *
+pDirent
+Type: struct stat
+st
+Type: char
+cPath[FILENAME_MAX]
+Type: char
+cCurrentDir[FILENAME_MAX]
+ring_vm_file_tempname
+_tmpfile
+Type: errno_t
+error
+Type: char
+_tmpfile[RING_SMALLBUF]
+Type: int
+fd

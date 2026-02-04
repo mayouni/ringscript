@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>RingScript Editor</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <style>
+        :root { 
+            --border: #333; 
+            --code-bg: #23272e; 
+            --sidebar-bg: #2c3e50; 
+            --accent: #1976d2; 
+            --terminal-green: #4af626;
+            --code-color: #dcdfe4; 
+            --font-main: 'Consolas', 'Monaco', 'Courier New', monospace;
+            --line-height: 1.6;
+            --font-size: 15px;
+        }
+        
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            background: #1e1e1e; 
+            color: #eee; 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+        }
+
+        header { 
+            background: var(--sidebar-bg); 
+            padding: 8px 20px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            z-index: 100;
+        }
+
+        .main { display: flex; flex: 1; overflow: hidden; }
+
+        .editor-container { display: flex; flex-direction: column; background: var(--code-bg); min-width: 150px; }
+        .code-inspector { display: flex; flex: 1; overflow: hidden; }
+
+        .line-numbers { 
+            width: 55px; 
+            text-align: right; 
+            padding: 20px 12px 20px 0; 
+            color: #636d83; 
+            background: rgba(0,0,0,0.15); 
+            user-select: none;
+            overflow: hidden;
+            font-family: var(--font-main);
+            font-size: var(--font-size);
+            line-height: var(--line-height);
+        }
+
+        .textarea-wrapper { flex: 1; position: relative; }
+
+        #codeEditor {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            color: var(--code-color);
+            border: none;
+            padding: 20px;
+            font-family: var(--font-main);
+            font-size: var(--font-size);
+            line-height: var(--line-height);
+            outline: none;
+            resize: none;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .resizer { width: 4px; cursor: col-resize; background: #333; flex-shrink: 0; transition: background 0.2s; }
+        .resizer:hover { background: var(--accent); }
+
+        .console-container { flex: 1; min-width: 150px; background: #000; display: flex; flex-direction: column; }
+        #console-output { 
+            flex: 1; 
+            padding: 20px; 
+            font-family: var(--font-main);
+            font-size: 14px; 
+            overflow-y: auto; 
+            white-space: pre-wrap; 
+            color: var(--terminal-green); 
+            line-height: 1.4; 
+        }
+
+        .btn-group { display: flex; gap: 10px; align-items: center; }
+        
+        button { 
+            border: none; 
+            padding: 8px 18px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        #runBtn { background: var(--accent); color: white; }
+        #runBtn:hover { background: #1565c0; }
+        #runBtn:disabled { background: #444; opacity: 0.5; cursor: not-allowed; }
+
+        .btn-clear { background: #455a64; color: #cfd8dc; font-weight: normal; }
+        .btn-clear:hover { background: #546e7a; color: white; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="font-weight: 800; letter-spacing: 0.5px; font-size: 1.1rem;">
+        RingScript <span style="font-weight: 300; opacity: 0.6;">Editor</span>
+    </div>
+    <div class="btn-group">
+        <button id="runBtn" disabled onclick="executeRing()">EXECUTE</button>
+        <button class="btn-clear" onclick="clearConsole()">CLEAN CONSOLE</button>
+    </div>
+</header>
+
+<div class="main" id="layoutContainer">
+    <div class="editor-container" id="leftPanel" style="width: 55%;">
+        <div class="code-inspector">
+            <div id="line-numbers" class="line-numbers">1</div>
+            <div class="textarea-wrapper">
+                <textarea id="codeEditor" spellcheck="false">
+# Bienvenue dans RingScript
+see "Moteur opérationnel !" + nl
+
+for i = 1 to 5
+    see "Analyse ligne : " + i + nl
+next</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="resizer" id="dragHandle"></div>
+
+    <div class="console-container">
+        <div id="console-output">Initialisation du moteur...</div>
+    </div>
+</div>
+
+<script>
+    var Module = {
+        onRuntimeInitialized: function() {
+            const btn = document.getElementById('runBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = "EXECUTE";
+            }
+            document.getElementById('console-output').innerText = "RingSript Engine ready.";
+            updateLineNumbers();
+        }
+    };
+
+    function updateLineNumbers() {
+        const editor = document.getElementById('codeEditor');
+        const lines = editor.value.split('\n').length;
+        document.getElementById('line-numbers').innerHTML = 
+            Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+    }
+
+    function syncScroll() {
+        const editor = document.getElementById('codeEditor');
+        const lineNums = document.getElementById('line-numbers');
+        lineNums.scrollTop = editor.scrollTop;
+    }
+
+    function clearConsole() {
+        document.getElementById('console-output').innerText = "";
+    }
+
+    function executeRing() {
+        const code = document.getElementById('codeEditor').value;
+        const out = document.getElementById('console-output');
+        if (typeof Module.ccall === 'function') {
+            try {
+                const result = Module.ccall('run_ring', 'string', ['string'], [code]);
+                out.innerText = result;
+            } catch (e) {
+                out.innerText = "Erreur : " + e.message;
+            }
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const editor = document.getElementById('codeEditor');
+        editor.addEventListener('input', updateLineNumbers);
+        editor.addEventListener('scroll', syncScroll);
+
+        const dragHandle = document.getElementById('dragHandle');
+        const leftPanel = document.getElementById('leftPanel');
+        const layout = document.getElementById('layoutContainer');
+
+        dragHandle.addEventListener('mousedown', (e) => {
+            const moveHandler = (moveEvent) => {
+                const containerWidth = layout.getBoundingClientRect().width;
+                let newWidth = (moveEvent.clientX / containerWidth) * 100;
+                if (newWidth > 15 && newWidth < 85) leftPanel.style.width = newWidth + '%';
+            };
+            const upHandler = () => {
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+            };
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', upHandler);
+        });
+    });
+</script>
+
+<script src="ringscript.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+ring_vm_savestate
+Type: List *
+pThis
+Type: VMState *
+pVMState
+ring_vm_restorestate
+Type: List *
+pThis
+Type: VMState *
+pVMState, *pVMStateForFunc, *pVMStateForObj
+Type: unsigned int
+x
+Type: List *
+aListsToDelete, *pListPointer
+Type: FuncCall *
+pFuncCall
+ring_vm_savestateformethods
+Type: List *
+pThis
+Type: VMState *
+pVMState
+ring_vm_restorestateformethods
+Type: List *
+pThis
+ring_vm_savestatefornewobjects
+Type: List *
+pThis
+Type: VMState *
+pVMState
+ring_vm_restorestatefornewobjects
+Type: List *
+pThis
+Type: VMState *
+pVMState
+ring_vm_newobjectstackpointer
+Type: VMState *
+pVMState
+ring_vm_savestateforbraces
+Type: List *
+pList, *pClass,*pSetProperty
+ring_vm_restorestateforbraces
+Type: List *
+pObject
+Type: int
+lDontRef,lDontRefAgain
+ring_vm_backstate
+ring_vm_savestack
+Type: int
+nSP
+Type: List *
+pList
+Type: Item *
+pItem
+ring_vm_restorestack
+Type: unsigned int
+x
+Type: Item *
+pItem

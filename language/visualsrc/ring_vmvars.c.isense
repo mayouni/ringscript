@@ -1,0 +1,93 @@
+ring_vm_addglobalvariables
+Type: List *
+pList
+Type: int
+x
+ring_vm_newscope
+ring_vm_newscopeid
+ring_vm_deletescope
+Type: List *
+pList
+Type: unsigned int
+x
+ring_vm_findvar
+Type: unsigned int
+x,nMax1
+Type: List *
+pList,*pList2
+ring_vm_findvar2
+Type: unsigned int
+nPC,nType,lPrivateError,nAssignmentPos
+Type: Item *
+pItem
+Type: List *
+pList, *pThis
+ring_vm_newvar
+Type: List *
+pList
+ring_vm_newvar2
+Type: List *
+pList
+ring_vm_addnewnumbervar
+Type: List *
+pList
+ring_vm_addnewstringvar
+Type: List *
+pList
+ring_vm_addnewstringvar2
+Type: List *
+pList
+ring_vm_addnewpointervar
+Type: List *
+pList
+ring_vm_addnewlistvar
+Type: List *
+pList
+ring_vm_newtempvar
+Type: List *
+pList
+ring_vm_addnewcpointervar
+Type: List *
+pList, *pList2
+ring_vm_setvarprivateflag
+ring_vm_getvarprivateflag
+ring_vm_copyscopestolist
+Type: List *
+pNewList
+Type: unsigned int
+x
+ring_vm_notusingvarduringdef
+Type: int
+nCont
+ring_vm_newargcache
+Type: unsigned int
+x
+Type: List *
+pList
+ring_vm_deleteargcache
+Type: unsigned int
+x
+ring_vm_addstringarg
+Type: List *
+pList, *pParent
+ring_vm_addnumberarg
+Type: List *
+pList, *pParent
+ring_vm_addpointerarg
+Type: List *
+pList, *pParent
+ring_vm_addlistarg
+Type: List *
+pList, *pParent
+Type: FuncCall *
+pFuncCall
+ring_vm_newglobalscope
+ring_vm_endglobalscope
+ring_vm_setglobalscope
+ring_vm_getglobalscope
+Type: List *
+pList
+ring_vm_addvarpointertoscopehash
+ring_vm_findvarusinghashtable
+Type: List *
+pList2

@@ -1,0 +1,110 @@
+ring_vm_pushv
+ring_vm_checknull
+Type: List *
+pVar
+Type: String *
+pString
+ring_vm_varpushv
+Type: List *
+pVar, *pList
+ring_vm_loadaddress
+Type: unsigned int
+x,lFound
+ring_vm_assignment
+Type: List *
+pVar,*pList
+Type: String *
+pStr1, *pString
+Type: double
+nNum1
+Type: Item *
+pItem
+Type: unsigned int
+nBeforeEqual, nType
+Type: List *
+pObj
+Type: const char *
+cOP
+Type: void *
+pPtr
+ring_vm_inc
+Type: List *
+pVar
+ring_vm_loadapushv
+ring_vm_newline
+ring_vm_freestack
+Type: unsigned int
+nSP
+ring_vm_setreference
+Type: List *
+pList
+Type: unsigned int
+nType
+Type: void *
+pPointer
+ring_vm_beforeequallist
+Type: String *
+pString
+Type: char
+cStr[RING_MEDIUMBUF]
+Type: int
+nOutput
+Type: List *
+pObj
+Type: const char *
+cOP
+ring_vm_beforeequalitem
+Type: String *
+pString
+Type: char
+cStr[RING_MEDIUMBUF]
+Type: int
+nOutput
+Type: List *
+pObj
+Type: const char *
+cOP
+ring_vm_varcontainsobjhaveoperatormethod
+Type: List *
+pObj
+ring_vm_itemcontainsobjhaveoperatormethod
+Type: List *
+pObj
+ring_vm_plusplus
+Type: List *
+pList, *pObj
+Type: Item *
+pItem
+ring_vm_minusminus
+Type: List *
+pList, *pObj
+Type: Item *
+pItem
+ring_vm_assignmentpointer
+Type: List *
+pList, *pList2
+Type: Item *
+pItem
+Type: unsigned int
+x, lCont
+ring_vm_freeloadaddressscope
+ring_vm_loadaddressfirst
+ring_vm_printstack
+Type: unsigned int
+x,nSP
+ring_vm_len
+Type: unsigned int
+nSize
+Type: List *
+pVar, *pList
+Type: Item *
+pItem
+Type: String *
+pString
+ring_vm_stackswap
+Type: Item
+vTempItem
+ring_vm_isinsideloop
+Type: FuncCall *
+pFuncCall
+ring_vm_isstackpointertoobjstate

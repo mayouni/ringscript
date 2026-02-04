@@ -1,0 +1,433 @@
+ring_vmgcdata
+RING_VM_BITSFORREFCOUNT
+RING_VM_REFCOUNTMAX
+Parent: ListGCData
+Type: void *
+pContainer
+Type: int
+nReferenceCount: RING_VM_BITSFORREFCOUNT
+Type: int
+nTempRC: RING_VM_BITSFORREFCOUNT
+Type: unsigned int
+lCopyByRef: 1
+Type: unsigned int
+lNewRef: 1
+Type: unsigned int
+lDontDelete: 1
+Type: unsigned int
+lDeleteContainerVariable: 1
+Type: unsigned int
+lDontRef: 1
+Type: unsigned int
+lErrorOnAssignment: 1
+Type: unsigned int
+lErrorOnAssignment2: 1
+Type: unsigned int
+lCheckBeforeAssignmentDone: 1
+Type: unsigned int
+lDeletedByParent: 1
+Type: unsigned int
+lDontRefAgain: 1
+Type: unsigned int
+lTrackedList: 1
+Type: unsigned int
+lArgCache: 1
+Type: unsigned int
+nListType: 3
+Type: unsigned int
+lUnusedFlag: 1
+END:
+Type: ListGCData
+struct ListGCData
+Type: ListGCData
+Mark: ->
+struct ListGCData *
+Type: ListGCData
+Mark: ->
+ListGCData *
+ring_pooldata
+RING_USEPOOLMANAGER
+RING_POOLMANAGER_ITEMSINBLOCK
+RING_POOLMANAGER_ITEMSINBLOCKL2
+RING_POOLMANAGER_ITEMSINBLOCKL3
+RING_POOLMANAGER_ITEMSINBLOCKStateLevel
+RING_POOLMANAGER_ITEMSINBLOCK
+RING_POOLMANAGER_ITEMSINBLOCKL2
+RING_POOLMANAGER_ITEMSINBLOCKL3
+RING_POOLMANAGER_ITEMSINBLOCKStateLevel
+RING_POOLMANAGER_NOTFOUND
+RING_POOLMANAGER_ITEMSTRINGSIZE
+RING_POOLMANAGER_LEVEL1
+RING_POOLMANAGER_ITEMSTRINGSIZEL2
+RING_POOLMANAGER_LEVEL2
+RING_POOLMANAGER_ITEMSTRINGSIZEL3
+RING_POOLMANAGER_LEVEL3
+RING_POOLMANAGER_ITEMSTRINGSIZEStateLevel
+RING_VM_STATE_NUMBERS_COUNT
+RING_VM_STATE_POINTERS_COUNT
+RING_VM_BLOCKSTART
+RING_VM_BLOCKEND
+Parent: PoolData
+Parent: PoolDataTypes
+Type: String
+vString
+Type: Item
+vItem
+Type: Items
+vItems
+Type: List
+vList
+Type: HashTable
+vHashTable
+Type: HashItem
+vHashItem
+Type: char
+cChar[RING_POOLMANAGER_ITEMSTRINGSIZE]
+END:
+Type: struct PoolData *
+pNext
+END:
+Type: PoolData
+struct PoolData
+Type: PoolData
+Mark: ->
+struct PoolData *
+Type: PoolData
+Mark: ->
+PoolData *
+Parent: PoolDataL2
+Type: char
+cChar[RING_POOLMANAGER_ITEMSTRINGSIZEL2]
+Type: struct PoolDataL2 *
+pNext
+END:
+Type: PoolDataL2
+struct PoolDataL2
+Type: PoolDataL2
+Mark: ->
+struct PoolDataL2 *
+Type: PoolDataL2
+Mark: ->
+PoolDataL2 *
+Parent: PoolDataL3
+Type: char
+cChar[RING_POOLMANAGER_ITEMSTRINGSIZEL3]
+Type: struct PoolDataL3 *
+pNext
+END:
+Type: PoolDataL3
+struct PoolDataL3
+Type: PoolDataL3
+Mark: ->
+struct PoolDataL3 *
+Type: PoolDataL3
+Mark: ->
+PoolDataL3 *
+Parent: VMState
+Type: unsigned int
+aNumbers[RING_VM_STATE_NUMBERS_COUNT]
+Type: void *
+aPointers[RING_VM_STATE_POINTERS_COUNT]
+END:
+Type: VMState
+struct VMState
+Type: VMState
+Mark: ->
+struct VMState *
+Type: VMState
+Mark: ->
+VMState *
+Parent: PoolDataStateLevel
+Parent: PoolDataStateLevelTypes
+Type: VMState
+vVMState
+Type: char
+cChar[RING_POOLMANAGER_ITEMSTRINGSIZEStateLevel]
+END:
+Type: struct PoolDataStateLevel *
+pNext
+END:
+Type: PoolDataStateLevel
+struct PoolDataStateLevel
+Type: PoolDataStateLevel
+Mark: ->
+struct PoolDataStateLevel *
+Type: PoolDataStateLevel
+Mark: ->
+PoolDataStateLevel *
+Parent: PoolManager
+Type: PoolData *
+pCurrentItem
+Type: void *
+pBlockStart
+Type: void *
+pBlockEnd
+Type: PoolDataL2 *
+pCurrentItemL2
+Type: void *
+pBlockStartL2
+Type: void *
+pBlockEndL2
+Type: PoolDataL3 *
+pCurrentItemL3
+Type: void *
+pBlockStartL3
+Type: void *
+pBlockEndL3
+Type: PoolDataStateLevel *
+pCurrentItemStateLevel
+Type: void *
+pBlockStartStateLevel
+Type: void *
+pBlockEndStateLevel
+Type: List *
+pBlocks
+Type: void *
+pMutex
+Type: unsigned int
+nItemsInBlock
+Type: unsigned int
+nItemsInBlockL2
+Type: unsigned int
+nItemsInBlockL3
+Type: unsigned int
+nItemsInBlockStateLevel
+Type: unsigned int
+lDeleteMemory
+END:
+Type: PoolManager
+struct PoolManager
+Type: PoolManager
+Mark: ->
+struct PoolManager *
+Type: PoolManager
+Mark: ->
+PoolManager *
+ring_gc_h
+RING_LISTREF_INC
+RING_LISTREF_DEC
+ring_vm_gc_setfreefunc
+ring_vm_gc_removetrack
+Type: int
+nPos
+ring_vm_gc_freefunc
+ring_vm_gc_newitemreference
+ring_vm_gc_cleardata
+ring_vm_gc_deletelistinitem
+ring_vm_gc_finishitemdelete
+ring_vm_gc_deleteitem
+Type: VM *
+pVM
+Type: int
+nRefCount
+ring_vm_gc_checknewreference
+Type: Item *
+pItem
+ring_vm_gc_checkupdatereference
+Type: Item *
+pItem
+ring_vm_gc_killreference
+Type: List *
+pList, *pList2
+Type: Item *
+pItem
+Type: char *
+newstr
+Type: char
+cStr[RING_CHARBUF]
+ring_vm_gc_deletetemplists
+ring_vm_gc_checkvarerroronassignment
+Type: List *
+pList
+ring_vm_gc_checkitemerroronassignment
+Type: List *
+pList
+ring_vm_gc_checkbeforeassignment
+ring_vm_gc_removelistprotection
+Type: unsigned int
+x
+ring_vm_gc_removelistprotectionat
+Type: List *
+pList
+ring_vm_gc_isrefparameter
+Type: int
+lRef
+Type: List *
+pRef, *pVar, *pList
+ring_list_acceptlistbyref_gc
+Type: List *
+pRealList
+Type: Item *
+pItem
+ring_list_setlistbyref_gc
+ring_list_updaterefcount_gc
+ring_list_newref_gc
+Type: VM *
+pVM
+ring_list_assignreftovar_gc
+ring_list_assignreftoitem_gc
+Type: List *
+pList
+ring_list_deleteref_gc
+Type: List *
+pVariable
+Type: int
+nOPCode
+Type: RingState *
+pRingState
+ring_list_collectcycles_gc
+Type: List *
+aProcess, *pActiveList, *pSubList
+Type: unsigned int
+x,y,lDelete
+Type: Item *
+pItem
+ring_list_containssublist_gc
+Type: List *
+aProcess, *pActiveList, *pSubList
+Type: unsigned int
+x,y,lFound
+ring_list_iscircular_gc
+ring_list_checkrefinleftside_gc
+ring_list_checkrefvarinleftside_gc
+ring_list_isref_gc
+Type: int
+lRef
+ring_list_isrefcontainer_gc
+ring_list_clearrefdata_gc
+ring_list_getrefcount_gc
+ring_list_getrefcountvalue_gc
+Type: int
+nCount
+ring_list_isdontref_gc
+ring_list_enabledontref_gc
+ring_list_disabledontref_gc
+ring_list_islnewref_gc
+Type: int
+lNewRef
+ring_list_enablelnewref_gc
+ring_list_disablelnewref_gc
+ring_list_resetlnewref_gc
+Type: List *
+pList
+ring_list_isdontrefagain_gc
+ring_list_enabledontrefagain_gc
+ring_list_disabledontrefagain_gc
+ring_list_iscopybyref_gc
+ring_list_enablecopybyref_gc
+ring_list_disablecopybyref_gc
+ring_list_enableerroronassignment_gc
+ring_list_disableerroronassignment_gc
+ring_list_iserroronassignment_gc
+ring_list_enableerroronassignment2_gc
+ring_list_iserroronassignment2_gc
+ring_list_disableerroronassignment2_gc
+ring_list_setlisttype_gc
+ring_list_getlisttype_gc
+ring_list_isargcache_gc
+ring_list_enableargcache_gc
+ring_list_enabledontdelete_gc
+ring_list_disabledontdelete_gc
+ring_malloc
+Type: void *
+pMemory
+ring_free
+ring_calloc
+Type: void *
+pMemory
+ring_realloc
+Type: void *
+pMemory
+ring_state_malloc
+ring_state_free
+Type: void *
+pBlockStart
+Type: void *
+pBlockEnd
+Type: List *
+pBlocks, *pBlock
+Type: unsigned int
+x, lFound
+Type: RingState *
+pRingState
+ring_state_calloc
+Type: void *
+pMem
+Type: size_t
+nTotal
+ring_state_realloc
+Type: void *
+pMemory
+Type: int
+nLevel, nUseMalloc
+Type: size_t
+x
+ring_state_registerblock
+Type: List *
+pList
+Type: RingState *
+pRingState
+ring_state_unregisterblock
+Type: unsigned int
+x
+Type: List *
+pList
+Type: RingState *
+pRingState
+Type: void *
+pBlockStart
+ring_state_willunregisterblock
+Type: unsigned int
+x, x2, x3
+Type: List *
+pList, *pVar
+Type: Item *
+pItem, *pNewItem
+Type: Item
+vTempItem
+Type: RingState *
+pRingState
+Type: void *
+pBlockStart, *pBlockEnd
+ring_poolmanager_new
+ring_poolmanager_newblock
+Type: PoolData *
+pMemory
+Type: PoolDataL2 *
+pMemoryL2
+Type: PoolDataL3 *
+pMemoryL3
+Type: PoolDataStateLevel *
+pMemoryStateLevel
+Type: unsigned int
+x
+ring_poolmanager_allocate
+Type: void *
+pMemory
+ring_poolmanager_find
+ring_poolmanager_free
+Type: PoolData *
+pPoolData
+Type: PoolDataL2 *
+pPoolDataL2
+Type: PoolDataL3 *
+pPoolDataL3
+Type: int
+nLevel, lRet
+ring_poolmanager_delete
+ring_poolmanager_newblockfromsubthread
+Type: int
+x
+Type: PoolData *
+pMemory
+ring_poolmanager_deleteblockfromsubthread
+Type: PoolData *
+pMemory, *pNextMemory
+ring_vmstate_new
+Type: VMState *
+pVMState
+ring_vmstate_delete
+Type: RingState *
+pRingState
+Type: PoolDataStateLevel *
+pPoolDataStateLevel

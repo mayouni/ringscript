@@ -1,0 +1,57 @@
+ring_parser_expr
+Type: int
+x,nMark
+Type: List *
+pMark
+ring_parser_logicand
+Type: int
+x,nMark
+Type: List *
+pMark
+ring_parser_logicnot
+Type: int
+x
+ring_parser_equalornot
+Type: int
+x
+ring_parser_compare
+Type: int
+x,nEqual
+ring_parser_bitorxor
+Type: int
+x
+ring_parser_bitand
+Type: int
+x
+ring_parser_bitshift
+Type: int
+x
+ring_parser_arithmetic
+Type: int
+x
+ring_parser_term
+Type: int
+x
+ring_parser_range
+Type: int
+x,nFlag
+ring_parser_factor
+Type: int
+x,x2,x3,x4,nLastOperation,nCount,nNOOP,nMark,nFlag2,lThisOrSelfLoadA,lThisLoadA,lNewFrom,lAfterListEnd
+Type: unsigned int
+nToken
+Type: List *
+pList, *pMark, *pAssignmentPointerPos, *pDupPos, *pPushVPos
+Type: char
+lSetProperty,lequal,nBeforeEqual,lNewAfterEqual,lNegative,lCallAsMethod
+Type: char
+cFuncName[RING_MEDIUMBUF]
+Type: char
+cKeyword[RING_MEDIUMBUF]
+ring_parser_mixer
+Type: int
+x,nCallMethod,nStatus,nFlag,nNew
+ring_parser_ppmm
+Type: int
+nLastOperation,nMode,nValue
+ring_parser_objattributes

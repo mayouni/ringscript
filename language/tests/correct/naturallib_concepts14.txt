@@ -1,0 +1,2 @@
+Command: I want window
+Pass error when using 1/0

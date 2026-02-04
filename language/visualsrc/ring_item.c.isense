@@ -1,0 +1,123 @@
+ring_item_h
+Parent: Item
+Parent: data
+Type: struct String *
+pString
+Type: double
+dNumber
+Type: int
+iNumber
+Type: void *
+pPointer
+Type: struct List *
+pList
+Type: float
+fNumber
+END:
+Type: unsigned int
+nType:3
+Type: unsigned int
+nNumberFlag:2
+Type: unsigned int
+nObjectType:2
+Type: unsigned int
+lAssignment:1
+Type: unsigned int
+nGCReferenceCount: RING_VM_BITSFORREFCOUNT
+END:
+Type: Item
+struct Item
+Type: Item
+Mark: ->
+struct Item *
+Type: Item
+Mark: ->
+Item *
+ITEMTYPE_NOTHING
+ITEMTYPE_STRING
+ITEMTYPE_NUMBER
+ITEMTYPE_POINTER
+ITEMTYPE_LIST
+ITEMTYPE_FUNCPOINTER
+ITEM_NUMBERFLAG_NOTHING
+ITEM_NUMBERFLAG_INT
+ITEM_NUMBERFLAG_DOUBLE
+ITEM_OBJTYPE_NOTHING
+ring_item_getstring_gc(pState,pItem)
+ring_item_getdouble_gc(pState,pItem)
+ring_item_getint_gc(pState,pItem)
+ring_item_getlist_gc(pState,pItem)
+ring_item_getpointer_gc(pState,pItem)
+ring_item_gettype_gc(pState,pItem)
+ring_itemarray_getint_gc(pState,pList,nIndex)
+ring_itemarray_getpointer_gc(pState,pList,nIndex)
+ring_itemarray_getdouble_gc(pState,pList,nIndex)
+ring_itemarray_getstringraw_gc(pState,pList,nIndex)
+ring_itemarray_getstring_gc(pState,pList,nIndex)
+ring_itemarray_getstringsize_gc(pState,pList,nIndex)
+ring_itemarray_isstring_gc(pState,pList,nIndex)
+ring_itemarray_isnumber_gc(pState,pList,nIndex)
+ring_itemarray_ispointer_gc(pState,pList,nIndex)
+ring_item_isstring_gc(pState,pItem)
+ring_item_islist_gc(pState,pItem)
+ring_item_isdouble_gc(pState,pItem)
+ring_item_incdouble_gc(pState,pItem)
+ring_item_getstring(pItem)
+ring_item_getdouble(pItem)
+ring_item_getint(pItem)
+ring_item_getlist(pItem)
+ring_item_getpointer(pItem)
+ring_item_gettype(pItem)
+ring_itemarray_getint(pList,nIndex)
+ring_itemarray_getpointer(pList,nIndex)
+ring_itemarray_getdouble(pList,nIndex)
+ring_itemarray_getstringraw(pList,nIndex)
+ring_itemarray_getstring(pList,nIndex)
+ring_itemarray_getstringsize(pList,nIndex)
+ring_itemarray_isstring(pList,nIndex)
+ring_itemarray_isnumber(pList,nIndex)
+ring_itemarray_ispointer(pList,nIndex)
+ring_item_isstring(pItem)
+ring_item_islist(pItem)
+ring_item_isdouble(pItem)
+ring_item_incdouble(pItem)
+ring_item_new_gc
+Type: Item *
+pItem
+ring_item_delete_gc
+ring_item_settype_gc
+ring_item_deletecontent_gc
+Type: unsigned int
+nType
+ring_item_print_gc
+Type: unsigned int
+nItemType
+ring_item_init_gc
+ring_item_getnumber_gc
+ring_itemarray_setint_gc
+ring_itemarray_setpointer_gc
+ring_itemarray_setdouble_gc
+ring_itemarray_setstring_gc
+ring_itemarray_setstring2_gc
+ring_item_setstring_gc
+ring_item_setstring2_gc
+ring_item_setdouble_gc
+ring_item_setpointer_gc
+ring_item_setint_gc
+ring_item_new
+ring_item_delete
+ring_item_settype
+ring_item_deletecontent
+ring_item_print
+ring_item_init
+ring_item_getnumber
+ring_itemarray_setint
+ring_itemarray_setpointer
+ring_itemarray_setdouble
+ring_itemarray_setstring
+ring_itemarray_setstring2
+ring_item_setstring
+ring_item_setdouble
+ring_item_setpointer
+ring_item_setint
+ring_item_setstring2

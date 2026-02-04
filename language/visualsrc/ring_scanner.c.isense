@@ -1,0 +1,350 @@
+ring_scanner_h
+Parent: Scanner
+Type: RingState *
+pRingState
+Type: List *
+pKeywords
+Type: List *
+pOperators
+Type: List *
+pTokens
+Type: String *
+pActiveToken
+Type: unsigned int
+nTokenIndex
+Type: unsigned int
+nLiteralLine
+Type: unsigned int
+nLinesCount
+cState
+nFloatMark
+Type: unsigned char
+cLiteral
+Type: unsigned char
+nMLComment
+Type: unsigned char
+lHashComments
+Type: unsigned char
+lMultiCharOperators
+Type: unsigned char
+lEnableTokensOutput
+END:
+Type: Scanner
+struct Scanner
+Type: Scanner
+Mark: ->
+struct Scanner *
+Type: Scanner
+Mark: ->
+Scanner *
+Parent: SCANNER_KEYWORD
+K_IF=1
+K_TO
+K_OR
+K_AND
+K_NOT
+K_FOR
+K_FOREACH
+K_NEW
+K_FUNC
+K_FROM
+K_NEXT
+K_LOAD
+K_ELSE
+K_SEE
+K_WHILE
+K_OK
+K_CLASS
+K_RETURN
+K_BUT
+K_END
+K_GIVE
+K_BYE
+K_EXIT
+K_TRY
+K_CATCH
+K_DONE
+K_SWITCH
+K_ON
+K_OTHER
+K_OFF
+K_IN
+K_LOOP
+K_PACKAGE
+K_IMPORT
+K_PRIVATE
+K_STEP
+K_DO
+K_AGAIN
+K_CALL
+K_ELSEIF
+K_PUT
+K_GET
+K_CASE
+K_DEF
+K_ENDFUNC
+K_ENDCLASS
+K_ENDPACKAGE
+K_ENDIF
+K_ENDFOR
+K_ENDWHILE
+K_ENDSWITCH
+K_ENDTRY
+K_FUNCTION
+K_ENDFUNCTION
+K_BREAK
+K_CONTINUE
+K_THIS
+K_SELF
+K_SUPER
+K_MAIN
+K_INIT
+K_OPERATOR
+K_BRACESTART
+K_BRACEEXPREVAL
+K_BRACEERROR
+K_BRACENEWLINE
+K_BRACEEND
+K_RINGVMSEE
+K_RINGVMGIVE
+K_RINGVMERRORHANDLER
+K_CHANGERINGKEYWORD
+K_CHANGERINGIOPERATOR
+K_LOADSYNTAX
+K_ENABLEHASHCOMMENTS
+K_DISABLEHASHCOMMENTS
+END:
+Type: SCANNER_KEYWORD
+SCANNER_KEYWORD
+RING_SCANNER_KEYWORDSCOUNT
+Parent: SCANNER_OPERATOR
+OP_PLUS = 1
+OP_MINUS
+OP_MUL
+OP_DIV
+OP_MOD
+OP_DOT
+OP_FOPEN
+OP_FCLOSE
+OP_EQUAL
+OP_COMMA
+OP_NOT
+OP_GREATER
+OP_LESS
+OP_LOPEN
+OP_LCLOSE
+OP_RANGE
+OP_BRACEOPEN
+OP_BRACECLOSE
+OP_BITAND
+OP_BITOR
+OP_BITNOT
+OP_XOR
+OP_QUES
+OP_INC
+OP_DEC
+OP_LOGAND
+OP_LOGOR
+OP_POW
+OP_SHL
+OP_SHR
+OP_PLUSEQUAL
+OP_MINUSEQUAL
+OP_MULEQUAL
+OP_DIVEQUAL
+OP_MODEQUAL
+OP_BITANDEQUAL
+OP_BITOREQUAL
+OP_BITXOREQUAL
+OP_SHLEQUAL
+OP_SHREQUAL
+OP_POWEQUAL
+OP_LESSEQUAL
+OP_GREATEREQUAL
+OP_NOTEQUAL
+END:
+Type: SCANNER_OPERATOR
+SCANNER_OPERATOR
+RING_SCANNER_OPERATORSCOUNT
+Parent: OperatorInfo
+Type: const char *
+cOperator
+Type: const char *
+cSecond
+Type: unsigned int
+nToken
+END:
+Type: OperatorInfo
+struct OperatorInfo
+Type: OperatorInfo
+Mark: ->
+struct OperatorInfo *
+Type: OperatorInfo
+Mark: ->
+OperatorInfo *
+RING_SCANNER_TOKENTYPE
+RING_SCANNER_TOKENVALUE
+RING_SCANNER_TOKENINDEX
+RING_SCANNER_TOKENOPTIONALSTR
+SCANNER_TOKEN_KEYWORD
+SCANNER_TOKEN_OPERATOR
+SCANNER_TOKEN_LITERAL
+SCANNER_TOKEN_NUMBER
+SCANNER_TOKEN_IDENTIFIER
+SCANNER_TOKEN_ENDLINE
+SCANNER_TOKEN_COMMENT
+SCANNER_TOKEN_NOTOKEN
+SCANNER_STATE_GENERAL
+SCANNER_STATE_LITERAL
+SCANNER_STATE_COMMENT
+SCANNER_STATE_MLCOMMENT
+SCANNER_STATE_CHANGEKEYWORD
+SCANNER_STATE_CHANGEOPERATOR
+SCANNER_STATE_LOADSYNTAX
+RING_SCANNER_CHANGERINGKEYWORD
+RING_SCANNER_CHANGERINGOPERATOR
+RING_SCANNER_LOADSYNTAX
+RING_SCANNER_ENABLEHASHCOMMENTS
+RING_SCANNER_DISABLEHASHCOMMENTS
+SCANNER_FLOATMARK_START
+SCANNER_FLOATMARK_NUMBER
+SCANNER_FLOATMARK_NUMBERDOT
+RING_SCANNER_DELETELASTTOKEN
+ring_scanner_new
+Type: Scanner *
+pScanner
+ring_scanner_delete
+ring_scanner_readchar
+Type: char
+cStr[RING_CHARBUF]
+Type: List *
+pList
+Type: String *
+pString
+Type: int
+nTokenIndex
+ring_scanner_keywords
+Type: char
+cKeyword[RING_SMALLBUF]
+Type: unsigned int
+x
+ring_scanner_addtoken
+Type: List *
+pList
+ring_scanner_checktoken
+Type: unsigned int
+nResult
+Type: char
+cStr[RING_SMALLBUF]
+Type: char *
+cActiveStr
+Type: List *
+pList
+ring_scanner_isnumber
+Type: unsigned int
+x,x2,lHex
+Type: char *
+cStr
+Type: unsigned int
+nLen
+ring_scanner_processnumber
+Type: unsigned int
+nLen,nWriteIndex,nReadIndex,lHex,lHexDetection,lLeadingZeros
+Type: char *
+cStr
+Type: char
+c
+ring_scanner_checklasttoken
+ring_scanner_isoperator
+Type: unsigned int
+nPos
+ring_scanner_operators
+Type: unsigned int
+x
+ring_scanner_lasttokentype
+Type: unsigned int
+x
+Type: List *
+pList
+ring_scanner_lasttokenvalue
+Type: unsigned int
+x
+Type: List *
+pList
+ring_scanner_floatmark
+Type: List *
+pList
+Type: String *
+pString
+ring_scanner_endofline
+ring_scanner_printtokens
+Type: unsigned int
+x,nType,nPos
+Type: List *
+pList
+Type: char *
+cString
+ring_scanner_changekeyword
+Type: char *
+cStr
+Type: unsigned int
+x,nResult
+Type: String *
+word1, *word2, *activeword
+Type: char
+cStr2[RING_CHARBUF]
+ring_scanner_changeoperator
+Type: char *
+cStr
+Type: unsigned int
+x,nResult
+Type: String *
+word1, *word2, *activeword
+Type: char
+cStr2[RING_CHARBUF]
+ring_scanner_loadsyntax
+Type: char *
+cFileName
+Type: RING_FILE
+fp
+c
+Type: unsigned int
+x,nSize,nLine,lEnableTokensOutput
+Type: char
+cFileName2[RING_PATHSIZE]
+Type: char
+cCurrentDir[RING_PATHSIZE]
+Type: char
+cFileName3[RING_PATHSIZE]
+ring_scanner_setandgenendofline
+ring_scanner_readtwoparameters
+Type: unsigned int
+x,nSize,nSpaces
+Type: char *
+cString
+ring_scanner_processtoken
+Type: char *
+pStart, *pChar
+Type: unsigned int
+t,nPos,nSize,lXExist
+ring_scanner_checkmulticharoperator
+Type: unsigned int
+x, lOperatorFound
+Type: const char *
+cLastToken
+ring_scanner_getkeywordtext
+ring_scanner_getmulticharoperatortext
+Type: unsigned int
+x
+ring_scanner_addreturn
+Type: List *
+pList
+ring_scanner_addreturn2
+Type: List *
+pList
+ring_scanner_addreturn3
+Type: List *
+pList
+ring_scanner_registertoken
+Type: List *
+pList

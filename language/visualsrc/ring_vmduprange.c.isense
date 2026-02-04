@@ -1,0 +1,19 @@
+ring_vm_stackdup
+Type: String *
+pString
+Type: double
+nNum1
+Type: void *
+pPointer
+Type: int
+nType
+ring_vm_range
+nNum1,nNum2
+Type: int
+x,nSize1,nSize2
+cStr
+Type: List *
+pVar
+ring_vm_rangenewlist
+Type: List *
+pVar

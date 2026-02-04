@@ -1,0 +1,40 @@
+ring_vm_mutexfunctions
+Type: int
+x
+ring_vm_mutexlock
+ring_vm_mutexunlock
+ring_vm_mutexdestroy
+Type: int
+x
+ring_vm_custmutexcreate
+ring_vm_custmutexlock
+ring_vm_custmutexunlock
+ring_vm_custmutexdestroy
+ring_vm_statecustmutexlock
+Type: VM *
+pVM
+ring_vm_statecustmutexunlock
+Type: VM *
+pVM
+ring_vm_runcodefromthread
+Type: RingState *
+pState
+ring_vm_createthreadstate
+Type: RingState *
+pState
+Type: List *
+pGlobal, *pScope
+Type: unsigned int
+x
+ring_vm_deletethreadstate
+Type: CFunction *
+pCFunc
+Type: unsigned int
+x
+ring_vm_bytecodefornewthread
+Type: unsigned int
+x,y,nSize,nType
+Type: ByteCode *
+pByteCode
+Type: char *
+pString

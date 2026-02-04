@@ -1,0 +1,188 @@
+ring_state_h
+Parent: RingState
+Type: struct VM *
+pVM
+pLogFile
+Type: char  **
+pArgv
+Type: List *
+pRingFilesList
+Type: List *
+pRingFilesStack
+Type: List *
+pRingFileTokens
+Type: List *
+pRingGenCode
+Type: List *
+pRingFunctionsMap
+Type: List *
+pRingClassesMap
+Type: List *
+pRingPackagesMap
+Type: List *
+pCustomGlobalScopeStack
+Type: int
+nArgc
+Type: unsigned int
+nScannerError
+Type: unsigned int
+nLoadAgain
+Type: unsigned int
+nCustomGlobalScopeCounter
+Type: unsigned int
+nInstructionsCount
+Type: unsigned int
+lRun : 1
+Type: unsigned int
+lPrintIC : 1
+Type: unsigned int
+lPrintICFinal : 1
+Type: unsigned int
+lPrintTokens : 1
+Type: unsigned int
+lPrintRules : 1
+Type: unsigned int
+lPrintInstruction : 1
+Type: unsigned int
+lGenObj : 1
+Type: unsigned int
+lGenCObj : 1
+Type: unsigned int
+lWarning : 1
+Type: unsigned int
+lISCGI : 1
+Type: unsigned int
+lStartup : 1
+Type: unsigned int
+lDontDeleteTheVM : 1
+Type: unsigned int
+nRingInsideRing : 1
+Type: unsigned int
+lOnlyTokens : 1
+Type: unsigned int
+lNoLineNumber : 1
+Type: unsigned int
+lUsingThreads : 1
+Type: unsigned int
+lRunFromSubThread : 1
+Type: unsigned int
+lNotCaseSensitive : 1
+Type: unsigned int
+lCommentsAsTokens : 1
+Type: unsigned int
+lScannerCommandsAsTokens : 1
+Type: unsigned int
+lRunFromObjectFile : 1
+Type: unsigned int
+lStartPoolManager : 1
+Type: unsigned int
+lDisablePoolManager : 1
+Type: unsigned int
+lCreateListsUsingBlocks : 1
+Type: PoolManager
+vPoolManager
+END:
+Type: RingState
+struct RingState
+Type: RingState
+Mark: ->
+struct RingState *
+Type: RingState
+Mark: ->
+RingState *
+RING_VERSION_MAJOR
+RING_VERSION_MINOR
+RING_VERSION_PATCH
+RING_STATE_VERSION
+RING_STATE_VERSIONANDPATCH
+RING_WARNING_UNKNOWNOPTION
+RING_WARNING_DUPLICATIONINFILENAME
+RING_WARNING_CHANGEKEYWORDPARA
+RING_WARNING_KEYWORDNOTFOUND
+RING_WARNING_CHANGEOPERATORPARA
+RING_WARNING_OPERATORNOTFOUND
+RING_WARNING_EXITOUTSIDELOOP
+RING_WARNING_LOOPOUTSIDELOOP
+RING_MSG_PRINTRULES
+RING_MSG_PROGRAMRULE
+RING_CGI_START
+RING_VERYLONGPATH
+RING_FILES_LOGFILE
+RING_FILES_AUTOLOADSRC
+RING_FILES_AUTOLOADOBJ
+RING_FILES_AUTOLOADSYNTAX
+RING_FILES_LOADSYNTAXSTR
+RING_FILES_STARTUP
+RING_FILES_LOADSTARTUPSTR
+RING_STATE_CHECKPRINTRULES
+RING_STATE_PRINTRULE(cRule)
+RING_STATE_PRINTTWORULES(cRule1, cRule2)
+Type: static int
+lRingStateDebugSegFault
+Type: static int
+lRingStateCGI
+ring_state_new
+Type: RingState *
+pRingState
+ring_state_init
+Type: RingState *
+pRingState
+Type: unsigned int
+lDisablePoolManager
+ring_state_delete
+ring_state_runcode
+ring_state_findvar
+Type: VM *
+pVM
+Type: List *
+pList
+ring_state_newvar
+Type: VM *
+pVM
+Type: List *
+pList
+ring_state_runfile
+Type: Scanner *
+pScanner
+Type: RING_FILE
+pFile
+cStartup
+Type: char
+cFileName2[RING_PATHSIZE]
+Type: int
+lCont,lRunVM,lFreeFilesList,x,nSize
+c
+ring_state_runobjectfile
+ring_state_runobjectstring
+ring_state_runprogram
+Type: VM *
+pVM
+ring_state_newbytecode
+Type: VM *
+pVM
+Type: unsigned int
+x
+ring_state_log
+ring_state_runbytecode
+ring_state_runstring
+Type: Scanner *
+pScanner
+Type: const char *
+cFileName
+Type: int
+x,lCont,lRunVM,lFreeFilesList,nFileSize
+c
+ring_state_exit
+ring_state_cgiheader
+ring_state_main
+Type: int
+x,lCGI,lRun,lPrintIC,lPrintICFinal,lTokens,lRules,lIns,lPerformance,lSrc,lGenObj,lGenCObj,lWarn
+Type: char *
+cStr
+ring_state_execute
+Type: RingState *
+pRingState
+Type: unsigned int
+lCont
+ring_state_segfaultaction
+ring_state_usageinfo
