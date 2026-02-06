@@ -59,7 +59,7 @@ The stability of the engine relies on a specific toolchain to ensure compatibili
 
 * **Operating System:** Windows 11.
 
-***
+
 
 ## 3.2 Architecture: The Bridge Pattern
 
@@ -71,7 +71,7 @@ To communicate between JavaScript (the browser) and C (the Ring VM), we implemen
 
 * **The Buffer:** A 512 KB global `char` array (`final_output`) captures intercepted output to return to JavaScript.
 
-***
+
 
 ## 3.3 Required Setup
 
@@ -89,7 +89,7 @@ To test or further develop the RingScript engine, follow these configuration ste
 
 3. **Activation:** Before building, run the environment setup script provided by EMSDK (`emsdk_env.bat`) to set variables like `EMSDK_NODE` and `EM_CONFIG`.
 
-***
+
 
 ### B. Building the Engine
 
@@ -99,13 +99,13 @@ Use the provided `build.bat` file to compile the C bridge and the Ring VM source
 
 * **Output:** Successful compilation generates `ringscript.js` and `ringscript.wasm`.
 
-***
+
 
 ### C. Launching the Editor
 
-1. **Server Requirement:** WASM files must be served over HTTP/HTTPS. Use a local server (e.g., Live Server for VS Code or `python -m http.server`).
+1. **Server Requirement:** WASM files must be served over HTTP/HTTPS. Use a local server (e.g., Live Server for VS Code or `python -m http.server 8000`).
 
-2. **Interface:** Open `index.html` in a modern web browser.
+2. **Interface:** Open `http://localhost:8000/index.html` in a modern web browser.
 
 3. **Operation:**
 
@@ -113,106 +113,8 @@ Use the provided `build.bat` file to compile the C bridge and the Ring VM source
 
    * Clicking **"Run Code"** triggers `Module.ccall('run_ring', ...)`, which passes the editor text to the WASM engine and displays the results in the output terminal.
 
-***
 
-## 4. Core Components
-
-### 4.1 `bridge.c` (Final Working Version)
-
-```c
-#include <emscripten.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include "ring.h"
-
-/* Global buffer to capture output (512 KB) */
-char final_output[1024 * 512];
-
-/* --- HELPER: Safe append to the output buffer --- */
-static void safe_append(const char *text) {
-    if (!text) return;
-    size_t current_len = strlen(final_output);
-    size_t text_len    = strlen(text);
-    if (current_len + text_len < sizeof(final_output) - 1) {
-        strcat(final_output, text);
-    }
-}
-
-/* --- HELPER: Number → String conversion --- */
-static void append_number(double nValue) {
-    char buf[64];
-    if (nValue == (double)(long long)nValue) {
-        sprintf(buf, "%lld", (long long)nValue);
-    } else {
-        sprintf(buf, "%g", nValue);
-    }
-    safe_append(buf);
-}
-
-/* --- HELPER: Recursive List serialization --- */
-static void serialize_list(List *pList) {
-    if (!pList) return;
-    /* Using ring_list_getsize, which is the standard API in Ring 1.2.x */
-    int nSize = ring_list_getsize(pList); 
-    for (int i = 1; i <= nSize; i++) {
-        if (ring_list_isstring(pList, i)) {
-            safe_append(ring_list_getstring(pList, i));
-            safe_append("\n");
-        } else if (ring_list_isnumber(pList, i)) {
-            /* Using double for numeric precision */
-            append_number(ring_list_getdouble(pList, i));
-            safe_append("\n");
-        } else if (ring_list_islist(pList, i)) {
-            serialize_list(ring_list_getlist(pList, i));
-        }
-    }
-}
-
-/* --- MAIN CALLBACK: Intercepting SEE (Business Logic Output) --- */
-void my_ring_see(void *pPointer) {
-    /* Capture strings */
-    if (ring_vm_api_isstring(pPointer, 1)) {
-        safe_append(ring_vm_api_getstring(pPointer, 1));
-    } 
-    /* Capture numbers (fix for len(), sum(), etc.) */
-    else if (ring_vm_api_isnumber(pPointer, 1)) {
-        append_number(ring_vm_api_getnumber(pPointer, 1));
-    } 
-    /* Capture lists */
-    else if (ring_vm_api_islist(pPointer, 1)) {
-        serialize_list(ring_vm_api_getlist(pPointer, 1));
-    }
-    /* Capture objects */
-    else if (ring_vm_api_ispointer(pPointer, 1)) {
-        safe_append("[Object]");
-    }
-}
-
-/* --- ENTRY POINT: run_ring --- */
-EMSCRIPTEN_KEEPALIVE
-const char* run_ring(const char* ring_code) {
-    final_output[0] = '\0';
-
-    /* Stable initialization for WASM */
-    RingState *pRingState = ring_state_init(); 
-    if (!pRingState) return "Error: Failed to init RingState";
-
-    /* Register output hook */
-    ring_vm_funcregister("ring_vm_see", my_ring_see);
-    
-    /* Internal redirection of SEE to our C function */
-    ring_state_runcode(pRingState, "func ringvm_see cData ring_vm_see(cData)");
-
-    /* Execute business logic received from JavaScript */
-    ring_state_runcode(pRingState, ring_code);
-
-    ring_state_delete(pRingState);
-    return final_output;
-}
-```
-
-#### Key Design Decisions
+### 4.1 Key Design Decisions in bridge.c file
 
 * Uses `ring_state_init()` instead of `ring_state_new()` for embedded mode
 
@@ -223,7 +125,7 @@ const char* run_ring(const char* ring_code) {
 
 * Static buffer avoids memory access violations
 
-***
+
 
 ### 4.2 `build.bat` (Emscripten Compilation)
 
@@ -270,7 +172,6 @@ file_e.c, math_e.c, list_e.c, os_e.c,
 meta_e.c, vminfo_e.c
 ```
 
-***
 
 ### 4.3 `index.html` (Web IDE)
 
@@ -286,7 +187,6 @@ meta_e.c, vminfo_e.c
 
 * Waits for `Module.onRuntimeInitialized` before enabling execution
 
-***
 
 ## 5. Technical Challenges Resolved
 
@@ -310,7 +210,7 @@ Ring VM attempts to access OS resources (argc/argv, env vars, filesystem)\
 ✅ **Final Solution**\
 Use `ring_state_init()` + custom `ring_vm_funcregister()` to bypass OS dependencies
 
-***
+
 
 ### Challenge 2: `ring_vm_funcregister` Compilation Error
 
@@ -331,7 +231,7 @@ error: use of undeclared identifier 'pRingState'
 The variable **must be named exactly** `pRingState`\
 (`pState` will not work)
 
-***
+
 
 ### Challenge 3: Emscripten Version Compatibility
 
@@ -344,7 +244,6 @@ The variable **must be named exactly** `pRingState`\
 * `language/src/*.c` → ❌ Not expanded in Windows CMD\
   → Files must be listed explicitly
 
-***
 
 ### Challenge 4: Build Script Closing Immediately
 
@@ -362,7 +261,6 @@ The variable **must be named exactly** `pRingState`\
 
 * Check `%ERRORLEVEL%`
 
-***
 
 ### Challenge 5: Browser Cache
 
@@ -375,7 +273,6 @@ Old `.wasm` file cached after recompilation
 
 * Or use Incognito mode
 
-***
 
 ## 6. Current Status
 
@@ -391,7 +288,6 @@ Old `.wasm` file cached after recompilation
 
 * Basic list operations
 
-***
 
 ### ⚠️ Untested
 
@@ -407,7 +303,6 @@ Old `.wasm` file cached after recompilation
 
 * Multiple concurrent VM instances
 
-***
 
 ### ❌ Not Implemented
 
@@ -423,7 +318,6 @@ Old `.wasm` file cached after recompilation
 
 * Performance profiling
 
-* 
 
 ## 7. Important Notice — Not Production Ready
 
