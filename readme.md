@@ -44,8 +44,13 @@ stzweb_project/
 
 ## 3.1 Downloading the source files
 
-Type this command in your console:
-ringpm install ringsrcipt from mayouni
+Make sure Git is installed and available in your environment, then clone the project repository on your machine using this commandline command:
+
+```
+ git clone https://github.com/mayouni/stzscript.git
+```
+
+Alternatively, you may download the repository using any other method you prefer.
 
 ## 3.1 Toolset & Versions
 
