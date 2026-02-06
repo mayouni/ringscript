@@ -1,7 +1,5 @@
 # RingScript WebAssembly Engine
 
-### Complete Build & Architecture Documentation
-
 ***
 
 ## 1. Project Vision
@@ -24,7 +22,6 @@ All application logic is written in **Ring (`*.ring`)** and returns **JSON** to 
 
 * ✅ Simple, maintainable architecture
 
-***
 
 ## 2. Technical Architecture
 
@@ -35,20 +32,20 @@ stzweb_project/
 ├── bridge.c              # C bridge between JS and Ring VM
 ├── build.bat             # Emscripten compilation script
 ├── index.html            # Web IDE interface
-├── language/             # Ring source code
+├── language/             # Ring 1.25 source code
 │   ├── src/              # All Ring C implementation files
 │   └── include/          # Ring headers (ring.h, ringapi.h)
 ├── ringscript.js         # Generated: Emscripten loader
 └── ringscript.wasm       # Generated: Ring VM binary
 ```
 
-***
 
 ## 3. Guide To Setup and Test This Beta Version of RingScript
 
-### (Porting of Ring VM to WebAssembly)
+## 3.1 Downloading the source files
 
-***
+Type this command in your console:
+ringpm install ringsrcipt from mayouni
 
 ## 3.1 Toolset & Versions
 
