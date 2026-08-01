@@ -120,9 +120,14 @@ int ring_vm_eval(VM *pVM, const char *cStr) {
 		   ring_list_getsize(pVM->pPackagesMap) + ring_list_getsize(pVM->pPCBlockFlag);
 	/* Call Parser */
 	if (nCont == 1) {
-		pVM->pRingState->lNoLineNumber = 1;
+		/*
+		**  RINGSCRIPT PATCH: upstream forces lNoLineNumber=1 here (and resets
+		**  it to 0 after), stripping ICO_NEWLINE from eval'd bytecode. The
+		**  browser bridge runs ALL user code through eval() and needs real
+		**  line numbers for error reporting (see bridge.zig), so we respect
+		**  the state's current flag instead. Re-apply on vendor upgrades.
+		*/
 		nRunVM = ring_parser_start(pVM->pRingState, pScanner->pTokens);
-		pVM->pRingState->lNoLineNumber = 0;
 	}
 	/* Prepare the ByteCode */
 	if (nRunVM == 1) {

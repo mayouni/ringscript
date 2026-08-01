@@ -2,11 +2,21 @@
 
 #include "ring.h"
 
+/*
+**  RINGSCRIPT PATCH: the line number at the moment of error, readable by the
+**  wasm bridge (bridge.zig). ring_vm_catch -> ring_vm_restorestate rewinds
+**  pVM->nLineNumber to its try-time value before any catch block runs, so
+**  the failing line must be captured here. Re-apply on vendor upgrades.
+*/
+unsigned int rs_error_line = 0;
+
 RING_API void ring_vm_error(VM *pVM, const char *cStr) {
 	/* Check if we have active error */
 	if (pVM->lActiveError) {
 		return;
 	}
+	/* RINGSCRIPT PATCH: capture the failing line before try/catch unwinding */
+	rs_error_line = pVM->nLineNumber;
 	pVM->lActiveError = RING_TRUE;
 	/* Set Error Variable */
 	RING_VAR_SETSTRING_GC(pVM->pRingState, pVM->pErrorMsg, cStr);

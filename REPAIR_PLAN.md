@@ -6,10 +6,9 @@
 > tmpfile/mkstemp (stubbed without touching vendor source). Gates are
 > permanent in `tests/gates.js` (`node tests/gates.js`). The vendored VM
 > is now Ring **1.27** (1.26 briefly, same session). The P5 demo lives in
-> `stzweb/examples/ring-runtime/` (3/3 verdicts agree). Known limitation:
-> error line numbers inside multi-line evals report the eval-entry line
-> (Ring eval() compiles without line bytecode) — see bridge.zig; fix
-> deferred to a small vendor patch.
+> `stzweb/examples/ring-runtime/` (3/3 verdicts agree). The one deferred
+> item — real error-line numbers in multi-line evals — was closed the
+> same day with two marked vendor patches (see VENDOR_PATCHES.md).
 
 *Written August 2026 after a fundamental review from the StzWeb consolidation
 work. Self-contained: a fresh session in this folder can execute it without

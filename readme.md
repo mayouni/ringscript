@@ -87,13 +87,12 @@ ring.reset();                                  // explicit fresh state
 
 ## Known limitations
 
-- Error line numbers inside multi-line evals report the eval entry line
-  (Ring's `eval()` compiles without line-number bytecode — see the note
-  in `bridge.zig`; fixing it needs a small vendor patch).
 - No real filesystem: file reads resolve against the embedded `ringlib/`
   map; writes fail like a missing file. That is the design.
-- Ring 1.27 VM (vendored from `D:\ring127`). The 1.25 and 1.26 trees
-  are in git history (pre-P6 and P6).
+- Ring 1.27 VM (vendored from `D:\ring127`), carrying two small marked
+  patches for real error-line numbers — see
+  [VENDOR_PATCHES.md](VENDOR_PATCHES.md); re-apply them on any vendor
+  swap. The 1.25 and 1.26 trees are in git history.
 
 ## Origin
 

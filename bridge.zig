@@ -37,12 +37,15 @@ extern fn ring_vm_api_ispointer(p: ?*anyopaque, n: c_int) c_int;
 
 extern fn ring_vm_api_retstring2(p: ?*anyopaque, s: [*]const u8, n: c_uint) void;
 
-// getsize/getstring/getdouble are macros in rlist.h — wrapped in wasi_stubs.c,
-// as is the VM line-number accessor.
+// getsize/getstring/getdouble are macros in rlist.h — wrapped in wasi_stubs.c.
 extern fn rs_list_getsize(pList: ?*List) c_uint;
 extern fn rs_list_getstring(pList: ?*List, n: c_uint) ?[*:0]u8;
 extern fn rs_list_getdouble(pList: ?*List, n: c_uint) f64;
-extern fn rs_vm_line(p: ?*anyopaque) c_uint;
+
+/// Line number captured at error time by the RINGSCRIPT PATCH in
+/// language/src/vmerror.c (catch-time state restore rewinds pVM->nLineNumber,
+/// so it cannot be read from the VM once the catch block runs).
+extern var rs_error_line: c_uint;
 extern fn ring_list_isstring(pList: ?*List, n: c_uint) c_uint;
 extern fn ring_list_isnumber(pList: ?*List, n: c_uint) c_uint;
 extern fn ring_list_islist(pList: ?*List, n: c_uint) c_uint;
@@ -114,11 +117,13 @@ fn getCodeHook(p: ?*anyopaque) callconv(.c) void {
     ring_vm_api_retstring2(p, g_code.ptr, @intCast(g_code.len));
 }
 
-/// C hook: the catch block reports the trapped error here.
+/// C hook: the catch block reports the trapped error here. The line comes
+/// from the vendor patch in vmerror.c — captured when the error fired, since
+/// the catch-time VM state has already been rewound.
 fn reportErrorHook(p: ?*anyopaque) callconv(.c) void {
     g_err.clearRetainingCapacity();
     var buf: [32]u8 = undefined;
-    const line = std.fmt.bufPrint(&buf, "line {d}: ", .{rs_vm_line(p)}) catch "line ?: ";
+    const line = std.fmt.bufPrint(&buf, "line {d}: ", .{rs_error_line}) catch "line ?: ";
     g_err.appendSlice(alloc, line) catch {};
     if (ring_vm_api_isstring(p, 1) != 0) {
         if (ring_vm_api_getstring(p, 1)) |s| {
@@ -231,11 +236,10 @@ const load_json_shim = "load \"ringlib/json.ring\"";
 /// eval() runtime errors, runtime errors unwind to the catch) land in
 /// rs_reporterror and the resident state survives.
 ///
-/// Known limitation: Ring's eval() compiles with lNoLineNumber=1 (vmeval.c)
-/// and ring_vm_catch restores VM state, so the reported line is the line at
-/// try-entry — accurate for single-line snippets, always "1" for multi-line
-/// code. Real line fidelity needs a small vendor patch (vmeval.c:123 +
-/// capturing the line in ring_vm_error before catch) — deferred.
+/// Line numbers are real, including in multi-line evals, thanks to two
+/// marked vendor patches: vmeval.c keeps ICO_NEWLINE in eval'd bytecode
+/// (upstream strips it) and vmerror.c captures pVM->nLineNumber into
+/// rs_error_line at error time, before catch unwinding rewinds it.
 const eval_shim = "try eval(rs_getcode()) catch rs_reporterror(cCatchError) done";
 
 // ---------------------------------------------------------------- exports

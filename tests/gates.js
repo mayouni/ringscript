@@ -47,6 +47,10 @@ const phases = {
         const bad = ring.eval("this is not ring");
         check("garbage returns nonzero", !bad.ok && bad.code !== 0);
         check("error carries line + message", /^line \d+: .*Error/.test(bad.error), bad.error);
+        const multi = ring.eval("a = 1\nb = 2\nsomeUnknownFunc()\nc = 3");
+        check("multi-line eval reports the real line (3)", !multi.ok && multi.error.startsWith("line 3:"), multi.error);
+        const multi2 = ring.eval('x1 = 10\nx2 = x1 + 5\nx3 = x2 * 2\nsee "v=" + x3 + nl\nbadCall()');
+        check("error on line 5 reports line 5, prior output kept", !multi2.ok && multi2.error.startsWith("line 5:") && multi2.output === "v=30\n", JSON.stringify(multi2));
         const rt = ring.eval("see 1\nsomeUnknownFunc()");
         check("runtime error trapped, prior output kept", !rt.ok && rt.output === "1", JSON.stringify(rt));
         ring.eval("y = 42");

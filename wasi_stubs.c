@@ -53,9 +53,3 @@ char *rs_list_getstring(List *pList, unsigned int nIndex) {
 double rs_list_getdouble(List *pList, unsigned int nIndex) {
 	return ring_list_getdouble(pList, nIndex);
 }
-
-/* Current VM line number (RING_VM_IR_GETLINENUMBER is a struct-access macro). */
-unsigned int rs_vm_line(void *pPointer) {
-	VM *pVM = (VM *)pPointer;
-	return pVM->nLineNumber;
-}
