@@ -39,9 +39,50 @@ Four structural defects make it a REPL demo, not a runtime:
 | D3 | **No `load`, no files** — multi-file Ring (e.g. StzWeb's `stzZql.ring`) cannot load; browser has no FS | build flags |
 | D4 | **Fragile failure** — a VM error can abort the WASM instance (`ASSERTIONS=1`, no trap-and-report) | `bridge.c`, `build.bat` |
 
+## 2.5 Toolchain decision — Zig first, Emscripten as fallback
+
+Re-questioned (Aug 2026) against the Zig-based work everywhere else in the
+family — the stzw CLI, the Zin compiler, the Softanza engine and its
+delivery-plane `zig build wasm`, and stzw's vendored SQLite (a 9 MB C
+amalgamation compiled by Zig without complaint). Evidence from this repo's
+vendored VM source (43 C files):
+
+- **zero `setjmp/longjmp`** — the classic Emscripten-only requirement is absent
+- **zero `pthread`**, **zero `signal()`** — no threading/signal machinery
+- `dlopen/LoadLibrary` confined to `state.c` extension loading (stub out —
+  a browser runtime loads no dynamic libraries)
+- `fopen` confined to file-function corners (`file_e.c`, `objfile.c`,
+  `general.c`, `state.c`) — wasi-libc covers or stubs them
+
+**Decision: build the VM with `zig cc -target wasm32-wasi` in a `build.zig`,
+with the bridge written in Zig (`bridge.zig`).** One toolchain family across
+every project; no emsdk (Python + Node + env scripts) to provision — Zig
+0.15 is already on this machine, emsdk is not. What replaces Emscripten's
+conveniences:
+
+- JS glue → a ~100-line WASI browser shim (`fd_write` → `onOutput`, plus
+  the handful of clocks/random imports) — standard, vendorable, ours
+- MEMFS `--preload-file` → **`@embedFile`**: Ring payload sources baked
+  into the wasm as data; the bridge resolves `load` against the embedded
+  map — no filesystem at all
+- `EM_ASM` → Zig `extern` JS imports declared in the bridge, provided by
+  the same shim
+
+**Fallback**: if the timeboxed spike (P0) hits a wasi-libc gap that resists
+stubbing, fall back to Emscripten for the VM only. The bridge API below is
+toolchain-agnostic on purpose — nothing downstream changes either way.
+
+Strategic note: with this, Zig becomes the single systems substrate of the
+whole family — CLI (stzw, zin), engine (Softanza), packaging (delivery
+plane), C vendoring (SQLite), and now the Ring VM's browser build. The
+same `build.zig` can later emit BOTH the dev module (eval channel) and a
+prod module (embedded app, no eval channel) — converging RingScript and
+the stzBuild philosophy in one build.
+
 ## 3. Target architecture
 
-One C bridge (`bridge2.c`), one build, exporting a small resident API:
+One resident bridge (`bridge.zig` — or `bridge2.c` under the Emscripten
+fallback), one build, exporting a small toolchain-agnostic API:
 
 ```
 rs_init()                    -> create the resident RingState once
@@ -74,11 +115,15 @@ rs_last_error() -> ptr       -> "" or "line N: message"
 
 ## 4. Phases (each ends with a runnable verification)
 
-**P0 — Toolchain resurrection.**
-Install emsdk (any current 3.x; `git clone` + `emsdk install latest` +
-`emsdk activate latest`). Build the EXISTING `bridge.c` unchanged; open
-`index.html` over HTTP; run `see 1+2`. *Gate: the 2025 baseline reproduces
-before anything is changed.*
+**P0 — Zig-first toolchain spike (decision gate, timeboxed).**
+Write `build.zig` compiling the 43 VM sources + a minimal `bridge.zig`
+(`rs_eval` only) with `-target wasm32-wasi`; stub `state.c`'s dlopen path
+and any wasi-libc gap that surfaces; pair it with the ~100-line WASI
+browser shim. *Gate: `see 1+2` prints `3` in a browser page.* If a
+fundamental blocker resists a day's work, record it in this file and fall
+back to Emscripten (install emsdk, reproduce the 2025 baseline with the
+old `bridge.c` first, then proceed with `bridge2.c`). Everything after P0
+is identical under either toolchain.
 
 **P1 — Resident state + unbounded output.**
 `bridge2.c` with `rs_init/rs_eval/rs_last_output`; two consecutive
@@ -90,10 +135,11 @@ than 512 KB arrives whole.
 line + message, and the NEXT eval still works. Loop 500 evals in a page;
 memory stays bounded (watch `performance.memory` / Module.HEAP growth).
 
-**P3 — MEMFS + the stzZql payload.**
-`--preload-file` the `ringlib/` folder containing `stzZql.ring` (copied
-from stzweb) and its smoke test. In the browser:
-`rs_eval('load "/ringlib/stzzql_smoke.ring"')` → **10 passed, 0 failed**
+**P3 — The stzZql payload.**
+Embed the `ringlib/` folder — `stzZql.ring` (copied from stzweb) and its
+smoke test — via `@embedFile`, with the bridge resolving `load` against
+the embedded map (Emscripten fallback: MEMFS `--preload-file`). In the
+browser: `rs_eval('load "/ringlib/stzzql_smoke.ring"')` → **10 passed, 0 failed**
 — the same 10/10 the test prints under native ring. This is the moment
 "one grammar, three runtimes" becomes "…including in the browser".
 
@@ -125,8 +171,11 @@ document the divergence.
 
 ## 6. Risks and fallbacks
 
-- **emsdk drift**: 2025 flags may not build under 2026 emcc. Fallback:
-  pin the emsdk version that builds; record it in build.bat.
+- **wasi-libc gaps** (locale, exotic stdio, `system()` in `general.c`):
+  stub aggressively — a browser runtime needs none of them; the P0 gate
+  bounds the discovery cost, Emscripten is the recorded fallback.
+- **emsdk drift** (fallback path only): 2025 flags may not build under
+  2026 emcc; pin the emsdk version that builds and record it.
 - **`ring_state` reuse leaks**: if the VM leaks across evals in resident
   mode, fallback to pooled states (recreate every N evals) while filing
   the real fix.
@@ -139,7 +188,9 @@ Paste this to start the session in `D:\GitHub\ringscript`:
 
 > Read REPAIR_PLAN.md fully and execute it phase by phase, gating each
 > phase on its verification before starting the next. Commit per phase
-> with the phase number in the message. The stzZql payload comes from
+> with the phase number in the message. Toolchain: Zig-first per §2.5
+> (zig 0.15 is installed; emsdk is not) — Emscripten only through the
+> P0 fallback gate. The stzZql payload comes from
 > D:\GitHub\stzweb\runtime\ring\ (copy, don't move). Windows, French
 > locale, PowerShell 5.1: one command per line, never `&&`. CLI and page
 > output must be visually calm: wrapped lines, spacing, readable colors.
