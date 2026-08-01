@@ -81,6 +81,10 @@ Type: unsigned int
 lCreateListsUsingBlocks : 1
 Type: PoolManager
 vPoolManager
+Type: char *
+pCustomArgv[2]
+Type: char
+cCustomPara[2][RING_LARGEBUF]
 END:
 Type: RingState
 struct RingState
@@ -103,6 +107,7 @@ RING_WARNING_CHANGEOPERATORPARA
 RING_WARNING_OPERATORNOTFOUND
 RING_WARNING_EXITOUTSIDELOOP
 RING_WARNING_LOOPOUTSIDELOOP
+RING_WARNING_LONGKEYOP
 RING_MSG_PRINTRULES
 RING_MSG_PROGRAMRULE
 RING_CGI_START
@@ -175,10 +180,12 @@ c
 ring_state_exit
 ring_state_cgiheader
 ring_state_main
-Type: int
-x,lCGI,lRun,lPrintIC,lPrintICFinal,lTokens,lRules,lIns,lPerformance,lSrc,lGenObj,lGenCObj,lWarn
 Type: char *
 cStr
+Type: char
+cFileName[RING_SMALLBUF]
+Type: int
+x,lCGI,lRun,lPrintIC,lPrintICFinal,lTokens,lRules,lIns,lPerformance,lSrc,lGenObj,lGenCObj,lWarn
 ring_state_execute
 Type: RingState *
 pRingState

@@ -5,7 +5,7 @@
 > The Zig-first path held: zero Emscripten, the only wasi-libc gaps were
 > tmpfile/mkstemp (stubbed without touching vendor source). Gates are
 > permanent in `tests/gates.js` (`node tests/gates.js`). The vendored VM
-> is now Ring **1.26**. The P5 demo lives in
+> is now Ring **1.27** (1.26 briefly, same session). The P5 demo lives in
 > `stzweb/examples/ring-runtime/` (3/3 verdicts agree). Known limitation:
 > error line numbers inside multi-line evals report the eval-entry line
 > (Ring eval() compiles without line bytecode) — see bridge.zig; fix

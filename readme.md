@@ -16,7 +16,7 @@ design (see [REPAIR_PLAN.md](REPAIR_PLAN.md)).
 Zig-first, no Emscripten (decision record in REPAIR_PLAN.md §2.5):
 
 ```
-build.zig          compiles language/src (vendored Ring 1.26 VM, 41 files)
+build.zig          compiles language/src (vendored Ring 1.27 VM, 41 files)
                    + bridge.zig with `zig cc -target wasm32-wasi`
 bridge.zig         the resident bridge: rs_init / rs_reset / rs_eval /
                    rs_call / rs_last_output / rs_last_error, the see-hook,
@@ -92,8 +92,8 @@ ring.reset();                                  // explicit fresh state
   in `bridge.zig`; fixing it needs a small vendor patch).
 - No real filesystem: file reads resolve against the embedded `ringlib/`
   map; writes fail like a missing file. That is the design.
-- Ring 1.26 VM (vendored from `C:\Ring126`, matching the installed
-  native ring.exe). The original 1.25 tree is in git history (pre-P6).
+- Ring 1.27 VM (vendored from `D:\ring127`). The 1.25 and 1.26 trees
+  are in git history (pre-P6 and P6).
 
 ## Origin
 
