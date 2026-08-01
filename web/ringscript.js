@@ -15,7 +15,7 @@
     const WASI_EBADF = 8;
     const WASI_ENOSYS = 52;
 
-    function makeWasi(getMemory, onOutput) {
+    function makeWasi(getMemory, onOutput, sink) {
         const decoder = new TextDecoder("utf-8");
 
         function view() {
@@ -28,8 +28,19 @@
         const wasi = {
             fd_write(fd, iovsPtr, iovsLen, nwrittenPtr) {
                 const dv = view();
-                const mem = bytes();
                 let written = 0;
+                if (sink) {
+                    for (let i = 0; i < iovsLen; i++) {
+                        const ptr = dv.getUint32(iovsPtr + i * 8, true);
+                        const len = dv.getUint32(iovsPtr + i * 8 + 4, true);
+                        if (len > 0) sink(ptr, len, fd);
+                        written += len;
+                    }
+                    // re-fetch: the sink re-enters wasm and memory may grow
+                    view().setUint32(nwrittenPtr, written, true);
+                    return WASI_ESUCCESS;
+                }
+                const mem = bytes();
                 let text = "";
                 for (let i = 0; i < iovsLen; i++) {
                     const ptr = dv.getUint32(iovsPtr + i * 8, true);
@@ -133,7 +144,15 @@
 
         let memory = null;
         let exports = null;
-        const wasi = makeWasi(function () { return memory; }, onOutput);
+        // captureStdout: route C-level stdout/stderr (print(), puts(), VM
+        // error prints) back into the wasm output buffer via
+        // rs_append_output, preserving true order relative to `see` output.
+        // The raw bytes are already in wasm memory, so the sink re-enters
+        // the instance with the original pointers.
+        const sink = opts.captureStdout
+            ? function (ptr, len, fd) { exports.rs_append_output(ptr, len); }
+            : null;
+        const wasi = makeWasi(function () { return memory; }, onOutput, sink);
         const encoder = new TextEncoder();
         const decoder = new TextDecoder("utf-8");
 
@@ -223,7 +242,11 @@
             instance: instance,
             init() { return ex.rs_init(); },
             reset() { return ex.rs_reset(); },
-            eval(code) {
+            /// eval(code[, input]) — `input` is the text queue served to
+            /// Ring's `give`, line by line. Each eval starts with a fresh
+            /// queue (empty when the argument is omitted).
+            eval(code, input) {
+                withCString(input || "", function (ptr) { ex.rs_set_input(ptr); });
                 const rc = withCString(code, function (ptr) { return ex.rs_eval(ptr); });
                 return {
                     ok: rc === 0,

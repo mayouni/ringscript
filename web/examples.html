@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingScript — example gallery</title>
+<link rel="icon" href="../favicon.ico">
+<style>
+    :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #24292f;
+        --muted: #6a737d;
+        --accent: #1a7f5a;
+        --error: #b42318;
+        --border: #d8dee4;
+        --mono: "Cascadia Code", Consolas, "Courier New", monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #14171a;
+            --panel: #1c2126;
+            --ink: #d9dee3;
+            --muted: #8b949e;
+            --accent: #3fb984;
+            --error: #ef6a5a;
+            --border: #30363d;
+        }
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.6 system-ui, "Segoe UI", sans-serif;
+        max-width: 64rem;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+    h1 small { color: var(--muted); font-weight: normal; font-size: .95rem; }
+    p.tagline { color: var(--muted); margin: 0 0 1.5rem; }
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .label { font-size: .85rem; color: var(--muted); margin: 0 0 .35rem; }
+    select {
+        width: 100%;
+        padding: .5rem .6rem;
+        font-size: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--ink);
+    }
+    textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.5 var(--mono);
+        padding: .75rem;
+        resize: vertical;
+    }
+    #code { min-height: 16rem; }
+    #input { min-height: 4.5rem; }
+    .row { display: flex; gap: .75rem; align-items: center; margin-top: .75rem; flex-wrap: wrap; }
+    button {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fff;
+        border-radius: 6px;
+        padding: .5rem 1.5rem;
+        font-size: .95rem;
+        cursor: pointer;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    #status { color: var(--muted); font-size: .9rem; }
+    pre {
+        margin: 0;
+        padding: .75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font: 14px/1.5 var(--mono);
+        white-space: pre-wrap;
+        word-break: break-word;
+        min-height: 3rem;
+        max-height: 28rem;
+        overflow-y: auto;
+    }
+    #errbox { color: var(--error); }
+    #errbox:empty { display: none; }
+    .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+    @media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>RingScript example gallery <small>— the Ring tour, in your browser</small></h1>
+<p class="tagline">Pick an example, edit it freely, provide input lines if it asks
+(<code>give</code> reads them one per line), and run. Each run starts a fresh VM.</p>
+
+<div class="panel">
+    <p class="label">Example</p>
+    <select id="picker"></select>
+</div>
+
+<div class="cols">
+    <div class="panel">
+        <p class="label">Ring code (editable)</p>
+        <textarea id="code" spellcheck="false"></textarea>
+    </div>
+    <div class="panel">
+        <p class="label">Input — one line per <code>give</code></p>
+        <textarea id="input" spellcheck="false"></textarea>
+        <div class="row">
+            <button id="run" disabled>Run (Ctrl+Enter)</button>
+        </div>
+        <div class="row"><span id="status">loading wasm&hellip;</span></div>
+    </div>
+</div>
+
+<div class="panel">
+    <p class="label">Output</p>
+    <pre id="out"></pre>
+    <pre id="errbox"></pre>
+</div>
+
+<script src="examples-data.js"></script>
+<script src="ringscript.js"></script>
+<script>
+(async function () {
+    const $ = id => document.getElementById(id);
+
+    const picker = $("picker");
+    for (const ex of RING_EXAMPLES) {
+        const opt = document.createElement("option");
+        opt.value = ex.id;
+        opt.textContent = ex.title;
+        picker.appendChild(opt);
+    }
+
+    function select(id) {
+        const ex = RING_EXAMPLES.find(e => e.id === id) || RING_EXAMPLES[0];
+        $("code").value = ex.code;
+        $("input").value = ex.input;
+        $("out").textContent = "";
+        $("errbox").textContent = "";
+        $("status").textContent = "ready";
+    }
+    picker.addEventListener("change", () => select(picker.value));
+
+    let wasmBytes;
+    try {
+        const resp = await fetch("ringscript.wasm");
+        wasmBytes = await resp.arrayBuffer();
+        select(RING_EXAMPLES[0].id);
+        $("run").disabled = false;
+        $("status").textContent = "ready";
+    } catch (e) {
+        $("status").textContent = "failed to load wasm: " + e.message;
+        throw e;
+    }
+
+    let running = false;
+    async function run() {
+        if (running) return;
+        running = true;
+        $("run").disabled = true;
+        $("status").textContent = "running…";
+        $("out").textContent = "";
+        $("errbox").textContent = "";
+        try {
+            // Fresh VM per run: examples like ChangeRingKeyword rewire the
+            // scanner of the resident state, so isolation is the honest default.
+            const ring = await RingScript.load(wasmBytes.slice(0), { captureStdout: true, onOutput: () => {} });
+            const t0 = performance.now();
+            const r = ring.eval($("code").value, $("input").value);
+            const ms = (performance.now() - t0).toFixed(1);
+            $("out").textContent = r.output;
+            if (r.error) $("errbox").textContent = r.error;
+            $("status").textContent = (r.ok ? "ok" : "error") + " — " + ms + " ms";
+        } catch (e) {
+            $("errbox").textContent = "runtime crashed: " + e.message;
+            $("status").textContent = "crashed";
+        } finally {
+            running = false;
+            $("run").disabled = false;
+        }
+    }
+
+    $("run").addEventListener("click", run);
+    document.addEventListener("keydown", e => {
+        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
+    });
+})();
+</script>
+</body>
+</html>

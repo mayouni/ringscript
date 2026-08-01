@@ -113,6 +113,26 @@ const phases = {
         const bad = ring.call("NoSuchFunction", {});
         check("unknown function traps cleanly", !bad.ok && bad.error.includes("without definition"), bad.error);
     },
+
+    async io() {
+        console.log("IO — give input, object printing, auto-main (examples challenge)");
+        const ring = await newVM();
+        // NOTE: the object test runs BEFORE any give on this VM. Upstream
+        // Ring 1.27 (reproduced on native ring.exe with the default stdin
+        // give) corrupts the first attribute of a later attribute-only
+        // class after any give executes — not a wasm/bridge defect.
+        const obj = ring.eval("new point { x=10 y=20 z=30 ? self }\nclass point x y z");
+        check("attribute-only class + new + ? self", obj.ok && obj.output === "x: 10\ny: 20\nz: 30\n\n", JSON.stringify(obj.output));
+        const give = ring.eval('? "Name: " give n ? "Hi " + n', "Alice\n");
+        check("give consumes queued input and echoes", give.ok && give.output === "Name: \nAlice\nHi Alice\n", JSON.stringify(give.output));
+        const dry = ring.eval("give x", "");
+        check("exhausted input traps instead of spinning", !dry.ok && dry.error.includes("exhausted"), dry.error);
+        const ring2 = await newVM();
+        const main = ring2.eval('nCount = 10\nfunc main\n    nID = 1\n    see "Count = " + nCount + nl + "ID = " + nID');
+        check("func main auto-runs after top-level code", main.ok && main.output === "Count = 10\nID = 1", JSON.stringify(main.output));
+        const again = ring2.eval("see 1");
+        check("main does not re-run on later evals", again.ok && again.output === "1", JSON.stringify(again.output));
+    },
 };
 
 (async () => {

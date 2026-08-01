@@ -59,6 +59,11 @@ var g_err: std.ArrayList(u8) = .empty;
 var g_result: std.ArrayList(u8) = .empty;
 var g_callcode: std.ArrayList(u8) = .empty;
 var g_arg: []const u8 = "";
+var g_input: std.ArrayList(u8) = .empty;
+var g_input_pos: usize = 0;
+var g_evalcode: std.ArrayList(u8) = .empty;
+var g_eval_counter: u64 = 0;
+var g_main_called: bool = false;
 
 fn appendOut(bytes: []const u8) void {
     g_out.appendSlice(alloc, bytes) catch {};
@@ -67,10 +72,12 @@ fn appendOut(bytes: []const u8) void {
 fn appendNumber(n: f64) void {
     var buf: [64]u8 = undefined;
     const int: i64 = @intFromFloat(if (n >= -9007199254740992.0 and n <= 9007199254740992.0) n else 0);
+    // Match native `see`: integers print bare, non-integers use Ring's
+    // default decimals(2) formatting (e.g. 201.5 prints as 201.50).
     const s = if (n == @as(f64, @floatFromInt(int)))
         std.fmt.bufPrint(&buf, "{d}", .{int}) catch return
     else
-        std.fmt.bufPrint(&buf, "{d}", .{n}) catch return;
+        std.fmt.bufPrint(&buf, "{d:.2}", .{n}) catch return;
     appendOut(s);
 }
 
@@ -229,7 +236,59 @@ fn jscallHook(p: ?*anyopaque) callconv(.c) void {
     }
 }
 
-const see_shim = "func ringvm_see cData ring_vm_see(cData)";
+/// C hook registered AS "ringvm_give" (replacing genlib's stdin-based C
+/// default): hand the next queued input line to Ring's give, echoing it to
+/// the output the way a terminal would. When the queue is exhausted, raise
+/// a Ring error — a `give` with nothing to read would otherwise silently
+/// return "" and can spin interactive loops forever.
+///
+/// Deliberately a C function, not a Ring-level override: a Ring-level
+/// ringvm_give corrupts later attribute-only class regions (reproduced on
+/// native Ring 1.27 — the first class attribute vanishes after any give).
+fn giveHook(p: ?*anyopaque) callconv(.c) void {
+    const buf = g_input.items;
+    if (g_input_pos >= buf.len) {
+        ring_vm_error(p, "Give needs input but the input is exhausted");
+        return;
+    }
+    var end = g_input_pos;
+    while (end < buf.len and buf[end] != '\n') end += 1;
+    var line = buf[g_input_pos..end];
+    g_input_pos = if (end < buf.len) end + 1 else buf.len;
+    if (line.len > 0 and line[line.len - 1] == '\r') line = line[0 .. line.len - 1];
+    appendOut(line);
+    appendOut("\n");
+    ring_vm_api_retstring2(p, line.ptr, @intCast(line.len));
+}
+
+extern fn ring_vm_error(pVM: ?*anyopaque, cStr: [*:0]const u8) void;
+
+extern fn ring_vm_api_retnumber(p: ?*anyopaque, n: f64) void;
+
+/// C hook: latch that the auto-main pass found and is about to run main()
+/// (native Ring calls a defined main() once, after top-level statements).
+/// Returns 0 so the call_main_shim condition can chain on it.
+fn mainFoundHook(p: ?*anyopaque) callconv(.c) void {
+    g_main_called = true;
+    ring_vm_api_retnumber(p, 0);
+}
+
+// see: native-like printing, including object attributes (native Ring prints
+// "attr: value" lines for objects; the plain C hook can only see a pointer).
+// give: pull from the JS-supplied input queue, echoing the consumed line the
+// way a terminal would.
+const see_shim =
+    \\func ringvm_see cData
+    \\  if isobject(cData)
+    \\    for cAttr in attributes(cData)
+    \\      ring_vm_see(cAttr + ": ")
+    \\      ring_vm_see(getattribute(cData, cAttr))
+    \\      ring_vm_see(nl)
+    \\    next
+    \\  else
+    \\    ring_vm_see(cData)
+    \\  ok
+;
 const load_json_shim = "load \"ringlib/json.ring\"";
 
 /// Every eval runs through this wrapper: errors (compile errors surface as
@@ -252,6 +311,8 @@ export fn rs_init() i32 {
     ring_vm_funcregister2(st, "rs_reporterror", &reportErrorHook);
     ring_vm_funcregister2(st, "rs_getarg", &getArgHook);
     ring_vm_funcregister2(st, "rs_setresult", &setResultHook);
+    ring_vm_funcregister2(st, "ringvm_give", &giveHook);
+    ring_vm_funcregister2(st, "rs_notemain", &mainFoundHook);
     ring_vm_funcregister2(st, "jscall", &jscallHook);
     ring_state_runcode(st, see_shim);
     ring_state_runcode(st, load_json_shim);
@@ -264,17 +325,43 @@ export fn rs_reset() i32 {
         _ = ring_state_delete(st);
         g_state = null;
     }
+    g_main_called = false;
     return rs_init();
 }
+
+/// Auto-main pass: if the eval defined main() and it never ran, call it —
+/// matching native Ring, which invokes a defined main() once after the
+/// top-level statements (vmfuncs.c end-of-program path, unreachable in eval).
+const call_main_shim = "if isfunction(\"main\") and rs_notemain() = 0 main() ok";
 
 export fn rs_eval(code: [*:0]const u8) i32 {
     if (g_state == null and rs_init() != 0) return -1;
     g_out.clearRetainingCapacity();
     g_err.clearRetainingCapacity();
-    g_code = std.mem.span(code);
+
+    // Append a uniquely-named terminator function. If the code ends inside a
+    // class region (e.g. `class point x y z` with no methods), the region
+    // would otherwise be closed by eval's return-from-eval instruction and
+    // `new` on that class silently aborts the eval mid-statement. A trailing
+    // func delimits the region the way the next declaration would in a file.
+    g_eval_counter += 1;
+    g_evalcode.clearRetainingCapacity();
+    g_evalcode.appendSlice(alloc, std.mem.span(code)) catch return -1;
+    var buf: [48]u8 = undefined;
+    const term = std.fmt.bufPrint(&buf, "\nfunc __rs_end_{d}", .{g_eval_counter}) catch return -1;
+    g_evalcode.appendSlice(alloc, term) catch return -1;
+
+    g_code = g_evalcode.items;
     defer g_code = "";
     ring_state_runcode(g_state, eval_shim);
-    return if (g_err.items.len == 0) 0 else 1;
+    if (g_err.items.len != 0) return 1;
+
+    if (!g_main_called) {
+        g_code = call_main_shim;
+        ring_state_runcode(g_state, eval_shim);
+        if (g_err.items.len != 0) return 1;
+    }
+    return 0;
 }
 
 /// Call a Ring function with one JSON argument; returns its result as a
@@ -324,6 +411,22 @@ export fn rs_last_error() [*:0]const u8 {
     g_err.append(alloc, 0) catch return "";
     defer _ = g_err.pop();
     return @ptrCast(g_err.items.ptr);
+}
+
+/// Queue input for `give`: the whole text is split into lines as `give`
+/// consumes it. Replaces any previous queue. Pass "" to clear.
+export fn rs_set_input(text: [*:0]const u8) void {
+    g_input.clearRetainingCapacity();
+    g_input.appendSlice(alloc, std.mem.span(text)) catch {};
+    g_input_pos = 0;
+}
+
+/// Append raw bytes to the eval output buffer. The JS WASI shim calls this
+/// from fd_write (when stdout capture is on) so C-level output — print(),
+/// puts(), VM error prints — lands in rs_last_output() in true order
+/// relative to see-hook output.
+export fn rs_append_output(ptr: [*]const u8, len: usize) void {
+    appendOut(ptr[0..len]);
 }
 
 export fn rs_alloc(n: usize) ?[*]u8 {

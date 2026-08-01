@@ -48,7 +48,11 @@ Artifacts land in `zig-out/bin/` and are copied to `web/`
 node web/serve.js
 ```
 
-and open <http://localhost:8377/> — a REPL page against the resident VM.
+and open <http://localhost:8377/> — a REPL page against the resident VM —
+or <http://localhost:8377/examples.html>, a gallery of classic Ring
+examples (interactive input, OOP, brace magic, Arabic keywords…) that all
+match native ring.exe output byte-for-byte
+(`node tests/examples-oracle.js` verifies this against `D:\ring127`).
 
 ## Verification
 
@@ -77,13 +81,21 @@ side by side — same declaration, same verdicts.
 ```js
 const ring = await RingScript.load("ringscript.wasm", {
     onOutput: text => console.log(text),      // VM stdout/stderr
-});
+    captureStdout: true,                      // or: route print()/puts into
+});                                            // the eval output, in order
 ring.eval('see 1+2');                          // { ok, output, error }
 ring.eval('x = 5'); ring.eval('see x');        // state persists
+ring.eval('give n see n', "Mansour\n");        // input queue for `give`
 ring.call("MyFunc", { any: "json" });          // { ok, result, output, error }
 ring.on("notify", payload => ({ ack: 1 }));    // Ring: Platform("notify", …)
 ring.reset();                                  // explicit fresh state
 ```
+
+Native-fidelity details the bridge takes care of: `? obj` prints object
+attributes like native Ring; `give` echoes its input (terminal-style) and
+raises a trappable error when the queue runs dry; a defined `func main`
+auto-runs once after top-level code; a class with only attributes at the
+end of an eval works (the bridge appends a region terminator).
 
 ## Known limitations
 
