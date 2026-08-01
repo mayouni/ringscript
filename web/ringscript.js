@@ -132,17 +132,52 @@
         const onOutput = opts.onOutput || function (t) { console.log(t); };
 
         let memory = null;
+        let exports = null;
         const wasi = makeWasi(function () { return memory; }, onOutput);
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder("utf-8");
+
+        // Ring -> JS seam: Ring's jscall(name, json) lands here. Handlers are
+        // registered with api.on(name, fn); unhandled calls fall through to a
+        // DOM CustomEvent "ringscript:<name>" in browsers. A handler's return
+        // value (JSON-serializable) is passed back to Ring.
+        const handlers = Object.create(null);
+        function js_dispatch(namePtr, nameLen, jsonPtr, jsonLen) {
+            const mem = new Uint8Array(memory.buffer);
+            const name = decoder.decode(mem.subarray(namePtr, namePtr + nameLen));
+            const raw = decoder.decode(mem.subarray(jsonPtr, jsonPtr + jsonLen));
+            let payload = null;
+            try { payload = raw.length ? JSON.parse(raw) : null; } catch (e) { payload = raw; }
+            let result;
+            if (handlers[name]) {
+                result = handlers[name](payload);
+            } else if (typeof document !== "undefined") {
+                document.dispatchEvent(new CustomEvent("ringscript:" + name, { detail: payload }));
+            }
+            if (result === undefined || result === null) return 0;
+            const bytes = encoder.encode(JSON.stringify(result));
+            const ptr = exports.rs_alloc(bytes.length + 1);
+            if (!ptr) return 0;
+            const out = new Uint8Array(memory.buffer); // buffer may have grown
+            out.set(bytes, ptr);
+            out[ptr + bytes.length] = 0;
+            return ptr;
+        }
+
+        const imports = {
+            wasi_snapshot_preview1: wasi,
+            ringscript: { js_dispatch: js_dispatch },
+        };
 
         let wasmModule;
         if (source instanceof ArrayBuffer || (typeof Buffer !== "undefined" && Buffer.isBuffer && Buffer.isBuffer(source))) {
-            wasmModule = await WebAssembly.instantiate(source, { wasi_snapshot_preview1: wasi });
+            wasmModule = await WebAssembly.instantiate(source, imports);
         } else if (typeof fetch === "function") {
             const resp = await fetch(source);
             if (WebAssembly.instantiateStreaming) {
-                wasmModule = await WebAssembly.instantiateStreaming(resp, { wasi_snapshot_preview1: wasi });
+                wasmModule = await WebAssembly.instantiateStreaming(resp, imports);
             } else {
-                wasmModule = await WebAssembly.instantiate(await resp.arrayBuffer(), { wasi_snapshot_preview1: wasi });
+                wasmModule = await WebAssembly.instantiate(await resp.arrayBuffer(), imports);
             }
         } else {
             throw new Error("RingScript.load: pass an ArrayBuffer in this environment");
@@ -150,13 +185,11 @@
 
         const instance = wasmModule.instance || wasmModule;
         const ex = instance.exports;
+        exports = ex;
         memory = ex.memory;
 
         // WASI reactor model: run C runtime constructors once.
         if (typeof ex._initialize === "function") ex._initialize();
-
-        const encoder = new TextEncoder();
-        const decoder = new TextDecoder("utf-8");
 
         function readCString(ptr) {
             if (!ptr) return "";
@@ -195,6 +228,30 @@
             },
             lastOutput() { return readCString(ex.rs_last_output()); },
             lastError() { return readCString(ex.rs_last_error()); },
+            /// Call a Ring function with one JSON-serializable argument;
+            /// returns { ok, result (parsed), output, error }.
+            call(fname, arg) {
+                const json = JSON.stringify(arg === undefined ? null : arg);
+                const resPtr = withCString(fname, function (fp) {
+                    return withCString(json, function (jp) {
+                        return ex.rs_call(fp, jp);
+                    });
+                });
+                const raw = readCString(resPtr);
+                const error = readCString(ex.rs_last_error());
+                let result = null;
+                if (!error && raw.length) {
+                    try { result = JSON.parse(raw); } catch (e) { result = raw; }
+                }
+                return {
+                    ok: !error,
+                    result: result,
+                    output: readCString(ex.rs_last_output()),
+                    error: error,
+                };
+            },
+            /// Register a JS handler for Ring's jscall(name, json).
+            on(name, fn) { handlers[name] = fn; return api; },
         };
 
         const rc = api.init();

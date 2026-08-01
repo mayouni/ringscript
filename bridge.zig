@@ -53,6 +53,9 @@ extern fn ring_list_getlist(pList: ?*List, n: c_uint) ?*List;
 var g_state: ?*RingState = null;
 var g_out: std.ArrayList(u8) = .empty;
 var g_err: std.ArrayList(u8) = .empty;
+var g_result: std.ArrayList(u8) = .empty;
+var g_callcode: std.ArrayList(u8) = .empty;
+var g_arg: []const u8 = "";
 
 fn appendOut(bytes: []const u8) void {
     g_out.appendSlice(alloc, bytes) catch {};
@@ -136,6 +139,7 @@ const EmbeddedFile = struct { name: []const u8, data: []const u8 };
 const embedded_files = [_]EmbeddedFile{
     .{ .name = "ringlib/stzZql.ring", .data = @embedFile("ringlib/stzZql.ring") },
     .{ .name = "ringlib/stzzql_smoke.ring", .data = @embedFile("ringlib/stzzql_smoke.ring") },
+    .{ .name = "ringlib/json.ring", .data = @embedFile("ringlib/json.ring") },
 };
 
 fn baseName(path: []const u8) []const u8 {
@@ -174,7 +178,54 @@ export fn rs_find_embedded(path: [*:0]const u8, out_len: *usize) ?[*]const u8 {
     return null;
 }
 
+/// C hook: return the pending rs_call JSON argument to Ring.
+fn getArgHook(p: ?*anyopaque) callconv(.c) void {
+    ring_vm_api_retstring2(p, g_arg.ptr, @intCast(g_arg.len));
+}
+
+/// C hook: the rs_call wrapper stores the encoded result here.
+fn setResultHook(p: ?*anyopaque) callconv(.c) void {
+    g_result.clearRetainingCapacity();
+    if (ring_vm_api_isstring(p, 1) != 0) {
+        if (ring_vm_api_getstring(p, 1)) |s| {
+            const len: usize = @intCast(ring_vm_api_getstringsize(p, 1));
+            g_result.appendSlice(alloc, s[0..len]) catch {};
+        }
+    }
+}
+
+/// JS import: dispatch a Ring jscall() to the host page. Returns a pointer
+/// to a NUL-terminated reply the host allocated with rs_alloc (0 = none);
+/// the hook frees it after handing the string to Ring.
+extern "ringscript" fn js_dispatch(
+    name_ptr: [*]const u8,
+    name_len: usize,
+    json_ptr: [*]const u8,
+    json_len: usize,
+) ?[*:0]u8;
+
+/// C hook: Ring's jscall(cName, cJson) — the Ring→JS seam.
+fn jscallHook(p: ?*anyopaque) callconv(.c) void {
+    var name: []const u8 = "";
+    var json: []const u8 = "";
+    if (ring_vm_api_isstring(p, 1) != 0) {
+        if (ring_vm_api_getstring(p, 1)) |s| name = s[0..@intCast(ring_vm_api_getstringsize(p, 1))];
+    }
+    if (ring_vm_api_isstring(p, 2) != 0) {
+        if (ring_vm_api_getstring(p, 2)) |s| json = s[0..@intCast(ring_vm_api_getstringsize(p, 2))];
+    }
+    const reply = js_dispatch(name.ptr, name.len, json.ptr, json.len);
+    if (reply) |r| {
+        const span = std.mem.span(r);
+        ring_vm_api_retstring2(p, span.ptr, @intCast(span.len));
+        alloc.free(r[0 .. span.len + 1]);
+    } else {
+        ring_vm_api_retstring2(p, "", 0);
+    }
+}
+
 const see_shim = "func ringvm_see cData ring_vm_see(cData)";
+const load_json_shim = "load \"ringlib/json.ring\"";
 
 /// Every eval runs through this wrapper: errors (compile errors surface as
 /// eval() runtime errors, runtime errors unwind to the catch) land in
@@ -195,7 +246,11 @@ export fn rs_init() i32 {
     ring_vm_funcregister2(st, "ring_vm_see", &seeHook);
     ring_vm_funcregister2(st, "rs_getcode", &getCodeHook);
     ring_vm_funcregister2(st, "rs_reporterror", &reportErrorHook);
+    ring_vm_funcregister2(st, "rs_getarg", &getArgHook);
+    ring_vm_funcregister2(st, "rs_setresult", &setResultHook);
+    ring_vm_funcregister2(st, "jscall", &jscallHook);
     ring_state_runcode(st, see_shim);
+    ring_state_runcode(st, load_json_shim);
     g_state = st;
     return 0;
 }
@@ -216,6 +271,43 @@ export fn rs_eval(code: [*:0]const u8) i32 {
     defer g_code = "";
     ring_state_runcode(g_state, eval_shim);
     return if (g_err.items.len == 0) 0 else 1;
+}
+
+/// Call a Ring function with one JSON argument; returns its result as a
+/// NUL-terminated JSON string ("" + rs_last_error set on failure).
+/// Runtime-mode counterpart of rs_eval (REPAIR_PLAN.md §3).
+export fn rs_call(fname: [*:0]const u8, json: [*:0]const u8) [*:0]const u8 {
+    if (g_state == null and rs_init() != 0) return "";
+    g_out.clearRetainingCapacity();
+    g_err.clearRetainingCapacity();
+    g_result.clearRetainingCapacity();
+
+    const name = std.mem.span(fname);
+    if (name.len == 0) {
+        g_err.appendSlice(alloc, "rs_call: empty function name") catch {};
+        return "";
+    }
+    for (name) |ch| {
+        if (!std.ascii.isAlphanumeric(ch) and ch != '_') {
+            g_err.appendSlice(alloc, "rs_call: invalid function name") catch {};
+            return "";
+        }
+    }
+
+    g_arg = std.mem.span(json);
+    defer g_arg = "";
+    g_callcode.clearRetainingCapacity();
+    g_callcode.appendSlice(alloc, "rs_setresult(JsonEncode(") catch return "";
+    g_callcode.appendSlice(alloc, name) catch return "";
+    g_callcode.appendSlice(alloc, "(JsonDecode(rs_getarg()))))") catch return "";
+    g_code = g_callcode.items;
+    defer g_code = "";
+    ring_state_runcode(g_state, eval_shim);
+    if (g_err.items.len != 0) return "";
+
+    g_result.append(alloc, 0) catch return "";
+    defer _ = g_result.pop();
+    return @ptrCast(g_result.items.ptr);
 }
 
 export fn rs_last_output() [*:0]const u8 {

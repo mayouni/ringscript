@@ -78,6 +78,37 @@ const phases = {
         const q = ring.eval('o2 = StzZqlQ("DEFINE ENTITY :m (id: uuid)") see o2.CountEntities()');
         check("stzZql stays resident after load", q.ok && q.output === "1", JSON.stringify(q));
     },
+
+    async p4() {
+        console.log("P4 — two-way bridge (rs_call + jscall)");
+        const ring = await newVM();
+
+        const enc = ring.eval('see JsonEncode([ :name = "Aminata", :tags = ["a","b"], :note = "l1" + char(10) + "l2" ])');
+        check("JsonEncode pair-list -> object", enc.output === '{"name":"Aminata","tags":["a","b"],"note":"l1\\nl2"}', enc.output);
+
+        ring.eval('func Double aData return [ :value = aData[:n] * 2 ]');
+        const call = ring.call("Double", { n: 21 });
+        check("rs_call JSON in/out", call.ok && call.result && call.result.value === 42, JSON.stringify(call));
+
+        ring.eval('load "ringlib/stzzql_smoke.ring"');
+        ring.eval('func RunCollect aData\n' +
+            '  cQ = char(34)\n' +
+            '  o = StzZqlQ("DEFINE FLOW :collect (STEP 1: RECORD -> { ACTOR: :collector, VALIDATE: :member != " + cQ + cQ + ", ON_FAIL: REJECT " + cQ + "NO_MEMBER" + cQ + " })")\n' +
+            '  return o.RunFlow("collect", aData)');
+        const flow = ring.call("RunCollect", { member: "Aminata", amount: 5000 });
+        check("stzZql flow result returns as JSON", flow.ok && flow.result.status === "complete", JSON.stringify(flow.result));
+        const rejected = ring.call("RunCollect", { member: "", amount: 5000 });
+        check("flow rejection visible in JSON", rejected.ok && rejected.result.status === "failed" && rejected.result.actionarg === "NO_MEMBER", JSON.stringify(rejected.result));
+
+        let seen = null;
+        ring.on("notify", p => { seen = p; return { ack: 1 }; });
+        const js = ring.eval('a = Platform("notify", [ :msg = "hi" ]) see a[:ack]');
+        check("jscall reaches JS handler", seen && seen.msg === "hi", JSON.stringify(seen));
+        check("JS reply returns to Ring", js.ok && js.output === "1", JSON.stringify(js));
+
+        const bad = ring.call("NoSuchFunction", {});
+        check("unknown function traps cleanly", !bad.ok && bad.error.includes("without definition"), bad.error);
+    },
 };
 
 (async () => {
