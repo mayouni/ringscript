@@ -175,7 +175,13 @@
         } else if (typeof fetch === "function") {
             const resp = await fetch(source);
             if (WebAssembly.instantiateStreaming) {
-                wasmModule = await WebAssembly.instantiateStreaming(resp, imports);
+                try {
+                    wasmModule = await WebAssembly.instantiateStreaming(resp, imports);
+                } catch (e) {
+                    // Server sent a non-wasm MIME type; refetch and instantiate from bytes.
+                    const resp2 = await fetch(source);
+                    wasmModule = await WebAssembly.instantiate(await resp2.arrayBuffer(), imports);
+                }
             } else {
                 wasmModule = await WebAssembly.instantiate(await resp.arrayBuffer(), imports);
             }
