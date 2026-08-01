@@ -1,5 +1,16 @@
 # RingScript Repair Plan — for a dedicated session
 
+> **EXECUTED — August 1, 2026.** All phases P0–P6 (including the stretch)
+> completed and gated in one session; one commit per phase on `main`.
+> The Zig-first path held: zero Emscripten, the only wasi-libc gaps were
+> tmpfile/mkstemp (stubbed without touching vendor source). Gates are
+> permanent in `tests/gates.js` (`node tests/gates.js`). The vendored VM
+> is now Ring **1.26**. The P5 demo lives in
+> `stzweb/examples/ring-runtime/` (3/3 verdicts agree). Known limitation:
+> error line numbers inside multi-line evals report the eval-entry line
+> (Ring eval() compiles without line bytecode) — see bridge.zig; fix
+> deferred to a small vendor patch.
+
 *Written August 2026 after a fundamental review from the StzWeb consolidation
 work. Self-contained: a fresh session in this folder can execute it without
 any other context. Companion facts: Ring 1.26 is installed at
