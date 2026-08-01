@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ringscript-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["web/serve.js", "8377"],
+      "port": 8377
+    }
+  ]
+}
