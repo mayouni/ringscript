@@ -1,0 +1,53 @@
+/*
+** RingScript phase gates (REPAIR_PLAN.md §4) — runnable verification.
+** Usage: node tests/gates.js [phase]   (no arg = run all available)
+** Exits nonzero if any gate fails.
+*/
+const fs = require("fs");
+const path = require("path");
+const RingScript = require(path.join(__dirname, "..", "web", "ringscript.js"));
+
+const wasmPath = path.join(__dirname, "..", "web", "ringscript.wasm");
+
+let failures = 0;
+function check(name, cond, detail) {
+    console.log((cond ? "  PASS  " : "  FAIL  ") + name + (cond || detail === undefined ? "" : "  [" + detail + "]"));
+    if (!cond) failures++;
+}
+
+async function newVM(opts) {
+    const buf = fs.readFileSync(wasmPath);
+    return RingScript.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength), opts || { onOutput: () => {} });
+}
+
+const phases = {
+    async p0() {
+        console.log("P0 — toolchain: see 1+2 prints 3");
+        const ring = await newVM();
+        const r = ring.eval("see 1+2");
+        check("see 1+2 -> 3", r.ok && r.output === "3", JSON.stringify(r));
+    },
+
+    async p1() {
+        console.log("P1 — resident state + unbounded output");
+        const ring = await newVM();
+        ring.eval("x = 5");
+        const r1 = ring.eval("see x");
+        check("globals survive across evals", r1.output === "5", r1.output);
+        const r2 = ring.eval('line = "0123456789012345678901234567890123456789"\nfor i = 1 to 30000 see line + nl next');
+        const expected = 30000 * 41;
+        check("1.23 MB output arrives whole", r2.output.length === expected, r2.output.length + " / " + expected);
+        const lines = r2.output.split("\n");
+        check("first/last lines intact", lines[0].length === 40 && lines[29999].length === 40);
+    },
+};
+
+(async () => {
+    const which = process.argv[2] ? [process.argv[2]] : Object.keys(phases);
+    for (const p of which) {
+        if (!phases[p]) { console.error("unknown phase: " + p); process.exit(2); }
+        await phases[p]();
+    }
+    console.log(failures === 0 ? "\nAll gates passed." : "\n" + failures + " gate(s) FAILED.");
+    process.exit(failures === 0 ? 0 : 1);
+})().catch(e => { console.error("gate runner crashed:", e); process.exit(1); });
