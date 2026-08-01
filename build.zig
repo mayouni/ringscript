@@ -64,6 +64,18 @@ const vm_cflags = [_][]const u8{
     // all, so stub the single call site in file_e.c at the flag level.
     "-Wno-deprecated-declarations",
     "-Dmkstemp(x)=(-1)",
+    // Route every VM file access to the embedded-map resolver in wasi_stubs.c
+    // (which is compiled WITHOUT this flag — see below).
+    "-Dfopen=rs_fopen",
+    "-fno-sanitize=undefined",
+};
+
+const stub_cflags = [_][]const u8{
+    "-DRING_NODLL=1",
+    "-DRING_LIMITEDSYS=1",
+    "-D_WASI_EMULATED_SIGNAL",
+    "-D_WASI_EMULATED_PROCESS_CLOCKS",
+    "-Wno-deprecated-declarations",
     "-fno-sanitize=undefined",
 };
 
@@ -87,7 +99,7 @@ pub fn build(b: *std.Build) void {
     });
     mod.addCSourceFiles(.{
         .files = &.{"wasi_stubs.c"},
-        .flags = &vm_cflags,
+        .flags = &stub_cflags,
     });
 
     const exe = b.addExecutable(.{

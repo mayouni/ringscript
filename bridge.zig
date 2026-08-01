@@ -125,6 +125,55 @@ fn reportErrorHook(p: ?*anyopaque) callconv(.c) void {
     }
 }
 
+// ------------------------------------------------------------ embedded files
+//
+// The ringlib/ payload is baked into the wasm (REPAIR_PLAN.md §3: no browser
+// filesystem at all). The C-level fopen override in wasi_stubs.c resolves
+// every VM file access — `load`, fexists, read() — against this map.
+
+const EmbeddedFile = struct { name: []const u8, data: []const u8 };
+
+const embedded_files = [_]EmbeddedFile{
+    .{ .name = "ringlib/stzZql.ring", .data = @embedFile("ringlib/stzZql.ring") },
+    .{ .name = "ringlib/stzzql_smoke.ring", .data = @embedFile("ringlib/stzzql_smoke.ring") },
+};
+
+fn baseName(path: []const u8) []const u8 {
+    var p = path;
+    if (std.mem.lastIndexOfAny(u8, p, "/\\")) |i| p = p[i + 1 ..];
+    return p;
+}
+
+/// Resolve a path against the embedded map: exact (case-insensitive) match
+/// first, then suffix match (load may prefix a directory), then basename
+/// match (load "stzZql.ring" from inside ringlib/). Called from the fopen
+/// override in wasi_stubs.c.
+export fn rs_find_embedded(path: [*:0]const u8, out_len: *usize) ?[*]const u8 {
+    var p = std.mem.span(path);
+    while (p.len > 0 and (p[0] == '/' or p[0] == '\\')) p = p[1..];
+    while (std.mem.startsWith(u8, p, "./")) p = p[2..];
+    for (embedded_files) |e| {
+        if (std.ascii.eqlIgnoreCase(e.name, p)) {
+            out_len.* = e.data.len;
+            return e.data.ptr;
+        }
+    }
+    for (embedded_files) |e| {
+        if (p.len > e.name.len and std.ascii.eqlIgnoreCase(p[p.len - e.name.len ..], e.name)) {
+            out_len.* = e.data.len;
+            return e.data.ptr;
+        }
+    }
+    const base = baseName(p);
+    for (embedded_files) |e| {
+        if (std.ascii.eqlIgnoreCase(baseName(e.name), base)) {
+            out_len.* = e.data.len;
+            return e.data.ptr;
+        }
+    }
+    return null;
+}
+
 const see_shim = "func ringvm_see cData ring_vm_see(cData)";
 
 /// Every eval runs through this wrapper: errors (compile errors surface as

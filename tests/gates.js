@@ -67,6 +67,17 @@ const phases = {
         const fin = ring.eval("see y");
         check("state still intact after 1000 evals", fin.output === "42");
     },
+
+    async p3() {
+        console.log("P3 — embedded stzZql payload");
+        const ring = await newVM();
+        const r = ring.eval('load "ringlib/stzzql_smoke.ring"');
+        check("smoke test loads via embedded map", r.ok, r.error);
+        check("10 passed, 0 failed", r.output.includes("10 passed, 0 failed"), r.output.slice(-80));
+        // load resolved a nested relative load too (smoke loads stzZql.ring)
+        const q = ring.eval('o2 = StzZqlQ("DEFINE ENTITY :m (id: uuid)") see o2.CountEntities()');
+        check("stzZql stays resident after load", q.ok && q.output === "1", JSON.stringify(q));
+    },
 };
 
 (async () => {
