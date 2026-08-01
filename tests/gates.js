@@ -117,10 +117,11 @@ const phases = {
     async io() {
         console.log("IO — give input, object printing, auto-main (examples challenge)");
         const ring = await newVM();
-        // NOTE: the object test runs BEFORE any give on this VM. Upstream
-        // Ring 1.27 (reproduced on native ring.exe with the default stdin
-        // give) corrupts the first attribute of a later attribute-only
-        // class after any give executes — not a wasm/bridge defect.
+        // NOTE: the object test runs BEFORE the give tests on this VM.
+        // `give x` creates a global x, and a global sharing an attribute's
+        // name prevents that attribute from being defined — DOCUMENTED Ring
+        // behavior (Scope Rules > "Conflict between Global Variables and
+        // Class Attributes"), reproduced identically on native ring.exe.
         const obj = ring.eval("new point { x=10 y=20 z=30 ? self }\nclass point x y z");
         check("attribute-only class + new + ? self", obj.ok && obj.output === "x: 10\ny: 20\nz: 30\n\n", JSON.stringify(obj.output));
         const give = ring.eval('? "Name: " give n ? "Hi " + n', "Alice\n");
