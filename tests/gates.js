@@ -40,6 +40,33 @@ const phases = {
         const lines = r2.output.split("\n");
         check("first/last lines intact", lines[0].length === 40 && lines[29999].length === 40);
     },
+
+    async p2() {
+        console.log("P2 — error trapping");
+        const ring = await newVM();
+        const bad = ring.eval("this is not ring");
+        check("garbage returns nonzero", !bad.ok && bad.code !== 0);
+        check("error carries line + message", /^line \d+: .*Error/.test(bad.error), bad.error);
+        const rt = ring.eval("see 1\nsomeUnknownFunc()");
+        check("runtime error trapped, prior output kept", !rt.ok && rt.output === "1", JSON.stringify(rt));
+        ring.eval("y = 42");
+        const after = ring.eval("see y");
+        check("VM alive after errors, state intact", after.ok && after.output === "42");
+        const heapBefore = ring.instance.exports.memory.buffer.byteLength;
+        for (let i = 0; i < 500; i++) {
+            const r = ring.eval("see " + i + "+1");
+            if (!r.ok) { check("500-eval loop", false, "iteration " + i); return; }
+        }
+        for (let i = 0; i < 500; i++) {
+            const r = ring.eval("nope nope " + i);
+            if (r.ok) { check("500-error-eval loop", false, "iteration " + i); return; }
+        }
+        const heapAfter = ring.instance.exports.memory.buffer.byteLength;
+        check("500 ok + 500 error evals complete", true);
+        check("wasm memory bounded", heapAfter <= heapBefore + 16 * 1024 * 1024, heapBefore + " -> " + heapAfter);
+        const fin = ring.eval("see y");
+        check("state still intact after 1000 evals", fin.output === "42");
+    },
 };
 
 (async () => {
