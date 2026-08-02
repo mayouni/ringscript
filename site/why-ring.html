@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Ring? — the road from a language to Softanza and RingScript</title>
+<meta name="description" content="Why I chose Ring in 2018, wrote a book about it, built the Softanza library and engine on top of it, and ended up porting the language to WebAssembly.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.2">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article h2 { margin-top: 3rem; }
+
+    /* a year-marked narrative */
+    .timeline { margin: 2rem 0; border-left: 2px solid var(--border); padding-left: 1.6rem; }
+    .moment { position: relative; margin-bottom: 2.2rem; }
+    .moment::before {
+        content: ""; position: absolute; left: calc(-1.6rem - 7px); top: .55rem;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: var(--accent); border: 3px solid var(--bg);
+    }
+    .moment .year { font-weight: 700; color: var(--accent); font-size: 1.15rem; display: block; }
+    .moment p { margin: .3rem 0 0; }
+
+    .limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
+    .limit { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem; }
+    .limit .num { font-size: 1.6rem; font-weight: 700; color: var(--muted); opacity: .5; line-height: 1; }
+    .limit h3 { margin: .4rem 0 .35rem; }
+    .limit p { margin: 0; font-size: 1.05rem; }
+
+    .answer { background: var(--accent-soft); border-radius: 12px; padding: 1.3rem 1.5rem; margin: 1.6rem 0; }
+    .answer p { color: var(--ink); margin: 0 0 .8rem; }
+    .answer p:last-child { margin-bottom: 0; }
+    .signoff { margin-top: 2.5rem; padding-top: 1.6rem; border-top: 1px solid var(--border); }
+    .signoff .name { font-weight: 700; color: var(--ink); font-size: 1.1rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html">Ring<span>Script</span></a>
+    <a href="index.html">Home</a>
+    <a class="active" href="why-ring.html">Why Ring?</a>
+    <a href="story.html">The story</a>
+    <a class="repo" href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      Docs on GitHub <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+  <h1>Why Ring?</h1>
+  <p class="first">I was not looking for another programming language. I was looking for one
+  that would not impose a paradigm on me — one that could be declarative when the problem is
+  declarative, and read like natural language when people other than programmers have to
+  understand it.</p>
+
+  <div class="timeline">
+    <div class="moment">
+      <span class="year">2018</span>
+      <p>I discovered <strong>Ring</strong>: modern, flexible, and refreshingly free of dogma.
+      It let me write in the style the problem called for, instead of the style the language
+      insisted on.</p>
+    </div>
+    <div class="moment">
+      <span class="year">2020</span>
+      <p>I wrote a book about the language with <strong>Apress</strong>, presenting Ring not as
+      yet another language, but as a genuine <strong>computational thinking tool</strong>.</p>
+    </div>
+    <div class="moment">
+      <span class="year">2020</span>
+      <p>The same year I started the <strong>Softanza library</strong>, to give Ring an
+      industrial-strength foundation covering whatever a real project might need — Softanza is
+      to Ring what the .NET Framework is to C#.</p>
+    </div>
+    <div class="moment">
+      <span class="year">Then</span>
+      <p>I put the beta into real projects, so that customer constraints and feedback — not my
+      assumptions — would shape it: in <strong>Niger</strong>, inside a bank and a high school;
+      in <strong>France</strong>, for a restaurant.</p>
+    </div>
+  </div>
+
+  <h2>Two things became impossible to ignore</h2>
+  <p>Ring proved flexible and well suited to a great many cases. But two limits kept surfacing:</p>
+
+  <div class="limits">
+    <div class="limit">
+      <div class="num">1</div>
+      <h3>Interpreted, like Python</h3>
+      <p>Excellent for expressing ideas, but not built for heavy loads and
+      data-intensive applications.</p>
+    </div>
+    <div class="limit">
+      <div class="num">2</div>
+      <h3>Backend only, on the web</h3>
+      <p>For the frontend, JavaScript was the only option — and most of my clients need
+      web applications that keep working <strong>without an internet connection</strong>.</p>
+    </div>
+  </div>
+
+  <h2>What I did about them</h2>
+  <div class="answer">
+    <p><strong>For the first:</strong> using the advances in AI, I rewrote the critical parts
+    of the library in <strong>Zig</strong>. That became the <strong>Softanza Engine</strong> —
+    which works not only with Ring, but with any language. It is a work in progress.</p>
+    <p><strong>For the second:</strong> I have just released <strong>RingScript</strong>, the
+    WebAssembly port of the Ring language, making it executable inside browsers — in place of
+    JavaScript.</p>
+  </div>
+
+  <h2>Why this matters</h2>
+  <p>RingScript is a critical milestone in the <strong>Softanza Project</strong> vision: to
+  make programming easy and powerful at the same time, for anyone — while addressing serious
+  business applications, not demos and brochure websites.</p>
+  <p>Softanza also has its own web framework, <strong>StzWeb</strong>, which I will release
+  soon. It makes building applications in Ring — backend and frontend — genuinely fun.</p>
+
+  <div class="signoff">
+    <span class="name">Mansour</span>
+  </div>
+
+  <div class="actions" style="justify-content:flex-start; margin-top:1.6rem">
+    <a class="btn primary" href="https://ring-lang.github.io/" target="_blank" rel="noopener">Discover the Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="btn ghost" href="story.html">How RingScript started</a>
+  </div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="story.html">The story</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>
