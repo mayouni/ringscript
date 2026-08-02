@@ -203,6 +203,6 @@ ring = await RingScript.load("ringscript.wasm", { onOutput, captureStdout, onGiv
 ring.eval(code)                    // { ok, output, error } — state persists
 ring.eval(code, "l1\nl2")          // scripted input queue for give
 ring.call("Fn", { any: "json" })   // { ok, result, output, error }
-ring.on("name", fn)                // handle Ring's Platform("name", data)
+ring.on("name", fn)                // handle Ring's Page/Platform("name", …)
 ring.reset()                       // explicit fresh state
 ```

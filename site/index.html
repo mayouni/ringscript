@@ -94,11 +94,11 @@
 <span class="k">func</span> Greet
 
 
-    cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
+    cName = Page(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
 
     <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
 
-    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
+    Page(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
         <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName + <span class="s">"!"</span> ])
 
     nClicks++</pre>
@@ -161,7 +161,7 @@
     <li><b>Boot it</b> with one line — <code>RingScript.boot()</code> — which starts the VM
       and runs every <code>&lt;script type="text/ring"&gt;</code> block on the page.</li>
     <li><b>Write Ring.</b> Call functions from your markup with
-      <code>ring.call('Name')</code>; read and write the page with <code>Platform()</code>.</li>
+      <code>ring.call('Name')</code>; read and write the page with <code>Page()</code>.</li>
   </ol>
 </section>
 

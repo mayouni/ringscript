@@ -104,7 +104,8 @@ ringscript/
 │   │                            VM accessors — the only added C
 │   ├── serve.zig                embedded dev HTTP server (correct wasm MIME)
 │   └── ringlib/                 pure Ring baked into the wasm
-│       ├── json.ring            JSON codec + the Platform() seam
+│       ├── json.ring            the pure-Ring JSON codec
+│       ├── seam.ring            Page() and Platform(), the outward seam
 │       ├── stzZql.ring          sample embedded library
 │       └── stzzql_smoke.ring    its test suite
 │

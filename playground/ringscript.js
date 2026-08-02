@@ -354,11 +354,17 @@
     ** They run in the order they appear, each finishing before the next
     ** starts, so a file may rely on whatever earlier ones defined.
     **
-    ** The DOM seam, callable from Ring via Platform(name, data):
-    **   Platform("settext",  [ :id = "x", :text = v ])   set an element's text
-    **   Platform("gettext",  [ :id = "x" ])              read an element's text
-    **   Platform("getvalue", [ :id = "x" ])              read an input's value
+    ** The DOM seam, callable from Ring via Page(name, data):
+    **   Page("settext",  [ :id = "x", :text = v ])   set an element's text
+    **   Page("gettext",  [ :id = "x" ])              read an element's text
+    **   Page("getvalue", [ :id = "x" ])              read an input's value
     ** Anything else: register your own with ring.on(name, fn).
+    **
+    ** Ring also has Platform(name, data) — the same seam, reserved for
+    ** capabilities of the deployment target (storage, notifications, exit)
+    ** rather than this document. That is Softanza's distinction, and
+    ** StzWeb's stz.platform contract; keeping it visible in Ring source
+    ** says whether a call is web-only or portable.
     **
     ** Note: functions invoked with ring.call receive exactly one argument
     ** (the JSON payload, NULL when omitted) — declare them as `func F aArg`.

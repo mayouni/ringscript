@@ -104,11 +104,21 @@ const phases = {
         const rejected = ring.call("RunCollect", { member: "", amount: 5000 });
         check("flow rejection visible in JSON", rejected.ok && rejected.result.status === "failed" && rejected.result.actionarg === "NO_MEMBER", JSON.stringify(rejected.result));
 
+        // Platform() is for capabilities of the deployment target — the
+        // stz.platform contract in StzWeb — so `notify` is the right verb.
         let seen = null;
         ring.on("notify", p => { seen = p; return { ack: 1 }; });
         const js = ring.eval('a = Platform("notify", [ :msg = "hi" ]) see a[:ack]');
         check("jscall reaches JS handler", seen && seen.msg === "hi", JSON.stringify(seen));
         check("JS reply returns to Ring", js.ok && js.output === "1", JSON.stringify(js));
+
+        // Page() is the same seam for the document itself; both must reach
+        // a handler, or one of the two vocabularies is quietly broken.
+        let sawPage = null;
+        ring.on("settext", p => { sawPage = p; return 1; });
+        const pg = ring.eval('a = Page("settext", [ :id = "hello", :text = "Ahlan" ]) see a');
+        check("Page reaches the same seam", sawPage && sawPage.text === "Ahlan", JSON.stringify(sawPage));
+        check("Page returns the handler value", pg.ok && pg.output === "1", JSON.stringify(pg));
 
         const bad = ring.call("NoSuchFunction", {});
         check("unknown function traps cleanly", !bad.ok && bad.error.includes("without definition"), bad.error);

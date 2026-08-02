@@ -36,13 +36,13 @@
 nClicks = 0
 
 func Greet aEv
-    cName = Platform(:getvalue, [ :id = "guest" ])
+    cName = Page(:getvalue, [ :id = "guest" ])
     if cName = "" cName = "stranger" ok
-    Platform(:settext, [ :id = "hello", :text = "Ahlan, " + cName + "!" ])
+    Page(:settext, [ :id = "hello", :text = "Ahlan, " + cName + "!" ])
 
 func AddOne aEv
     nClicks++
-    Platform(:settext, [ :id = "n", :text = "clicked " + nClicks + " times" ])
+    Page(:settext, [ :id = "n", :text = "clicked " + nClicks + " times" ])
 </script>
 
 </body>

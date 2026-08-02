@@ -141,6 +141,7 @@ const embedded_files = [_]EmbeddedFile{
     .{ .name = "ringlib/stzZql.ring", .data = @embedFile("ringlib/stzZql.ring") },
     .{ .name = "ringlib/stzzql_smoke.ring", .data = @embedFile("ringlib/stzzql_smoke.ring") },
     .{ .name = "ringlib/json.ring", .data = @embedFile("ringlib/json.ring") },
+    .{ .name = "ringlib/seam.ring", .data = @embedFile("ringlib/seam.ring") },
 };
 
 fn baseName(path: []const u8) []const u8 {
@@ -287,6 +288,8 @@ fn mainFoundHook(p: ?*anyopaque) callconv(.c) void {
 
 const see_shim = "func ringvm_see cData ring_vm_see(cData)";
 const load_json_shim = "load \"ringlib/json.ring\"";
+// The outward seam (Page / Platform) — needs the JSON codec above it.
+const load_seam_shim = "load \"ringlib/seam.ring\"";
 
 /// Every eval runs through this wrapper: errors (compile errors surface as
 /// eval() runtime errors, runtime errors unwind to the catch) land in
@@ -313,6 +316,7 @@ export fn rs_init() i32 {
     ring_vm_funcregister2(st, "jscall", &jscallHook);
     ring_state_runcode(st, see_shim);
     ring_state_runcode(st, load_json_shim);
+    ring_state_runcode(st, load_seam_shim);
     g_state = st;
     return 0;
 }

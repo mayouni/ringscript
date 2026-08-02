@@ -106,12 +106,12 @@ Then script your page in Ring instead of JavaScript:
 
 <script type="text/ring">
 func Greet aEv
-    cName = Platform(:getvalue, [ :id = "guest" ])
-    Platform(:settext, [ :id = "hello", :text = "Ahlan, " + cName + "!" ])
+    cName = Page(:getvalue, [ :id = "guest" ])
+    Page(:settext, [ :id = "hello", :text = "Ahlan, " + cName + "!" ])
 </script>
 ```
 
-`RingScript.boot()` loads the wasm, wires the `Platform()` DOM seam
+`RingScript.boot()` loads the wasm, wires the `Page()` DOM seam
 (`:settext` / `:gettext` / `:getvalue` — extend with `ring.on(name, fn)`),
 runs every `text/ring` block, and exposes `window.ring`.
 
@@ -180,7 +180,8 @@ ringscript/
 │   │                            exact-mirror value printers, VM accessors
 │   ├── serve.zig                embedded dev HTTP server (correct wasm MIME)
 │   └── ringlib/                 pure Ring, baked into the wasm
-│       ├── json.ring            JSON codec + the Platform() seam
+│       ├── json.ring            the pure-Ring JSON codec
+│       ├── seam.ring            Page() and Platform(), the outward seam
 │       ├── stzZql.ring          the StzWeb grammar engine (sample payload)
 │       └── stzzql_smoke.ring    its test suite — runs inside the browser
 │

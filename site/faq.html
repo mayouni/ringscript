@@ -216,11 +216,11 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
     <h3>How do I run a Ring function when a button is clicked?</h3>
     <p>Name the function in the markup. There is no listener to register:</p>
 <pre class="code"><span class="t">&lt;button</span> <span class="f">onclick</span>=<span class="s">"ring.call('Greet')"</span><span class="t">&gt;</span>Greet<span class="t">&lt;/button&gt;</span></pre>
-    <p>To read and write the page from Ring, use <code>Platform()</code>:</p>
+    <p>To read and write the page from Ring, use <code>Page()</code>:</p>
 <pre class="code"><span class="k">func</span> Greet
-    cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
+    cName = Page(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
     <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
-    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
+    Page(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
         <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName ])</pre>
     <p>If you only want Ring on the page and nothing more, <code>RingScript.boot()</code>
     does the wiring for you and runs every

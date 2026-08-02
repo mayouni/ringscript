@@ -29,15 +29,6 @@ func JsonDecode cJson
 	nJsnPos = 1
 	return jsnValue()
 
-# Call a JS-side handler with any Ring value; returns the handler's
-# result as a Ring value. This is the Ring face of the stz.platform seam.
-func Platform cName, vData
-	cRes = jscall(cName, JsonEncode(vData))
-	if cRes = NULL or len(cRes) = 0
-		return NULL
-	ok
-	return JsonDecode(cRes)
-
 # ---------------------------------------------------------------- encode
 
 func jsnIsPairList v
