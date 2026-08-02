@@ -3,382 +3,531 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RingScript — the Ring language, resident in your browser</title>
+<title>RingScript Playground — the Ring language in your browser</title>
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="site.css">
 <style>
     * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
         margin: 0;
         background: var(--bg);
         color: var(--ink);
-        font: 17px/1.7 system-ui, "Segoe UI", sans-serif;
-    }
-    main { max-width: 62rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
-    p.prose { color: var(--ink); font-size: 1.08rem; max-width: 46rem; }
-
-    /* hero */
-    .hero { text-align: center; padding: 3.2rem 0 2.2rem; }
-    .hero h1 { font-size: 2.3rem; margin: 0 0 .7rem; line-height: 1.22; }
-    .hero h1 span { color: var(--accent); }
-    .hero p.sub { color: var(--ink); font-size: 1.18rem; max-width: 44rem; margin: 0 auto 1.7rem; }
-    .hero .actions { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
-    .btn {
-        display: inline-block;
-        padding: .55rem 1.4rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        border: 1px solid var(--accent);
-    }
-    .btn.primary { background: var(--accent); color: var(--accent-ink); }
-    .btn.ghost { color: var(--accent); }
-
-    /* try-it widget */
-    .try {
-        text-align: left;
-        max-width: 36rem;
-        margin: 0 auto 1.6rem;
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
+        font: 15px/1.5 system-ui, "Segoe UI", sans-serif;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
     }
-    .try-head {
-        display: flex; justify-content: space-between; gap: 1rem;
-        padding: .45rem .8rem;
-        font-size: .78rem; color: var(--muted);
+
+    /* ---------------------------------------------------------- toolbar */
+    header {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .5rem .75rem;
+        background: var(--panel);
         border-bottom: 1px solid var(--border);
-        background: var(--gutter-bg);
-    }
-    #try-code {
-        display: block;
-        width: 100%;
-        border: 0; outline: none; resize: vertical;
-        background: #0d1420; color: #d6e2f0;
-        caret-color: #ffffff;
-        font: 16px/1.6 var(--mono);
-        padding: .7rem .9rem;
-        min-height: 2.9rem;
-    }
-    .try-bar {
-        display: flex; gap: .7rem; align-items: flex-start;
-        border-top: 1px solid #223047;
-        padding: .55rem .8rem;
-        background: #0a101a;
-    }
-    #try-run {
-        border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
-        border-radius: 6px; padding: .3rem 1.1rem; font-size: .9rem; font-weight: 600; cursor: pointer;
         flex: 0 0 auto;
+        flex-wrap: wrap;
     }
-    #try-run:disabled { opacity: .5; cursor: default; }
-    #try-out {
-        margin: 0; flex: 1;
-        font: 15px/1.5 var(--mono);
-        white-space: pre-wrap; word-break: break-word;
-        color: #7d8b9d;
-        max-height: 9rem; overflow-y: auto;
-    }
-    #try-out.has { color: #7ee2a8; font-weight: 600; }
-    #try-out .err { color: #ef6a5a; }
-    .try-more { padding: .5rem .8rem .7rem; font-size: .83rem; color: var(--muted); }
-    .try-more a { color: var(--accent); text-decoration: none; }
-
-    /* live mini-app */
-    .miniapp { padding: 1rem; display: flex; flex-direction: column; gap: .7rem; }
-    .miniapp input {
-        border: 1px solid var(--border); border-radius: 6px;
-        background: var(--bg); color: var(--ink);
-        padding: .45rem .6rem; font-size: .95rem; width: 100%;
-    }
-    .miniapp .row { display: flex; gap: .6rem; }
-    .miniapp button {
-        border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
-        border-radius: 6px; padding: .4rem 1.1rem; font-weight: 600; cursor: pointer;
-    }
-    .miniapp .say { font-size: 1.05rem; min-height: 1.4em; }
-    .miniapp .say.muted { color: var(--muted); font-size: .9rem; }
-
-    /* quick start */
-    .quick {
-        background: var(--panel);
+    header .brand { font-weight: 700; white-space: nowrap; }
+    header .brand small { color: var(--muted); font-weight: 400; }
+    select {
+        flex: 1 1 14rem;
+        min-width: 10rem;
+        max-width: 26rem;
+        padding: .4rem .5rem;
+        font-size: .95rem;
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 1.2rem 1.4rem;
-        margin: 1rem auto 2.5rem;
-        max-width: 34rem;
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--ink);
     }
-    .quick .label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
-    .quick pre { margin: 0; padding: .7rem .9rem; border-radius: 8px; border: 1px solid; font: 15px/1.7 var(--mono); overflow-x: auto; }
-    .quick pre b { color: #7ee2a8; font-weight: 600; }
-    .quick .note { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
-
-    /* cards */
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin: 2rem 0; }
-    .card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 1.1rem 1.2rem;
+    button {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: var(--accent-ink);
+        border-radius: 6px;
+        padding: .4rem 1.2rem;
+        font-size: .95rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
     }
-    .card h3 { margin: 0 0 .4rem; font-size: 1.02rem; }
-    .card p { margin: 0; color: var(--ink); font-size: .97rem; }
-    .card code { font-family: var(--mono); font-size: .85em; color: var(--accent); }
+    button.secondary {
+        background: transparent;
+        color: var(--accent);
+        font-weight: 400;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    #status { color: var(--muted); font-size: .85rem; margin-left: auto; white-space: nowrap; }
 
-    /* example strip */
-    h2 { font-size: 1.35rem; margin: 2.6rem 0 .9rem; }
-    .example { display: grid; grid-template-columns: 3fr 2fr; gap: 1rem; }
-    @media (max-width: 700px) { .example { grid-template-columns: 1fr; } }
-    .pane {
+    /* ------------------------------------------------------------ split */
+    main {
+        flex: 1 1 auto;
+        display: flex;
+        min-height: 0;
+    }
+    #editor-pane {
+        flex: 0 0 66%;
+        min-width: 12rem;
+        display: flex;
+        min-height: 0;
         background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
+        position: relative;
+    }
+    #splitter {
+        flex: 0 0 6px;
+        cursor: col-resize;
+        background: var(--border);
+        transition: background .15s;
+    }
+    #splitter:hover, #splitter.active { background: var(--accent); }
+    #right-pane {
+        flex: 1 1 0;
+        min-width: 10rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--bg);
+    }
+
+    /* ----------------------------------------------------------- editor */
+    #gutter {
+        flex: 0 0 auto;
+        padding: .6rem 0;
+        background: var(--gutter-bg);
+        border-right: 1px solid var(--border);
+        color: var(--muted);
+        font: 14px/1.5 var(--mono);
+        text-align: right;
+        user-select: none;
+        overflow: hidden;
+        white-space: pre;
+    }
+    #gutter div { padding: 0 .6rem 0 .9rem; }
+    #gutter div.cur { color: var(--accent); font-weight: 700; background: var(--line-hl); }
+    #editor-wrap {
+        position: relative;
+        flex: 1 1 auto;
         overflow: hidden;
     }
-    .pane .head { padding: .4rem .8rem; font-size: .78rem; color: var(--muted); border-bottom: 1px solid var(--border); }
-    .pane pre { margin: 0; padding: .8rem .9rem; font: 14px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
-
-    /* verification strip */
-    .verify {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem;
-        background: var(--accent-soft);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 1.2rem;
-        text-align: center;
+    #highlight, #code {
+        margin: 0;
+        border: 0;
+        padding: .6rem .75rem;
+        font: 14px/1.5 var(--mono);
+        white-space: pre;
+        overflow-wrap: normal;
+        tab-size: 4;
     }
-    .verify .num { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
-    .verify .what { color: var(--muted); font-size: .88rem; }
+    #highlight {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        color: var(--ink);
+    }
+    #line-hl {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: calc(14px * 1.5);
+        background: var(--line-hl);
+        pointer-events: none;
+    }
+    #code {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        resize: none;
+        background: transparent;
+        color: transparent;
+        caret-color: var(--ink);
+        outline: none;
+        overflow: auto;
+    }
+    #code::selection { background: var(--sel); color: transparent; }
+    .tok-kw { color: var(--tok-kw); font-weight: 600; }
+    .tok-str { color: var(--tok-str); }
+    .tok-num { color: var(--tok-num); }
+    .tok-com { color: var(--tok-com); font-style: italic; }
+    .tok-atom { color: var(--tok-atom); }
+    .tok-fn { color: var(--tok-fn); }
 
-    footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 2rem 0 2.5rem; border-top: 1px solid var(--border); margin-top: 3rem; }
-    footer a { color: var(--accent); text-decoration: none; }
+    /* ------------------------------------------------------ right pane */
+    #out-box {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        margin: .6rem .6rem .3rem .6rem;
+        padding: .6rem .7rem;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font: 13.5px/1.5 var(--mono);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    #out-box .err { color: var(--error); font-weight: 600; }
+    #bottom-box {
+        flex: 0 0 auto;
+        padding: .3rem .6rem .6rem .6rem;
+        display: flex;
+        flex-direction: column;
+        gap: .4rem;
+    }
+    #bottom-box .label { font-size: .8rem; color: var(--muted); }
+    #input {
+        width: 100%;
+        min-height: 3.2rem;
+        max-height: 9rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--ink);
+        font: 13.5px/1.5 var(--mono);
+        padding: .45rem .6rem;
+        resize: vertical;
+    }
+    #bottom-box .row { display: flex; gap: .5rem; }
+
+    .pick-hint { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+
+    /* --------------------------------------- editor: always dark, colored */
+    #editor-pane { background: #0d1420; }
+    #gutter { background: #0a101a; border-right-color: #223047; color: #56677a; }
+    #gutter div.cur { color: #3fb984; background: rgba(63, 185, 132, 0.12); }
+    #highlight { color: #d6e2f0; }
+    #line-hl { background: rgba(63, 185, 132, 0.09); }
+    #code { caret-color: #ffffff; }
+    #code::selection { background: rgba(63, 185, 132, 0.35); }
+    .tok-kw { color: #c792ea; }
+    .tok-str { color: #7ee2a8; }
+    .tok-num { color: #f0a45d; }
+    .tok-com { color: #7d8b9d; }
+    .tok-atom { color: #6cb6ff; }
+    .tok-fn { color: #e2c08d; }
+    #out-box { background: #0d1420; color: #d6e2f0; border-color: #223047; }
+    #out-box .err { color: #ef6a5a; }
+
+    /* ------------------------------------------------------- responsive */
+    @media (max-width: 720px) {
+        main { flex-direction: column; }
+        #editor-pane { flex: 1 1 55%; }
+        #splitter { display: none; }
+        #right-pane { flex: 1 1 45%; border-top: 1px solid var(--border); }
+        header .brand small { display: none; }
+    }
 </style>
 </head>
 <body>
 
-<nav class="site">
-    <a class="logo" href="index.html">Ring<span>Script</span></a>
-    <a class="active" href="index.html">Home</a>
-    <a href="examples.html">Playground</a>
-    <a href="tutorial.html">Tutorial</a>
-    <span class="spacer"></span>
-    <a class="ext" href="https://github.com/ring-lang/ring">Ring language ↗</a>
-</nav>
+<header>
+    <span class="brand">Ring<span style="color:var(--accent)">Script</span> <small>Playground</small></span>
+    <span class="pick-hint">&#9662; 24 ready-made examples — pick one, tweak it, run:</span>
+    <select id="picker" title="Choose one of the 24 ready-made examples"></select>
+    <button id="run" disabled>&#9654; Run</button>
+    <span id="status">loading wasm&hellip;</span>
+</header>
 
 <main>
-    <section class="hero">
-        <h1>The <span>Ring</span> language,<br>resident in your browser</h1>
-        <p class="sub">RingScript compiles the Ring VM to WebAssembly and keeps it alive between
-        evaluations — persistent state, trapped errors, interactive input, and a two-way JSON
-        bridge to JavaScript. No plugins, no server round-trips, no Emscripten.</p>
-
-        <div class="try" id="try">
-            <div class="try-head">
-                <span>Try it — this is the real VM, running in this page</span>
-                <span id="try-status">loading…</span>
-            </div>
-            <textarea id="try-code" spellcheck="false" rows="1">? 5 + 2</textarea>
-            <div class="try-bar">
-                <button id="try-run" disabled>&#9654; Run</button>
-                <pre id="try-out">→ output appears here</pre>
-            </div>
-            <div class="try-more">Edit the code freely — then take it further in the
-                <a href="examples.html">Playground</a> (24 examples, IDE editor, input queue).</div>
-        </div>
-
-        <div class="actions">
-            <a class="btn primary" href="examples.html">Open the Playground</a>
-            <a class="btn ghost" href="tutorial.html">Read the Tutorial</a>
+    <section id="editor-pane">
+        <div id="gutter"></div>
+        <div id="editor-wrap">
+            <div id="line-hl"></div>
+            <pre id="highlight"></pre>
+            <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off"></textarea>
         </div>
     </section>
-
-    <h2>Your page logic — in Ring, not JavaScript</h2>
-    <p class="prose">Put your logic in a
-    <code style="font-family:var(--mono); font-size:.9em">&lt;script type="text/ring"&gt;</code> block;
-    buttons call Ring functions directly, and Ring reads and writes the page through the
-    <span style="font-family:var(--mono); font-size:.9em">Platform()</span> seam.
-    The demo on the right is running <em>this exact source</em>, live:</p>
-
-    <div class="example">
-        <div class="pane">
-            <div class="head">The complete page — no JavaScript written by you</div>
-            <pre><span class="t">&lt;script</span> <span class="f">src</span>=<span class="s">"ringscript.js"</span><span class="t">&gt;&lt;/script&gt;</span>
-<span class="t">&lt;script&gt;</span>RingScript.boot()<span class="t">&lt;/script&gt;</span>
-
-<span class="t">&lt;input</span> <span class="f">id</span>=<span class="s">"guest"</span> <span class="f">placeholder</span>=<span class="s">"Your name"</span><span class="t">&gt;</span>
-<span class="t">&lt;button</span> <span class="f">onclick</span>=<span class="s">"ring.call('Greet')"</span><span class="t">&gt;</span>Greet<span class="t">&lt;/button&gt;</span>
-<span class="t">&lt;button</span> <span class="f">onclick</span>=<span class="s">"ring.call('AddOne')"</span><span class="t">&gt;</span>+1<span class="t">&lt;/button&gt;</span>
-<span class="t">&lt;div</span> <span class="f">id</span>=<span class="s">"hello"</span><span class="t">&gt;&lt;/div&gt;</span>
-<span class="t">&lt;div</span> <span class="f">id</span>=<span class="s">"n"</span><span class="t">&gt;&lt;/div&gt;</span>
-
-<span class="t">&lt;script</span> <span class="f">type</span>=<span class="s">"text/ring"</span><span class="t">&gt;</span>
-<span class="k">nClicks</span> = <span class="n">0</span>
-
-<span class="k">func</span> Greet aEv
-    cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
-    <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
-    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
-        <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName + <span class="s">"!"</span> ])
-
-<span class="k">func</span> AddOne aEv
-    nClicks++
-    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"n"</span>,
-        <span class="a">:text</span> = <span class="s">"clicked "</span> + nClicks + <span class="s">" times"</span> ])
-<span class="t">&lt;/script&gt;</span></pre>
-        </div>
-        <div class="pane">
-            <div class="head">Live — scripted by the Ring block on this page</div>
-            <div class="miniapp">
-                <input id="guest" placeholder="Your name">
-                <div class="row">
-                    <button onclick="ring.call('Greet')">Greet</button>
-                    <button onclick="ring.call('AddOne')">+1</button>
-                </div>
-                <div id="hello" class="say"></div>
-                <div id="n" class="say muted"></div>
+    <div id="splitter" title="Drag to resize"></div>
+    <section id="right-pane">
+        <div id="out-box"></div>
+        <div id="bottom-box">
+            <span class="label">Programs that use <code>give</code> ask you <b>live</b> (a prompt opens).
+                Optionally pre-script answers here, one line per <code>give</code>:</span>
+            <textarea id="input" spellcheck="false"></textarea>
+            <div class="row">
+                <button id="reset" class="secondary" title="Restore the example's original code and input">Reset example</button>
             </div>
         </div>
-    </div>
-
-    <div class="quick">
-        <div class="label">Deploying — copy two files, that's all</div>
-        <pre class="codedark">your-site/
-├── index.html
-├── <b>ringscript.js</b>      ← the loader (~12 KB)
-└── <b>ringscript.wasm</b>    ← the Ring VM (~340 KB)</pre>
-        <div class="note">Any static host works — no toolchain, no bundler, no server code.
-        (The <span style="font-family:var(--mono)">zig build serve</span> workflow only concerns
-        programmers changing the runtime itself.)</div>
-    </div>
-
-    <div class="cards">
-        <div class="card">
-            <h3>Resident, not batch</h3>
-            <p>One <code>RingState</code> lives for the whole page. <code>x = 5</code> in one eval,
-            <code>see x</code> in the next. Errors are trapped with real line numbers and never
-            kill the VM — 1000 evals, flat memory.</p>
-        </div>
-        <div class="card">
-            <h3>Native-exact</h3>
-            <p>~850 programs — Ring's own samples, the documentation examples, and a 24-example
-            gallery — produce output <em>byte-identical</em> to native <code>ring.exe</code>,
-            verified continuously against the real thing.</p>
-        </div>
-        <div class="card">
-            <h3>Two-way JS bridge</h3>
-            <p><code>ring.call("Fn", {…})</code> sends JSON in and gets JSON out;
-            Ring's <code>jscall()</code> raises DOM events or invokes your handlers. Embed pure-Ring
-            libraries straight into the wasm.</p>
-        </div>
-    </div>
-
-    <h2>Embedding it in your own page</h2>
-    <div class="example">
-        <div class="pane">
-            <div class="head">JavaScript — the embedding API</div>
-            <pre><span class="k">const</span> ring = <span class="k">await</span> RingScript.load(<span class="s">"ringscript.wasm"</span>);
-ring.eval(<span class="s">'func Double aData return [ :value = aData[:n] * 2 ]'</span>);
-<span class="k">const</span> r = ring.call(<span class="s">"Double"</span>, { n: <span class="n">21</span> });
-<span class="c">// r.result --&gt; { value: 42 }</span></pre>
-        </div>
-        <div class="pane">
-            <div class="head">Why this shape</div>
-            <div style="padding:.8rem .95rem; font-size:.97rem;">Keep the page in JavaScript when
-            you want to, and script the <em>logic</em> in Ring: arguments go in as JSON, results
-            come back as JSON, and nothing about your page has to change. The seam is thin,
-            typed by convention, and entirely optional.</div>
-        </div>
-    </div>
-
-    <h2>Verified against the real thing</h2>
-    <div class="verify">
-        <div><div class="num">24</div><div class="what">gallery examples, byte-identical to ring.exe</div></div>
-        <div><div class="num">~284</div><div class="what">official Ring samples swept, zero mismatches</div></div>
-        <div><div class="num">~550</div><div class="what">documentation code blocks swept, zero mismatches</div></div>
-        <div><div class="num">29</div><div class="what">permanent gates: state, errors, memory, I/O, bridge</div></div>
-    </div>
-
-    <h2>One language, both sides of the wire</h2>
-    <p class="prose">
-    Ring already speaks server-side: <a style="color:var(--accent); text-decoration:none"
-    href="https://ring-lang.github.io/doc1.27/web.html">Ring WebLib</a> and the
-    <a style="color:var(--accent); text-decoration:none"
-    href="https://ring-lang.github.io/doc1.27/whatisnew27.html">Bolt</a> web framework
-    (Express-style DSL, new in Ring 1.27) build and serve real sites in Ring today. What was missing was the <em>front</em> end — the part browsers only ran JavaScript for.
-    RingScript completes the picture: the same language, the same idioms, from the request handler
-    on the server to the click handler in the page. One team, one grammar, full stack.</p>
-
-    <h2>Real sites, browser rules</h2>
-    <p class="prose">
-    RingScript is built for production front ends — page logic, forms, live business rules —
-    and for playgrounds, notebooks and teaching. It plays by the same rules every web app plays by:
-    inside the browser sandbox there are no files, no OS calls, no threads. Ring programs that ask
-    for them get a clean, trappable Ring error — never a dead runtime — and everything else in the
-    language works exactly as it does natively.</p>
-
-    <h2>Part of the Softanza Project</h2>
-    <p class="prose">
-    RingScript is developed within the <strong>Softanza Project</strong>, and was made so that Ring
-    can serve as an alternative frontend scripting language in the
-    <strong>StzWeb</strong> framework — where the same business declaration can be evaluated by
-    StzWeb's JavaScript runtime and by Ring-on-wasm, side by side, with identical verdicts.</p>
-
-    <footer>
-        MIT License · Mansour Ayouni · a Softanza Project ·
-        <a href="tutorial.html">Tutorial</a> ·
-        <a href="https://ring-lang.github.io/">Ring documentation ↗</a>
-    </footer>
+    </section>
 </main>
 
-<script type="text/ring">
-nClicks = 0
-
-func Greet aEv
-    cName = Platform(:getvalue, [ :id = "guest" ])
-    if cName = "" cName = "stranger" ok
-    Platform(:settext, [ :id = "hello",
-        :text = "Ahlan, " + cName + "!" ])
-
-func AddOne aEv
-    nClicks++
-    Platform(:settext, [ :id = "n",
-        :text = "clicked " + nClicks + " times" ])
-</script>
-
+<script src="examples-data.js"></script>
 <script src="ringscript.js"></script>
 <script>
-(async function () {
-    const status = document.getElementById("try-status");
-    const btn = document.getElementById("try-run");
-    const out = document.getElementById("try-out");
-    const code = document.getElementById("try-code");
-    let ring;
-    try {
-        // boot(): loads the wasm, wires the Platform() DOM seam, and runs
-        // the <script type="text/ring"> block above — the mini-app's logic.
-        ring = await RingScript.boot({ captureStdout: true, onOutput: () => {} });
-        status.textContent = "VM ready — " + ring.eval("see version()").output;
-        btn.disabled = false;
-    } catch (e) {
-        status.textContent = "failed to load: " + e.message;
-        return;
+(function () {
+    "use strict";
+    const $ = id => document.getElementById(id);
+    const codeEl = $("code"), hlEl = $("highlight"), gutterEl = $("gutter"), lineHlEl = $("line-hl");
+
+    // ------------------------------------------------- Ring highlighter
+    const KEYWORDS = new Set(("see give put get but ok if else elseif for to next while end do again " +
+        "return func def function endfunction endfunc class endclass endpackage from new try catch done " +
+        "switch on other off exit loop step in load import private package bracestart braceend " +
+        "braceexpreval braceerror bracenewline changeringkeyword changeringoperator and or not " +
+        "true false nl null main init self this super raise").split(" "));
+
+    function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-    function run() {
-        const r = ring.eval(code.value);
-        out.classList.add("has");
-        out.textContent = r.output || "(no output)";
-        if (r.error) {
+
+    function highlightRing(src) {
+        let out = "", i = 0;
+        const n = src.length;
+        const isIdStart = c => /[A-Za-z_\u00A0-\uFFFF]/.test(c);
+        const isId = c => /[A-Za-z0-9_\u00A0-\uFFFF]/.test(c);
+        while (i < n) {
+            const c = src[i];
+            // comments
+            if (c === "#" || (c === "/" && src[i + 1] === "/")) {
+                let j = i;
+                while (j < n && src[j] !== "\n") j++;
+                out += '<span class="tok-com">' + escapeHtml(src.slice(i, j)) + "</span>";
+                i = j;
+                continue;
+            }
+            if (c === "/" && src[i + 1] === "*") {
+                let j = i + 2;
+                while (j < n && !(src[j] === "*" && src[j + 1] === "/")) j++;
+                j = Math.min(n, j + 2);
+                out += '<span class="tok-com">' + escapeHtml(src.slice(i, j)) + "</span>";
+                i = j;
+                continue;
+            }
+            // strings (Ring has no escape sequences)
+            if (c === '"' || c === "'" || c === "`") {
+                let j = i + 1;
+                while (j < n && src[j] !== c) j++;
+                j = Math.min(n, j + 1);
+                out += '<span class="tok-str">' + escapeHtml(src.slice(i, j)) + "</span>";
+                i = j;
+                continue;
+            }
+            // :atoms
+            if (c === ":" && i + 1 < n && isIdStart(src[i + 1])) {
+                let j = i + 1;
+                while (j < n && isId(src[j])) j++;
+                out += '<span class="tok-atom">' + escapeHtml(src.slice(i, j)) + "</span>";
+                i = j;
+                continue;
+            }
+            // numbers
+            if (/[0-9]/.test(c)) {
+                let j = i;
+                while (j < n && /[0-9._eE+\-xXa-fA-F]/.test(src[j])) {
+                    if ((src[j] === "+" || src[j] === "-") && !/[eE]/.test(src[j - 1])) break;
+                    j++;
+                }
+                out += '<span class="tok-num">' + escapeHtml(src.slice(i, j)) + "</span>";
+                i = j;
+                continue;
+            }
+            // identifiers / keywords
+            if (isIdStart(c)) {
+                let j = i;
+                while (j < n && isId(src[j])) j++;
+                const word = src.slice(i, j);
+                let k = j;
+                while (k < n && (src[k] === " " || src[k] === "\t")) k++;
+                if (KEYWORDS.has(word.toLowerCase())) {
+                    out += '<span class="tok-kw">' + escapeHtml(word) + "</span>";
+                } else if (src[k] === "(") {
+                    out += '<span class="tok-fn">' + escapeHtml(word) + "</span>";
+                } else {
+                    out += escapeHtml(word);
+                }
+                i = j;
+                continue;
+            }
+            out += escapeHtml(c);
+            i++;
+        }
+        return out;
+    }
+
+    // ------------------------------------------------------ editor sync
+    let lineCount = 0;
+    function refresh() {
+        const src = codeEl.value;
+        hlEl.innerHTML = highlightRing(src) + "\n";
+        const lines = src.split("\n").length;
+        if (lines !== lineCount) {
+            lineCount = lines;
+            let g = "";
+            for (let i = 1; i <= lines; i++) g += "<div>" + i + "</div>";
+            gutterEl.innerHTML = g;
+        }
+        updateCurrentLine();
+        syncScrollSimple();
+    }
+
+    let curLine = -1;
+    function updateCurrentLine() {
+        const line = codeEl.value.slice(0, codeEl.selectionStart).split("\n").length;
+        const kids = gutterEl.children;
+        if (curLine !== line) {
+            if (curLine >= 1 && curLine <= kids.length) kids[curLine - 1].classList.remove("cur");
+            if (line >= 1 && line <= kids.length) kids[line - 1].classList.add("cur");
+            curLine = line;
+        }
+        const lh = parseFloat(getComputedStyle(hlEl).lineHeight);
+        const padTop = parseFloat(getComputedStyle(hlEl).paddingTop);
+        lineHlEl.style.height = lh + "px";
+        lineHlEl.style.top = (padTop + (line - 1) * lh - codeEl.scrollTop) + "px";
+    }
+
+    codeEl.addEventListener("input", refresh);
+    codeEl.addEventListener("scroll", () => { syncScrollSimple(); updateCurrentLine(); });
+    codeEl.addEventListener("keyup", updateCurrentLine);
+    codeEl.addEventListener("click", updateCurrentLine);
+    document.addEventListener("selectionchange", () => {
+        if (document.activeElement === codeEl) updateCurrentLine();
+    });
+
+    function syncScrollSimple() {
+        hlEl.scrollTop = codeEl.scrollTop;
+        hlEl.scrollLeft = codeEl.scrollLeft;
+        gutterEl.scrollTop = codeEl.scrollTop;
+    }
+
+    // Tab inserts 4 spaces (indents the selection if it spans lines)
+    codeEl.addEventListener("keydown", e => {
+        if (e.key !== "Tab") return;
+        e.preventDefault();
+        const start = codeEl.selectionStart, end = codeEl.selectionEnd;
+        const v = codeEl.value;
+        if (start !== end && v.slice(start, end).includes("\n")) {
+            const ls = v.lastIndexOf("\n", start - 1) + 1;
+            const block = v.slice(ls, end);
+            let repl, delta;
+            if (e.shiftKey) {
+                repl = block.replace(/^ {1,4}/gm, "");
+                delta = 0;
+            } else {
+                repl = block.replace(/^/gm, "    ");
+                delta = 4;
+            }
+            codeEl.value = v.slice(0, ls) + repl + v.slice(end);
+            codeEl.selectionStart = start + (e.shiftKey ? 0 : delta);
+            codeEl.selectionEnd = ls + repl.length;
+        } else if (!e.shiftKey) {
+            codeEl.setRangeText("    ", start, end, "end");
+        }
+        refresh();
+    });
+
+    // ----------------------------------------------------------- output
+    const outBox = $("out-box");
+    function showOutput(text, errText) {
+        outBox.textContent = "";
+        if (text) outBox.appendChild(document.createTextNode(text));
+        if (errText) {
             const s = document.createElement("span");
             s.className = "err";
-            s.textContent = (r.output ? "\n" : "") + r.error;
-            out.appendChild(s);
+            s.textContent = (text && !text.endsWith("\n") ? "\n" : "") + errText;
+            outBox.appendChild(s);
+        }
+        outBox.scrollTop = outBox.scrollHeight;
+    }
+
+    // --------------------------------------------------------- splitter
+    const editorPane = $("editor-pane"), splitter = $("splitter"), mainEl = document.querySelector("main");
+    const savedRatio = parseFloat(localStorage.getItem("rs-split") || "");
+    if (savedRatio >= 25 && savedRatio <= 85) editorPane.style.flexBasis = savedRatio + "%";
+    let dragging = false;
+    splitter.addEventListener("pointerdown", e => {
+        dragging = true;
+        splitter.classList.add("active");
+        splitter.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+    splitter.addEventListener("pointermove", e => {
+        if (!dragging) return;
+        const rect = mainEl.getBoundingClientRect();
+        let pct = ((e.clientX - rect.left) / rect.width) * 100;
+        pct = Math.max(25, Math.min(85, pct));
+        editorPane.style.flexBasis = pct + "%";
+    });
+    splitter.addEventListener("pointerup", e => {
+        dragging = false;
+        splitter.classList.remove("active");
+        splitter.releasePointerCapture(e.pointerId);
+        const pct = parseFloat(editorPane.style.flexBasis);
+        if (pct) localStorage.setItem("rs-split", pct.toFixed(1));
+    });
+
+    // ------------------------------------------------------ examples/run
+    const picker = $("picker");
+    for (const ex of RING_EXAMPLES) {
+        const opt = document.createElement("option");
+        opt.value = ex.id;
+        opt.textContent = ex.title;
+        picker.appendChild(opt);
+    }
+
+    function currentExample() {
+        return RING_EXAMPLES.find(e => e.id === picker.value) || RING_EXAMPLES[0];
+    }
+    function loadExample() {
+        const ex = currentExample();
+        codeEl.value = ex.code;
+        // Interactive by default: leave the queue empty so `give` pauses and
+        // asks live; the example's canned answers appear only as a suggestion.
+        $("input").value = "";
+        $("input").placeholder = ex.input
+            ? "answers live via prompt — or pre-script, e.g.:\n" + ex.input.trim()
+            : "not needed by this example";
+        showOutput("", "");
+        $("status").textContent = "ready";
+        codeEl.scrollTop = 0;
+        codeEl.selectionStart = codeEl.selectionEnd = 0;
+        refresh();
+    }
+    picker.addEventListener("change", loadExample);
+    $("reset").addEventListener("click", () => { loadExample(); codeEl.focus(); });
+
+    let wasmBytes = null, running = false;
+    async function run() {
+        if (running || !wasmBytes) return;
+        running = true;
+        $("run").disabled = true;
+        $("status").textContent = "running…";
+        try {
+            // fresh VM per run — examples like ChangeRingKeyword rewire the scanner
+            const ring = await RingScript.load(wasmBytes.slice(0), { captureStdout: true, onOutput: () => {} });
+            const t0 = performance.now();
+            const r = ring.eval(codeEl.value, $("input").value);
+            const ms = (performance.now() - t0).toFixed(1);
+            showOutput(r.output, r.error);
+            $("status").textContent = (r.ok ? "ok" : "error") + " — " + ms + " ms";
+        } catch (e) {
+            showOutput("", "runtime crashed: " + e.message);
+            $("status").textContent = "crashed";
+        } finally {
+            running = false;
+            $("run").disabled = false;
         }
     }
-    btn.addEventListener("click", run);
-    code.addEventListener("keydown", e => {
+    $("run").addEventListener("click", run);
+    document.addEventListener("keydown", e => {
         if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
     });
+
+    (async () => {
+        try {
+            const resp = await fetch("ringscript.wasm");
+            wasmBytes = await resp.arrayBuffer();
+            $("run").disabled = false;
+            $("status").textContent = "ready";
+        } catch (e) {
+            $("status").textContent = "failed to load wasm: " + e.message;
+        }
+    })();
+
+    loadExample();
 })();
 </script>
 </body>

@@ -33,5 +33,5 @@ if errorlevel 1 (
 :run
 start "RingScript server - close this window to stop" zig-out\bin\ringscript-serve.exe
 timeout /t 1 /nobreak >nul
-start "" "http://localhost:8377/examples.html"
+start "" "http://localhost:8377/"
 exit /b 0

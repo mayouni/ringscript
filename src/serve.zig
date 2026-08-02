@@ -31,14 +31,13 @@ pub fn main() !void {
         \\
         \\  RingScript dev server
         \\  ---------------------
-        \\  Site       : http://localhost:{d}/
-        \\  Playground : http://localhost:{d}/examples.html
-        \\  Tutorial   : http://localhost:{d}/tutorial.html
+        \\  Playground : http://localhost:{d}/
+        \\  Docs       : docs/ folder (markdown)
         \\
         \\  Ctrl+C to stop
         \\
         \\
-    , .{ port, port, port });
+    , .{port});
 
     while (true) {
         const conn = server.accept() catch continue;

@@ -37,9 +37,15 @@ func Greet aEv
 
 `RingScript.boot()` loads the wasm, wires the `Platform()` DOM seam
 (`:settext` / `:gettext` / `:getvalue` — extend with `ring.on(name, fn)`),
-runs every `text/ring` block, and exposes `window.ring`. The
-[tutorial](web/tutorial.html) covers the whole API step by step with live
-demos; the home page runs this exact mini-app.
+runs every `text/ring` block, and exposes `window.ring`.
+
+**The documentation lives in [docs/](docs/README.md)** — five didactic
+markdown guides, from first page to runtime internals:
+[Getting started](docs/getting-started.md) ·
+[Scripting pages in Ring](docs/scripting-pages.md) ·
+[The JavaScript API](docs/api.md) ·
+[Architecture](docs/architecture.md) ·
+[Compatibility & scope](docs/compatibility.md).
 
 ## Running the site locally
 
@@ -54,15 +60,12 @@ zig build serve
 ```
 
 One command — compiles the VM to wasm, refreshes the site artifact, and
-serves everything at <http://localhost:8377/> with its own embedded HTTP
-server (requires [Zig](https://ziglang.org/) 0.15+; Node.js only for the
-test suites):
-
-| Page | What it is |
-|---|---|
-| `/` | The site — try Ring live, see the Ring-scripted mini-app |
-| `/examples.html` | **Playground** — IDE with 24 editable examples (syntax highlighting, line numbers, input queue) |
-| `/tutorial.html` | **Tutorial** — embedding Ring in a page, 9 steps, live runnable demos |
+serves the **Playground** at <http://localhost:8377/> with its own
+embedded HTTP server (requires [Zig](https://ziglang.org/) 0.15+;
+Node.js only for the test suites). The Playground is the single web
+page of the project: an IDE with 24 editable examples — syntax
+highlighting, line numbers, live interactive input. Everything else is
+documentation in [docs/](docs/README.md).
 
 ## Repository layout
 
@@ -106,7 +109,7 @@ ring.on("notify", p => ({ ack: 1 }));     // Ring: Platform("notify", …)
 ring.reset();                             // explicit fresh state
 ```
 
-The [tutorial](web/tutorial.html) walks through every call with live demos.
+[docs/api.md](docs/api.md) documents every call and option in depth.
 
 ## Verification
 

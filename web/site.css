@@ -61,35 +61,4 @@ pre.code .a, .pane pre .a, .codedark .a { color: #6cb6ff; }                    /
 pre.code .f, .pane pre .f, .codedark .f { color: #e2c08d; }                    /* functions  */
 pre.code .t, .pane pre .t, .codedark .t { color: #7aa2f7; }                    /* html tags  */
 
-/* ---------------------------------------------------------------- nav */
-nav.site {
-    display: flex;
-    align-items: center;
-    gap: 1.1rem;
-    padding: .55rem .9rem;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    font: 15px/1.4 system-ui, "Segoe UI", sans-serif;
-    flex-wrap: wrap;
-}
-nav.site .logo {
-    font-weight: 700;
-    color: var(--ink);
-    text-decoration: none;
-    margin-right: .4rem;
-}
-nav.site .logo span { color: var(--accent); }
-nav.site a {
-    color: var(--muted);
-    text-decoration: none;
-    padding: .15rem 0;
-    border-bottom: 2px solid transparent;
-}
-nav.site a:hover { color: var(--ink); }
-nav.site a.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-    font-weight: 600;
-}
-nav.site .spacer { margin-left: auto; }
-nav.site .ext { font-size: .85rem; }
+/* (single-page site: the Playground is the site — no nav needed) */
