@@ -45,7 +45,8 @@ class stzZql
 	@aFlows = []        # [name, stepcount, rationale]
 	@aStepInfo = []     # [flow, index, name, actor, validateid, onfailverb, onfailarg, commits]
 	@aEnforcing = []    # [flow, stepname, norm]
-	@aExprs = []        # node pool: ["and",l,r] | ["or",l,r] | ["cmp",op,lOperand,rOperand]
+	@aExprs = []
+	@aZones = []        # [name, format, intoflow, rationale]        # node pool: ["and",l,r] | ["or",l,r] | ["cmp",op,lOperand,rOperand]
 
 	def init(pcSource)
 		@cSrc = pcSource
@@ -66,6 +67,8 @@ class stzZql
 				This.ParseNorm()
 			on "FLOW"
 				This.ParseFlow()
+			on "LANDING_ZONE"
+				This.ParseZone()
 			other
 				This.Fail("Unknown declaration 'DEFINE " + cWhat + "'. The ZQL verb set is closed.")
 			off
@@ -382,6 +385,24 @@ class stzZql
 		This.Expect("rparen")
 		cRationale = This.ParseRationale()
 		@aEntities + [cName, nFields, cRationale]
+
+	def ParseZone()
+		cName = This.Expect("ref")
+		This.ExpectIdent("AS")
+		cFormat = This.Expect("ident")
+		if cFormat != "JSON"
+			This.Fail("Landing zone format '" + cFormat + "' is not in the grammar -- v0 accepts JSON only")
+		ok
+		if not This.AtIdent("INTO")
+			This.Fail("A landing zone must declare INTO :flow -- imports have no side door")
+		ok
+		This.Advance()
+		cInto = This.Expect("ref")
+		cRationale = This.ParseRationale()
+		@aZones + [cName, cFormat, cInto, cRationale]
+
+	def CountZones()
+		return len(@aZones)
 
 	def ParseNorm()
 		cName = This.Expect("ref")
