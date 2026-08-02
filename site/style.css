@@ -130,6 +130,14 @@ pre.code .c { color: var(--c); font-style: italic; }
 pre.code .a { color: var(--a); }
 pre.code .t { color: var(--t); }
 pre.code .f { color: var(--f); }
+/* Links inside prose and cards: the site's green, underlined on hover —
+   never the browser default blue. Buttons keep their own styling. */
+article a:not(.btn), .card a, .pair a, .limit a, .layer a {
+    color: var(--accent); text-decoration: none; font-weight: 600;
+}
+article a:not(.btn):hover, .card a:hover, .pair a:hover { text-decoration: underline; }
+.book a:hover { text-decoration: none; }
+
 p code, li code, td code {
     background: var(--accent-soft); color: var(--ink);
     padding: .08em .35em; border-radius: 4px; font-size: .95em;
