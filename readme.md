@@ -52,6 +52,31 @@ run: **Node.js** (runs the harnesses) and a **native Ring install**
 (the oracle the wasm output is compared against). *Using* RingScript in
 a web page requires none of this — just the two files below.
 
+## Install with RingPM
+
+If Ring is on your machine, RingPM is the shortest path — it needs
+**nothing else**, not even Zig: the runtime and a ~40 KB static web
+server for your platform come prebuilt in the package.
+
+```bash
+ringpm install ringscript from mayouni
+ringpm run ringscript          # serves the Playground, opens your browser
+```
+
+From inside the package folder (or by absolute path from your own
+project directory — the CLI locates itself):
+
+```bash
+ring main.ring new mysite      # scaffold a page already scripted in Ring
+ring main.ring preview mysite  # serve that folder and open it
+ring main.ring where           # print the two files to copy into a project
+ring main.ring version         # RingScript 0.9 (Ring 1.27)
+```
+
+`lib.ring` exposes the same operations to your own Ring code —
+`RingScriptServe()`, `RingScriptNew(cHome, cFolder)`,
+`RingScriptRuntimeFiles(cHome)`.
+
 ## Using it — copy two files
 
 Deployment is hosting two files from `playground/` next to your HTML on

@@ -20,6 +20,15 @@ Both files live in this repository under `playground/`. (Building them from
 source with Zig is covered in [Architecture](architecture.md) — it only
 concerns you if you want to change the runtime itself.)
 
+**If Ring is already installed**, RingPM delivers them for you, together
+with a prebuilt static server for your platform:
+
+```bash
+ringpm install ringscript from mayouni
+ringpm run ringscript              # the Playground opens in your browser
+ring main.ring new mysite          # scaffold the page below, ready to run
+```
+
 > **Why a wasm file?** Browsers execute two things natively: JavaScript
 > and WebAssembly. RingScript compiles Ring's own C source to
 > WebAssembly, so what runs in the page is not an imitation or a

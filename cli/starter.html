@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Ring-scripted page</title>
+<style>
+    body { font: 16px/1.6 system-ui, sans-serif; max-width: 34rem; margin: 3rem auto; padding: 0 1rem; }
+    input, button { font: inherit; padding: .4rem .6rem; }
+    button { cursor: pointer; }
+    #hello { font-size: 1.3rem; margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>Scripted in Ring</h1>
+<p>The logic below is Ring, running in this page. No JavaScript written by you.</p>
+
+<input id="guest" placeholder="Your name">
+<button onclick="ring.call('Greet')">Greet</button>
+<button onclick="ring.call('AddOne')">+1</button>
+
+<div id="hello"></div>
+<div id="n"></div>
+
+<!-- 1. the loader, 2. boot it, 3. your Ring code -->
+<script src="ringscript.js"></script>
+<script>RingScript.boot()</script>
+
+<script type="text/ring">
+nClicks = 0
+
+func Greet aEv
+    cName = Platform(:getvalue, [ :id = "guest" ])
+    if cName = "" cName = "stranger" ok
+    Platform(:settext, [ :id = "hello", :text = "Ahlan, " + cName + "!" ])
+
+func AddOne aEv
+    nClicks++
+    Platform(:settext, [ :id = "n", :text = "clicked " + nClicks + " times" ])
+</script>
+
+</body>
+</html>

@@ -87,9 +87,16 @@ Three layers, three languages, each doing the one thing it is best at:
 
 ```
 ringscript/
-├── build.zig                    wasm runtime + dev server + the serve step
+├── build.zig                    wasm runtime + dev server + serve/dist steps
 ├── start-playground.bat         double-click launcher (Windows)
 ├── start-playground.sh          double-click launcher (macOS / Linux / BSD)
+│
+├── package.ring                 RingPM manifest (what a user downloads)
+├── main.ring                    `ringpm run ringscript` — self-locating CLI
+├── lib.ring                     the same operations, callable from Ring
+├── cli/starter.html             template used by `new`
+├── bin/                         prebuilt servers, ~40 KB each, COMMITTED:
+│                                RingPM ships one per platform, no Zig needed
 │
 ├── src/
 │   ├── bridge.zig               the bridge (§2) + the embedded file map
@@ -123,9 +130,17 @@ ringscript/
 ## 5. Building and developing
 
 ```bash
-zig build serve      # build wasm + refresh playground/ + serve http://localhost:8377/
-zig build -Drelease=true   # just build (ReleaseSmall, ~340 KB wasm)
+zig build            # build the wasm (ReleaseSmall by default, ~350 KB)
+zig build serve      # ...and serve playground/ at http://localhost:8377/
+zig build dist       # cross-compile the server for all shipped platforms
+zig build -Ddebug    # debug build of the wasm, when you need one
 ```
+
+**Release is the default on purpose**: `playground/ringscript.wasm` and
+`bin/ringscript-serve-*` are committed release artifacts (RingPM
+downloads them as-is, with no build step on the user's machine), so an
+ordinary build must never leave a debug binary in their place. Refresh
+both — `zig build && zig build dist` — when bumping the version.
 
 **Zig is the only dependency** — this repository builds with **0.15.2**
 (get it from <https://ziglang.org/download/>, or your package manager:

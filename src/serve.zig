@@ -6,10 +6,15 @@
 // HTTP/1.0-style: one request per connection, then close. Serves .wasm with
 // the correct MIME type so WebAssembly.instantiateStreaming works.
 //
-// Usage: ringscript-serve [port]        (default 8377, root: ./playground)
+// Usage: ringscript-serve [port] [root]     (default 8377, root ./playground)
+//        the root lets the same binary preview a scaffolded site:
+//        ringscript-serve 8080 mysite
 // ==========================================================================
 
 const std = @import("std");
+
+/// Folder served, relative to the working directory. Set from argv.
+var g_root: []const u8 = "playground";
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
@@ -21,6 +26,10 @@ pub fn main() !void {
     if (args.next()) |arg| {
         port = std.fmt.parseInt(u16, arg, 10) catch 8377;
     }
+    if (args.next()) |arg| {
+        // Own the string: the args iterator is freed when main returns.
+        g_root = allocator.dupe(u8, arg) catch "playground";
+    }
 
     const address = try std.net.Address.parseIp4("127.0.0.1", port);
     var server = try address.listen(.{ .reuse_address = true });
@@ -30,13 +39,13 @@ pub fn main() !void {
         \\
         \\  RingScript dev server
         \\  ---------------------
-        \\  Playground : http://localhost:{d}/
-        \\  Docs       : docs/ folder (markdown)
+        \\  Serving : {s}/
+        \\  Open    : http://localhost:{d}/
         \\
         \\  Ctrl+C to stop
         \\
         \\
-    , .{port});
+    , .{ g_root, port });
 
     // One thread per connection. Browsers open speculative connections that
     // send nothing (preconnect); a single-threaded blocking recv on one of
@@ -87,7 +96,7 @@ fn handle(allocator: std.mem.Allocator, conn: std.net.Server.Connection) !void {
         eff_path = std.fmt.bufPrint(&path_buf, "{s}index.html", .{path}) catch path;
     }
 
-    const full = std.fs.path.join(allocator, &.{ "playground", eff_path[1..] }) catch return;
+    const full = std.fs.path.join(allocator, &.{ g_root, eff_path[1..] }) catch return;
     defer allocator.free(full);
 
     const body = std.fs.cwd().readFileAlloc(allocator, full, 64 * 1024 * 1024) catch {

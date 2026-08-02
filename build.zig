@@ -80,7 +80,15 @@ const stub_cflags = [_][]const u8{
 };
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSmall });
+    // ReleaseSmall is the DEFAULT: playground/ringscript.wasm is a committed
+    // release artifact (RingPM downloads it as-is), so an ordinary
+    // `zig build` or `zig build serve` must never leave a 2.6 MB debug build
+    // in its place. Opt into debugging explicitly with -Ddebug.
+    const optimize: std.builtin.OptimizeMode =
+        if (b.option(bool, "debug", "Build the wasm runtime in Debug mode") orelse false)
+            .Debug
+        else
+            .ReleaseSmall;
     const target = b.resolveTargetQuery(.{
         .cpu_arch = .wasm32,
         .os_tag = .wasi,
@@ -144,4 +152,30 @@ pub fn build(b: *std.Build) void {
     run_serve.step.dependOn(b.getInstallStep());
     const serve_step = b.step("serve", "Build the wasm runtime and serve the site on http://localhost:8377/");
     serve_step.dependOn(&run_serve.step);
+
+    // `zig build dist` — cross-compile the dev server for every desktop we
+    // ship, into bin/. These are committed so RingPM users (who have Ring but
+    // not Zig) get a ready-to-run server: the launchers pick the one matching
+    // the host, and RingPM's per-platform file lists download only that one.
+    const dist_step = b.step("dist", "Cross-compile the server for all shipped platforms into bin/");
+    const dist_targets = [_]struct { q: std.Target.Query, name: []const u8 }{
+        .{ .q = .{ .cpu_arch = .x86_64, .os_tag = .windows }, .name = "ringscript-serve-windows-x64.exe" },
+        .{ .q = .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .musl }, .name = "ringscript-serve-linux-x64" },
+        .{ .q = .{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .musl }, .name = "ringscript-serve-linux-arm64" },
+        .{ .q = .{ .cpu_arch = .x86_64, .os_tag = .macos }, .name = "ringscript-serve-macos-x64" },
+        .{ .q = .{ .cpu_arch = .aarch64, .os_tag = .macos }, .name = "ringscript-serve-macos-arm64" },
+    };
+    for (dist_targets) |t| {
+        const e = b.addExecutable(.{
+            .name = "ringscript-serve",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("src/serve.zig"),
+                .target = b.resolveTargetQuery(t.q),
+                .optimize = .ReleaseSmall,
+                .link_libc = true,
+            }),
+        });
+        const install = b.addInstallFile(e.getEmittedBin(), b.fmt("../bin/{s}", .{t.name}));
+        dist_step.dependOn(&install.step);
+    }
 }

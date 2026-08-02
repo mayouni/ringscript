@@ -1,5 +1,9 @@
 .zig-cache/
 zig-out/
-playground/ringscript.wasm
 tests/doc-snippets/
 tests/sweep-failures.json
+
+# playground/ringscript.wasm and bin/ringscript-serve-* are COMMITTED on
+# purpose: RingPM installs by downloading files from GitHub, with no build
+# step on the user's machine. They are release artifacts — refresh them
+# (zig build && zig build dist) when bumping the version.
