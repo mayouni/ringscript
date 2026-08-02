@@ -12,8 +12,7 @@
 const std = @import("std");
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    const allocator = std.heap.page_allocator;
 
     var port: u16 = 8377;
     var args = try std.process.argsWithAllocator(allocator);
@@ -39,10 +38,21 @@ pub fn main() !void {
         \\
     , .{port});
 
+    // One thread per connection. Browsers open speculative connections that
+    // send nothing (preconnect); a single-threaded blocking recv on one of
+    // those would wedge the whole server and the page would never load.
     while (true) {
         const conn = server.accept() catch continue;
-        handle(allocator, conn) catch {};
+        const t = std.Thread.spawn(.{}, handleConn, .{conn}) catch {
+            conn.stream.close();
+            continue;
+        };
+        t.detach();
     }
+}
+
+fn handleConn(conn: std.net.Server.Connection) void {
+    handle(std.heap.page_allocator, conn) catch {};
 }
 
 fn handle(allocator: std.mem.Allocator, conn: std.net.Server.Connection) !void {
