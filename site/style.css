@@ -97,6 +97,18 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 }
 a:hover .newtab { opacity: 1; }
 
+/* Under 768px the six nav items no longer fit on one line: they used to
+   overflow and drag the whole document sideways, and just above that they
+   squeezed until their own labels wrapped. Let them wrap properly, and stop
+   pinning the bar — stacked rows would eat a sixth of a phone screen for
+   the whole scroll. */
+@media (max-width: 767px) {
+    nav { position: static; }
+    nav .wrap { flex-wrap: wrap; gap: .55rem 1rem; }
+    nav .brand { width: 100%; margin-right: 0; }
+    nav a { font-size: .98rem; }
+}
+
 /* -------------------------------------------------------------- cards */
 /* Sections breathe: a clear gap from whatever sits above them. */
 section { padding: 4.5rem 0 1rem; }
@@ -158,6 +170,10 @@ p code, li code, td code {
    equivalents, and reading them one under the other is what makes the
    difference visible. */
 .compare { display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start; max-width: 52rem; }
+/* A grid item is min-width:auto by default, so a long code line would push
+   the column — and the page — wider than the phone. Pinned to 0, the block
+   scrolls inside itself instead, which is what `pre.code` already asks for. */
+.compare > div, .grid > *, .limits > *, .pair > * { min-width: 0; }
 .compare .label {
     font-size: 1.05rem; color: var(--ink-soft);
     margin-bottom: .6rem; display: block;
