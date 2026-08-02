@@ -179,6 +179,8 @@
         gap: .4rem;
     }
     #bottom-box .label { font-size: .8rem; color: var(--muted); }
+    #prescript { display: flex; flex-direction: column; gap: .4rem; }
+    #prescript[hidden] { display: none; }
     #input {
         width: 100%;
         min-height: 3.2rem;
@@ -276,9 +278,11 @@
             </div>
         </div>
         <div id="bottom-box">
-            <span class="label">Programs that use <code>give</code> pause and ask you above.
-                Optionally pre-script answers here, one line per <code>give</code>:</span>
-            <textarea id="input" spellcheck="false"></textarea>
+            <div id="prescript" hidden>
+                <span class="label">This program asks for input (<code>give</code>) — it pauses and asks you
+                    above. Optionally pre-script answers here, one line per <code>give</code>:</span>
+                <textarea id="input" spellcheck="false"></textarea>
+            </div>
             <div class="row">
                 <button id="reset" class="secondary" title="Restore the example's original code and input">Reset example</button>
             </div>
@@ -379,10 +383,20 @@
         return out;
     }
 
+    // Show the pre-script input area only when the code actually reads
+    // input (give, or second-style get) — otherwise that space stays empty.
+    function usesGive(src) {
+        return /\bgive\b|\bget\s+[A-Za-z_]/i.test(src.replace(/#[^\n]*|\/\/[^\n]*/g, ""));
+    }
+    function updatePrescriptVisibility() {
+        document.getElementById("prescript").hidden = !usesGive(codeEl.value);
+    }
+
     // ------------------------------------------------------ editor sync
     let lineCount = 0;
     function refresh() {
         const src = codeEl.value;
+        updatePrescriptVisibility();
         hlEl.innerHTML = highlightRing(src) + "\n";
         const lines = src.split("\n").length;
         if (lines !== lineCount) {
@@ -510,7 +524,7 @@
         $("input").value = "";
         $("input").placeholder = ex.input
             ? "answered live above — or pre-script, e.g.:\n" + ex.input.trim()
-            : "not needed by this example";
+            : "one line per give";
         liveAnswers = [];
         askHide();
         showOutput("", "");
