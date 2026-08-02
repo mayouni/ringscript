@@ -93,7 +93,8 @@ const ring = await RingScript.load("ringscript.wasm", {
 });
 ring.eval('see 1+2');                     // { ok, output, error }
 ring.eval('x = 5'); ring.eval('see x');   // state persists
-ring.eval('give n see n', "Mansour\n");   // input queue for `give`
+ring.eval('give n see n', "Mansour\n");   // input queue for `give`;
+                                          // empty queue → onGive()/prompt, live
 ring.call("MyFunc", { any: "json" });     // { ok, result, output, error }
 ring.on("notify", p => ({ ack: 1 }));     // Ring: Platform("notify", …)
 ring.reset();                             // explicit fresh state
@@ -118,15 +119,27 @@ nondeterministic ones (random/clock/date) run cleanly. Programs that ask
 for what the browser deliberately excludes — files, OS calls, threads,
 GUI — get a clean, trappable Ring error, never a dead runtime.
 
-## Design boundaries
+## One language, both sides of the wire
 
-RingScript is the *interactive* niche: playgrounds, notebooks, teaching,
-live business-rule evaluation (see the StzWeb integration in
-`stzweb/examples/ring-runtime/` — the same declaration evaluated by
-zql.js and by Ring-on-wasm, side by side). Production delivery of
-Ring-authored logic belongs to the Softanza delivery plane, not here.
+Ring already speaks server-side — [Ring
+WebLib](https://ring-lang.github.io/doc1.27/web.html) and the **Bolt**
+web framework (Express-style DSL, new in Ring 1.27) build and serve real
+sites in Ring today. RingScript completes the picture on the *front* end:
+the same language from the request handler on the server to the click
+handler in the page.
 
-## Origin
+It plays by browser rules: inside the sandbox there are no files, OS
+calls or threads — same as any web app. Ring programs that ask for them
+get a clean, trappable Ring error, never a dead runtime; everything else
+in the language behaves exactly as it does natively.
+
+## Part of the Softanza Project
+
+RingScript is developed within the **Softanza Project** and was made so
+that Ring can serve as an alternative frontend scripting language in the
+**StzWeb** framework — see `stzweb/examples/ring-runtime/`, where the
+same business declaration is evaluated by StzWeb's JavaScript runtime and
+by Ring-on-wasm side by side, with identical verdicts.
 
 Created by **Mansour Ayouni**, creator of the Softanza library for Ring,
 with AI assistance. The design and its execution are recorded in

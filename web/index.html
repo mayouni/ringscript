@@ -304,14 +304,33 @@ ways — and entirely optional.</pre>
         <div><div class="num">29</div><div class="what">permanent gates: state, errors, memory, I/O, bridge</div></div>
     </div>
 
-    <h2>Not a delivery vehicle — by design</h2>
+    <h2>One language, both sides of the wire</h2>
     <p style="color:var(--muted); max-width:46rem">
-    RingScript is the <em>interactive</em> niche: playgrounds, notebooks, teaching, live business-rule
-    evaluation. File systems, OS calls, threads and GUI bindings are deliberately absent — programs
-    that ask for them get a clean, trappable Ring error, never a dead runtime.</p>
+    Ring already speaks server-side: <a style="color:var(--accent); text-decoration:none"
+    href="https://ring-lang.github.io/doc1.27/web.html">Ring WebLib</a> and the
+    <a style="color:var(--accent); text-decoration:none"
+    href="https://ring-lang.github.io/doc1.27/whatisnew27.html">Bolt</a> web framework
+    (Express-style DSL, new in Ring 1.27) build and serve real sites in Ring today. What was missing was the <em>front</em> end — the part browsers only ran JavaScript for.
+    RingScript completes the picture: the same language, the same idioms, from the request handler
+    on the server to the click handler in the page. One team, one grammar, full stack.</p>
+
+    <h2>Real sites, browser rules</h2>
+    <p style="color:var(--muted); max-width:46rem">
+    RingScript is built for production front ends — page logic, forms, live business rules —
+    and for playgrounds, notebooks and teaching. It plays by the same rules every web app plays by:
+    inside the browser sandbox there are no files, no OS calls, no threads. Ring programs that ask
+    for them get a clean, trappable Ring error — never a dead runtime — and everything else in the
+    language works exactly as it does natively.</p>
+
+    <h2>Part of the Softanza Project</h2>
+    <p style="color:var(--muted); max-width:46rem">
+    RingScript is developed within the <strong>Softanza Project</strong>, and was made so that Ring
+    can serve as an alternative frontend scripting language in the
+    <strong>StzWeb</strong> framework — where the same business declaration can be evaluated by
+    StzWeb's JavaScript runtime and by Ring-on-wasm, side by side, with identical verdicts.</p>
 
     <footer>
-        MIT License · Mansour Ayouni ·
+        MIT License · Mansour Ayouni · a Softanza Project ·
         <a href="tutorial.html">Tutorial</a> ·
         <a href="https://ring-lang.github.io/">Ring documentation ↗</a>
     </footer>

@@ -191,9 +191,31 @@
             return ptr;
         }
 
+        // Ring's `give` when the eval's input queue is empty: ask the page,
+        // live. opts.onGive() may supply a line (return null/undefined for
+        // "no input"); the browser default is window.prompt, so interactive
+        // Ring programs simply pause and ask the user. Returns a wasm
+        // pointer to a NUL-terminated copy (the bridge frees it), 0 if none.
+        function js_give() {
+            let v;
+            if (opts.onGive) {
+                v = opts.onGive();
+            } else if (typeof window !== "undefined" && typeof window.prompt === "function") {
+                v = window.prompt("The Ring program asks for input:");
+            }
+            if (v === undefined || v === null) return 0;
+            const bytes = encoder.encode(String(v));
+            const ptr = exports.rs_alloc(bytes.length + 1);
+            if (!ptr) return 0;
+            const mem = new Uint8Array(memory.buffer);
+            mem.set(bytes, ptr);
+            mem[ptr + bytes.length] = 0;
+            return ptr;
+        }
+
         const imports = {
             wasi_snapshot_preview1: wasi,
-            ringscript: { js_dispatch: js_dispatch },
+            ringscript: { js_dispatch: js_dispatch, js_give: js_give },
         };
 
         let wasmModule;

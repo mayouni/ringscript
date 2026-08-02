@@ -134,7 +134,10 @@ thisFunctionDoesNotExist()</pre>
     <h2><span class="no">5.</span> Interactive input — <code>give</code></h2>
     <p>Pass an input queue as the second argument of <code>eval</code>; Ring's
     <code>give</code> consumes it line by line, echoing like a terminal. When the queue
-    runs dry, the program gets a trappable error instead of hanging your page:</p>
+    runs dry the program stays interactive: the page is asked live — your
+    <code>onGive()</code> handler if you registered one, else a browser prompt. Only when
+    there is no input at all does the program get a clean, trappable error instead of
+    hanging your page:</p>
     <pre class="code">ring.eval('? "Name: " give n ? "Hello " + n', "Alice\n");</pre>
     <div class="demo">
         <pre class="code">? "Enter two numbers:"

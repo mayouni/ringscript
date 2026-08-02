@@ -215,11 +215,18 @@ fn jscallHook(p: ?*anyopaque) callconv(.c) void {
     }
 }
 
+/// JS import: ask the host page for one line of input, live (the loader's
+/// default is window.prompt in browsers). Returns a NUL-terminated string
+/// allocated with rs_alloc (freed here), or null when the host has none —
+/// Node test harnesses, or the user cancelling the prompt.
+extern "ringscript" fn js_give() ?[*:0]u8;
+
 /// C hook registered AS "ringvm_give" (replacing genlib's stdin-based C
 /// default): hand the next queued input line to Ring's give, echoing it to
-/// the output the way a terminal would. When the queue is exhausted, raise
-/// a Ring error — a `give` with nothing to read would otherwise silently
-/// return "" and can spin interactive loops forever.
+/// the output the way a terminal would. When the queue runs dry, ask the
+/// host live via js_give (interactive programs stay interactive in the
+/// browser); if the host has no input either, raise a Ring error — a
+/// `give` returning "" silently could spin interactive loops forever.
 ///
 /// Deliberately a C function, not a Ring-level override: a Ring-level
 /// ringvm_give corrupts later attribute-only class regions (reproduced on
@@ -227,6 +234,14 @@ fn jscallHook(p: ?*anyopaque) callconv(.c) void {
 fn giveHook(p: ?*anyopaque) callconv(.c) void {
     const buf = g_input.items;
     if (g_input_pos >= buf.len) {
+        if (js_give()) |r| {
+            const span = std.mem.span(r);
+            appendOut(span);
+            appendOut("\n");
+            ring_vm_api_retstring2(p, span.ptr, @intCast(span.len));
+            alloc.free(r[0 .. span.len + 1]);
+            return;
+        }
         ring_vm_error(p, "Give needs input but the input is exhausted");
         return;
     }
