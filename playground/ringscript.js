@@ -290,6 +290,8 @@
 
         const api = {
             instance: instance,
+            /// RingScript's version, read from the wasm actually loaded.
+            version: ex.rs_version ? readCString(ex.rs_version()) : "unknown",
             init() { return ex.rs_init(); },
             reset() { return ex.rs_reset(); },
             /// eval(code[, input]) — `input` is the text queue served to
@@ -380,7 +382,9 @@
         return ring;
     }
 
-    const RingScript = { load: load, boot: boot };
+    // VERSION is the loader's own version; ring.version reports the version
+    // of the wasm runtime it loaded (they ship together and should match).
+    const RingScript = { load: load, boot: boot, VERSION: "0.9" };
 
     if (typeof module !== "undefined" && module.exports) {
         module.exports = RingScript;

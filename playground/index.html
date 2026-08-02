@@ -248,7 +248,8 @@
 <body>
 
 <header>
-    <span class="brand">Ring<span style="color:var(--accent)">Script</span> <small>Playground</small></span>
+    <span class="brand">Ring<span style="color:var(--accent)">Script</span>
+        <small>Playground</small> <small id="version"></small></span>
     <span class="pick-hint">&#9662; 24 ready-made examples — pick one, tweak it, run:</span>
     <select id="picker" title="Choose one of the 24 ready-made examples"></select>
     <button id="run" disabled>&#9654; Run</button>
@@ -616,6 +617,8 @@
         try {
             const resp = await fetch("ringscript.wasm");
             wasmBytes = await resp.arrayBuffer();
+            const probe = await RingScript.load(wasmBytes.slice(0), { onOutput: () => {} });
+            $("version").textContent = "v" + probe.version + " · Ring " + probe.eval("see version()").output;
             $("run").disabled = false;
             $("status").textContent = "ready";
         } catch (e) {

@@ -1,5 +1,9 @@
 # RingScript documentation
 
+*RingScript **0.9** · Ring 1.27 · built with Zig 0.15.2 — the only
+dependency, and only for building. See
+[Status and requirements](../readme.md#status--09-and-why-not-10-yet).*
+
 RingScript runs the [Ring](https://ring-lang.github.io/) language inside
 the browser: the real Ring 1.27 compiler and VM, compiled to
 WebAssembly, kept **resident** so state survives from one evaluation to

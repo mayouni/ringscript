@@ -4,6 +4,10 @@
 
 <h1 align="center">The Ring language, resident in your browser</h1>
 
+<p align="center">
+  <strong>version 0.9</strong> · Ring 1.27 · MIT · a Softanza Project
+</p>
+
 RingScript compiles the [Ring](https://ring-lang.github.io/) VM to
 WebAssembly and wraps it in a small resident bridge: persistent state
 across evaluations, trapped errors with real line numbers, interactive
@@ -17,6 +21,36 @@ command.
   <em>The Playground: pick an example, edit it, run it. The Ring VM is resident in
   the page; programs that ask for input pause and wait for your answer.</em>
 </p>
+
+## Status — 0.9, and why not 1.0 yet
+
+RingScript is **0.9**: complete in function and verified against Ring's
+own corpus (see [Verification](#verification)), already carrying real
+work — it has been used in four of my projects (banking, government,
+school, restaurant). What keeps it short of 1.0 is deliberate: the
+frameworks it exists to serve, **Softanza** and **StzWeb**, are
+themselves in progress, and the API should earn 1.0 by surviving more
+real projects rather than by decree. Expect the public seam
+(`boot` / `load` / `eval` / `call` / `on`) to stay stable through 0.9.x;
+1.0 will come after enough experimentation in production settings.
+
+## Requirements — Zig, and nothing else
+
+**Zig is the only dependency**, and only if you build the runtime
+yourself. There is no package manifest, no vendored third-party
+library, no npm install: `build.zig` compiles the vendored Ring VM and
+the bridge, and even the dev server is part of the build.
+
+| | |
+|---|---|
+| **Version used by this repo** | **Zig 0.15.2** (0.15.x expected to work) |
+| **Get it** | <https://ziglang.org/download/> — a single archive, unzip and put `zig` on your `PATH`; or `winget install zig.zig`, `brew install zig`, `snap install zig --classic --beta`, `pacman -S zig`, `scoop install zig` |
+| **Check** | `zig version` |
+
+Two optional extras, needed only for the test suites, never to build or
+run: **Node.js** (runs the harnesses) and a **native Ring install**
+(the oracle the wasm output is compared against). *Using* RingScript in
+a web page requires none of this — just the two files below.
 
 ## Using it — copy two files
 

@@ -12,6 +12,16 @@ const std = @import("std");
 
 const alloc = std.heap.c_allocator;
 
+/// RingScript's own version — the bridge + loader + build, not the Ring
+/// language (`version()` inside Ring answers that: 1.27).
+pub const RINGSCRIPT_VERSION = "0.9";
+
+/// Exported so the loader can report the runtime it actually loaded,
+/// rather than a number hardcoded on the JavaScript side.
+export fn rs_version() [*:0]const u8 {
+    return RINGSCRIPT_VERSION;
+}
+
 // ---------------------------------------------------------------- Ring C API
 
 const RingState = opaque {};

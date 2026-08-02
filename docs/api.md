@@ -8,9 +8,15 @@ points. Nothing else is global (except `window.ring` when *you* ask
 `boot()` to create it).
 
 ```js
-RingScript.boot(opts?)  -> Promise<ring>   // page-scripting mode
+RingScript.boot(opts?)  -> Promise<ring>     // page-scripting mode
 RingScript.load(src, opts?) -> Promise<ring> // programmatic mode
+RingScript.VERSION                           // the loader's version, e.g. "0.9"
 ```
+
+Every instance also reports the runtime it loaded — `ring.version` (the
+wasm's own answer, so it cannot drift from the file you shipped) and
+`ring.eval("see version()").output` for the Ring language version
+(1.27).
 
 ## boot(opts) — page-scripting mode
 

@@ -127,9 +127,17 @@ zig build serve      # build wasm + refresh playground/ + serve http://localhost
 zig build -Drelease=true   # just build (ReleaseSmall, ~340 KB wasm)
 ```
 
-Requires Zig 0.15+ only. The dev server (`src/serve.zig`) is part of
-the build — no Node, no Python. Iterating: edit `src/bridge.zig` or a
-page in `playground/`, re-run `zig build serve`, refresh the browser.
+**Zig is the only dependency** — this repository builds with **0.15.2**
+(get it from <https://ziglang.org/download/>, or your package manager:
+`winget install zig.zig`, `brew install zig`, `snap install zig
+--classic --beta`, `pacman -S zig`, `scoop install zig`; check with
+`zig version`). There is no `build.zig.zon`, so nothing is fetched at
+build time; the dev server (`src/serve.zig`) is part of the build — no
+Node, no Python, no CMake. Iterating: edit `src/bridge.zig` or a page in
+`playground/`, re-run `zig build serve`, refresh the browser.
+
+Node.js and a native Ring install are needed **only** for the test
+suites in §6, never to build or run the runtime.
 
 ### Extending the embedded library
 
