@@ -32,7 +32,11 @@
     .book img {
         width: 100%; height: auto; border-radius: 6px; display: block;
         box-shadow: 0 8px 28px rgba(20, 30, 45, .2);
+        transition: transform .18s ease, box-shadow .18s ease;
     }
+    .book a:hover img { transform: translateY(-3px); box-shadow: 0 12px 34px rgba(20, 30, 45, .26); }
+    .book .about .booklink { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .book .about .booklink:hover { text-decoration: underline; }
     .book .about p { margin: 0 0 .6rem; }
     .book .about .title { font-weight: 700; color: var(--ink); font-size: 1.2rem; }
     .book .about .meta { color: var(--muted); }
@@ -93,12 +97,14 @@
       <p>I wrote a book about the language with <strong>Apress</strong>, presenting Ring not as
       yet another language, but as a genuine <strong>computational thinking tool</strong>.</p>
       <div class="book">
-        <img src="ring-book.webp" alt="Beginning Ring Programming: From Novice to Professional, by Mansour Ayouni, published by Apress">
+        <a href="https://link.springer.com/book/10.1007/978-1-4842-5833-0" target="_blank" rel="noopener">
+          <img src="ring-book.webp" alt="Beginning Ring Programming: From Novice to Professional, by Mansour Ayouni, published by Apress"></a>
         <div class="about">
           <p class="title">Beginning Ring Programming</p>
           <p class="meta">From Novice to Professional — Apress, 2020</p>
           <p>Written to teach the thinking, not just the syntax: how to turn a problem into a
           program a human being can still read afterwards.</p>
+          <p><a class="booklink" href="https://link.springer.com/book/10.1007/978-1-4842-5833-0" target="_blank" rel="noopener">Read it on Springer <span class="newtab" aria-hidden="true">&#8599;</span></a></p>
         </div>
       </div>
     </div>
