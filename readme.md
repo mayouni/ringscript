@@ -270,6 +270,14 @@ that Ring can serve as an alternative frontend scripting language in the
 same business declaration is evaluated by StzWeb's JavaScript runtime and
 by Ring-on-wasm side by side, with identical verdicts.
 
+Half of the Playground's examples were written by **Mahmoud Fayed**, the
+creator of the Ring language, for
+[Try Ring Online](https://github.com/ring-lang/ring/tree/master/tools/tryringonline)
+— his own WebAssembly playground for Ring, built on RingQt. They are used
+here with thanks; see
+[playground/examples/README.md](playground/examples/README.md) for which
+ones, and where the rest came from.
+
 Created by **Mansour Ayouni**, creator of the Softanza library for Ring,
 with AI assistance. The design and its execution are recorded in
 [docs/REPAIR_PLAN.md](docs/REPAIR_PLAN.md); the two upstream bugs found

@@ -38,6 +38,7 @@ aPackageInfo = [
 
 		# One .ring file per example, fetched by the Playground and
 		# checked against native Ring by tests/examples-oracle.js
+		"playground/examples/README.md",
 		"playground/examples/hello-world.ring",
 		"playground/examples/print-numbers.ring",
 		"playground/examples/say-hello.ring",

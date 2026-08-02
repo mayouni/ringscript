@@ -55,7 +55,15 @@ nav .wrap { display: flex; align-items: center; gap: 1.4rem; padding-top: .7rem;
 nav a { color: var(--ink-soft); text-decoration: none; font-size: 1rem; }
 nav a:hover { color: var(--ink); }
 nav a.active { color: var(--accent); font-weight: 600; }
-nav .brand { margin-right: auto; font-weight: 700; color: var(--ink); font-size: 1.15rem; }
+/* The RS mark sits with the wordmark, not above it: inline-flex so the two
+   share a baseline-ish centre and the rounded square never stretches. */
+nav .brand {
+    margin-right: auto; font-weight: 700; color: var(--ink); font-size: 1.15rem;
+    display: inline-flex; align-items: center;
+}
+/* Spacing goes on the mark, not as a flex `gap`: "Ring" and the "Script"
+   span are two flex items, so a gap would prise the wordmark apart too. */
+nav .brand img { width: 26px; height: 26px; display: block; flex: 0 0 auto; margin-right: .5rem; }
 nav .brand span { color: var(--accent); }
 nav a.repo { display: inline-flex; align-items: center; gap: .4rem; }
 nav a.repo svg { width: 1.05em; height: 1.05em; fill: currentColor; }
