@@ -201,24 +201,21 @@
     #ask-box {
         flex: 0 0 auto;
         margin: 0 .6rem .3rem .6rem;
-        padding: .55rem .7rem;
-        background: var(--accent-soft);
-        border: 1px solid var(--accent);
-        border-radius: 6px;
         display: flex; flex-direction: column; gap: .4rem;
     }
-    #ask-box .label { font-size: .82rem; color: var(--accent); font-weight: 600; }
+    #ask-box .label { font-size: .82rem; color: var(--muted); }
     #ask-box .row { display: flex; gap: .5rem; flex-wrap: wrap; }
     #ask-field {
         flex: 1;
         min-width: 8rem;
-        border: 1px solid var(--accent);
+        border: 1px solid var(--border);
         border-radius: 6px;
         background: var(--panel);
         color: var(--ink);
         font: 14px/1.5 var(--mono);
         padding: .4rem .6rem;
     }
+    #ask-field:focus { outline: none; border-color: var(--muted); }
     #ask-go { white-space: nowrap; }
 
     /* --------------------------------------- editor: always dark, colored */
@@ -271,7 +268,7 @@
     <section id="right-pane">
         <div id="out-box"></div>
         <div id="ask-box" hidden>
-            <span class="label">The program is waiting for your answer:</span>
+            <span class="label" id="ask-label"></span>
             <div class="row">
                 <input id="ask-field" autocomplete="off" placeholder="type your answer…">
                 <button id="ask-go">Continue &#9654;</button>
@@ -279,8 +276,7 @@
         </div>
         <div id="bottom-box">
             <div id="prescript" hidden>
-                <span class="label">This program asks for input (<code>give</code>) — it pauses and asks you
-                    above. Optionally pre-script answers here, one line per <code>give</code>:</span>
+                <span class="label">Optional — pre-script the answers, one line per <code>give</code>:</span>
                 <textarea id="input" spellcheck="false"></textarea>
             </div>
             <div class="row">
@@ -547,13 +543,17 @@
     // same path — so the program lands exactly one question further.
     let liveAnswers = [];
 
+    // The "waiting" wording is written only here — i.e. only after a run
+    // actually paused on a give. Never on load or when switching examples.
     function askShow() {
+        $("ask-label").textContent = "The program is waiting for your input:";
         $("ask-box").hidden = false;
         $("ask-field").value = "";
         $("ask-field").focus();
     }
     function askHide() {
         $("ask-box").hidden = true;
+        $("ask-label").textContent = "";
     }
 
     async function run(fromContinue) {
