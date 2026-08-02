@@ -5,6 +5,12 @@
 <h1 align="center">The Ring language, resident in your browser</h1>
 
 <p align="center">
+  <strong><a href="https://mayouni.github.io/ringscript/">mayouni.github.io/ringscript</a></strong> ·
+  <a href="https://mayouni.github.io/ringscript/playground/">Playground</a> ·
+  <a href="https://mayouni.github.io/ringscript/story.html">The story</a>
+</p>
+
+<p align="center">
   <strong>version 0.9</strong> · Ring 1.27 · MIT · a Softanza Project
 </p>
 
@@ -154,6 +160,11 @@ ringscript/
 ├── build.zig                    one build: wasm runtime + dev server + serve/dist
 ├── start-playground.bat         double-click launcher (Windows)
 ├── start-playground.sh          double-click launcher (macOS / Linux / BSD)
+│
+├── site/                        the published website (GitHub Pages)
+│   ├── index.html               landing page, with a live editor
+│   ├── story.html               Softanza, StzWeb, and why RingScript exists
+│   └── style.css                its design tokens
 │
 ├── package.ring                 RingPM manifest — defines what a user downloads
 ├── main.ring                    `ringpm run ringscript` — the self-locating CLI
