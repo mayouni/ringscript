@@ -6,7 +6,7 @@
 <title>Questions and answers — RingScript</title>
 <meta name="description" content="Does load &quot;myfile.ring&quot; work in the browser? How do I split a program across files, read input, call Ring from a button? Plain answers for Ring developers.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.6">
+<link rel="stylesheet" href="style.css?v=0.9.7">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
@@ -138,10 +138,10 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
 
   <div class="qa">
     <h3>Does what I load stay loaded?</h3>
-    <p><span class="verdict yes">Yes — one VM lives for the whole page</span></p>
-    <p>Functions, classes and variables defined by one evaluation are still there for
-    every later one. Loading three files in a row and using all three together works the
-    way you would expect:</p>
+    <p><span class="verdict yes">Yes — one VM per page</span></p>
+    <p>A single virtual machine lives for as long as the page does. Functions, classes and
+    variables defined by one evaluation are still there for every later one, so loading
+    three files in a row and using all three together works the way you would expect:</p>
 <pre class="code"><span class="c"># helpers.ring, evaluated first</span>
 <span class="k">func</span> Greet cName
     <span class="k">return</span> <span class="s">"Ahlan, "</span> + cName + <span class="s">"!"</span>
@@ -167,13 +167,14 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
   <div class="qa">
     <h3>Which functions do I get without loading anything?</h3>
     <p>Everything built into the Ring VM, which is most of what you reach for day to day:</p>
-<pre class="code">? upper(<span class="s">"ab"</span>) + lower(<span class="s">"CD"</span>)      <span class="c"># ABcd</span>
-? substr(<span class="s">"hello world"</span>, <span class="s">"world"</span>)  <span class="c"># 7</span>
-? sort([<span class="n">3</span>,<span class="n">1</span>,<span class="n">2</span>])  ? find([<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>], <span class="n">2</span>)   <span class="c"># lists, as always</span>
-? number(<span class="s">"42"</span>) + <span class="n">1</span>  ? string(<span class="n">7</span>)      <span class="c"># conversions</span>
-? sqrt(<span class="n">16</span>)  ? pow(<span class="n">2</span>,<span class="n">10</span>)  ? ceil(<span class="n">1.2</span>)   <span class="c"># maths</span>
-? date()  ? clock()  ? random(<span class="n">10</span>)     <span class="c"># time, randomness</span>
-? JsonEncode([ <span class="a">:a</span> = <span class="n">1</span> ])            <span class="c"># {"a":1} — JSON is built in</span></pre>
+<pre class="code">? upper(<span class="s">"ab"</span>) + lower(<span class="s">"CD"</span>)  <span class="c"># ABcd</span>
+? substr(<span class="s">"hello"</span>, <span class="s">"ll"</span>)      <span class="c"># 3</span>
+? sort([<span class="n">3</span>,<span class="n">1</span>,<span class="n">2</span>])           <span class="c"># 1 2 3</span>
+? find([<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>], <span class="n">2</span>)        <span class="c"># 2</span>
+? number(<span class="s">"42"</span>) + <span class="n">1</span>        <span class="c"># 43</span>
+? sqrt(<span class="n">16</span>)  ? pow(<span class="n">2</span>,<span class="n">10</span>)   <span class="c"># 4, then 1024</span>
+? date()  ? clock()       <span class="c"># time, uptime</span>
+? JsonEncode([ <span class="a">:a</span> = <span class="n">1</span> ])  <span class="c"># {"a":1} — built in</span></pre>
     <p>Classes, objects, inheritance, lists, <code>try/catch</code> and declarative blocks
     all behave exactly as they do natively — this is Ring's own compiler and VM, not an
     imitation of it.</p>
@@ -187,10 +188,11 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
 
   <div class="qa">
     <h3>Can I read and write files?</h3>
-    <p><span class="verdict no">No — and every browser app lives by this rule</span></p>
+    <p><span class="verdict no">No — and no web page can</span></p>
 <pre class="said">Error (R35) : Can't create/open the file</pre>
-    <p>You get a clean, catchable Ring error rather than a dead runtime, so a program that
-    tries can recover. Where a desktop program would save a file, a web app saves to the
+    <p>Every application in a browser lives by this rule, so it is not a RingScript
+    restriction. You get a clean, catchable Ring error rather than a dead runtime, so a
+    program that tries can recover. Where a desktop program would save a file, a web app saves to the
     server, or to browser storage. The same applies to <code>system()</code>, threads and
     anything else that needs an operating system.</p>
   </div>
@@ -218,7 +220,8 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
 <pre class="code"><span class="k">func</span> Greet
     cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
     <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
-    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>, <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName ])</pre>
+    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
+        <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName ])</pre>
     <p>If you only want Ring on the page and nothing more, <code>RingScript.boot()</code>
     does the wiring for you and runs every
     <code>&lt;script type="text/ring"&gt;</code> block on the page in order.</p>
@@ -229,7 +232,7 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
     <p><span class="verdict yes">Both ways, over JSON</span></p>
 <pre class="code"><span class="c"># Ring calling out</span>
 cReply = jscall(<span class="s">"savedraft"</span>, JsonEncode([ <span class="a">:id</span> = <span class="n">7</span> ]))</pre>
-<pre class="code"><span class="c">// JavaScript calling in — one JSON argument, one JSON result</span>
+<pre class="code"><span class="c">// JavaScript calling in: JSON in, JSON out</span>
 <span class="k">const</span> r = ring.call(<span class="s">"Price"</span>, {qty: <span class="n">3</span>});
 console.log(r.result);</pre>
     <p>The seam is deliberately thin, and entirely optional: plenty of pages never use it.</p>
@@ -269,8 +272,9 @@ console.log(r.result);</pre>
 
   <div class="qa">
     <h3>Is it really the Ring I know?</h3>
-    <p><span class="verdict yes">Ring 1.27, compiled — not reimplemented</span></p>
-    <p>It is Ring's own compiler and virtual machine built to WebAssembly. Around 850
+    <p><span class="verdict yes">Ring 1.27, compiled</span></p>
+    <p>Not reimplemented, not a lookalike: it is Ring's own compiler and virtual machine
+    built to WebAssembly. Around 850
     programs — the official sample set and every code block in Ring's documentation — are
     checked to print byte-identical output to the native interpreter, with no mismatches.
     If it behaves differently from <code>ring.exe</code> on your machine, that is a bug
