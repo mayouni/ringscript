@@ -73,7 +73,7 @@ button clicked two minutes later can call a function your `text/ring`
 block defined at load time.
 
 You can feel this in the [Playground](../web/index.html) (or by
-double-clicking `Start-Playground.bat`): run `x = 5` — then, as a
+double-clicking `start-playground.bat` / `start-playground.sh`): run `x = 5` — then, as a
 second run, `see x`. The `5` is still there.
 
 ## 4. Where output goes

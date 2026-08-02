@@ -87,7 +87,7 @@ Three layers, three languages, each doing the one thing it is best at:
 
 ```
 build.zig                 one build: wasm runtime + dev server + `serve` step
-Start-Playground.bat      double-click: build if needed, serve, open Playground
+start-playground.bat/.sh  double-click: build if needed, serve, open Playground
 src/
   bridge.zig              the bridge (see §2) + embedded file map
   wasi_stubs.c            the only added C: fopen resolver, exact-mirror

@@ -9,15 +9,17 @@
 **              of sibling/library files, threads, sockets) or interactive
 **
 ** Usage: node tests/samples-sweep.js [--dirs Language,General] [--list] [--verbose]
-** Env:   RING_HOME (default D:\ring127)
+** Env:   RING_HOME / RING_EXE point at the Ring installation; otherwise the
+**        `ring` interpreter is found on PATH (see tests/ring-exe.js).
 */
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { Worker } = require("worker_threads");
 
-const RING_HOME = process.env.RING_HOME || "D:\\ring127";
-const RING_EXE = path.join(RING_HOME, "bin", "ring.exe");
+const ringWhere = require(path.join(__dirname, "ring-exe.js"));
+const RING_HOME = ringWhere.ringHome();
+const RING_EXE = ringWhere.ringExe();
 const SAMPLES = path.join(RING_HOME, "samples");
 const wasmPath = path.join(__dirname, "..", "web", "ringscript.wasm");
 

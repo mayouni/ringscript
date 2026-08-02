@@ -24,5 +24,6 @@ Reference material:
   execution record (August 2026).
 
 To experiment while reading, keep the **Playground** open — double-click
-`Start-Playground.bat` at the repository root (or run `zig build serve`)
+`start-playground.bat` (Windows) or `start-playground.sh` (macOS/Linux)
+at the repository root — or run `zig build serve` —
 and it opens at <http://localhost:8377/> with 24 editable examples.

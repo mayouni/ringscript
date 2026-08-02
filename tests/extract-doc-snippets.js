@@ -6,12 +6,13 @@
 **   node tests/extract-doc-snippets.js
 **   node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.
 **
-** Env: RING_HOME (default D:\ring127)
+** Env: RING_HOME — the Ring installation whose documents/ folder is read
+**      (auto-detected from the `ring` interpreter's location otherwise).
 */
 const fs = require("fs");
 const path = require("path");
 
-const RING_HOME = process.env.RING_HOME || "D:\\ring127";
+const RING_HOME = require(path.join(__dirname, "ring-exe.js")).ringHome();
 const SRC = path.join(RING_HOME, "documents", "build", "html", "_sources");
 const OUT = path.join(__dirname, "doc-snippets");
 

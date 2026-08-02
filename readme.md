@@ -7,6 +7,12 @@ input, embedded pure-Ring libraries, and a two-way JSON bridge to
 JavaScript. Zig-first — no Emscripten, no npm, no build steps beyond one
 command.
 
+![The RingScript Playground — 24 editable Ring examples running in the browser](playground.png)
+
+*The Playground: pick an example, edit it, run it. The Ring VM is
+resident in the page; programs that ask for input pause and wait for
+your answer.*
+
 ## Using it — copy two files
 
 Deployment is hosting two files from `web/` next to your HTML on any
@@ -47,11 +53,21 @@ markdown guides, from first page to runtime internals:
 [Architecture](docs/architecture.md) ·
 [Compatibility & scope](docs/compatibility.md).
 
-## Running the site locally
+## Running the Playground locally
 
-On Windows, just **double-click `Start-Playground.bat`** — it builds the
-runtime if needed (first run only), starts the embedded web server, and
-opens the Playground in your browser. Close the server window to stop.
+Double-click the launcher for your system — it builds the runtime if
+needed (first run only), starts the embedded web server, and opens the
+Playground in your browser:
+
+| System | Launcher |
+|---|---|
+| Windows | `start-playground.bat` |
+| macOS, Linux, BSD | `start-playground.sh` (or `./start-playground.sh` in a terminal) |
+
+Everything in this project is cross-platform: the runtime and the dev
+server are built by Zig for whatever host you are on, and the test
+suites locate your Ring installation automatically (`ring` on `PATH`,
+or `RING_HOME` / `RING_EXE` to point them elsewhere).
 
 ## Developing the runtime
 
@@ -87,7 +103,7 @@ tests/               verification (Node):
   gates.js           29 permanent gates (state, errors, memory, I/O, bridge)
   examples-oracle.js all 24 playground examples vs native ring.exe
   samples-sweep.js   bulk sweep: Ring's samples + doc snippets vs native
-  extract-doc-snippets.js  regenerates the doc corpus from D:\ring127
+  extract-doc-snippets.js  regenerates the doc corpus from your Ring install
 docs/
   REPAIR_PLAN.md     the 2026 design & execution record
   VENDOR_PATCHES.md  the 4 vendor patches — re-apply on Ring upgrades

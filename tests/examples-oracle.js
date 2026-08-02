@@ -7,7 +7,8 @@
 ** echoed input line (in order) from the wasm output before diffing.
 **
 ** Usage: node tests/examples-oracle.js [id]      (no arg = all)
-** Env:   RING_EXE overrides the oracle path (default D:\ring127\bin\ring.exe)
+** Env:   RING_EXE / RING_HOME override the oracle location; otherwise the
+**        `ring` interpreter is found on PATH (see tests/ring-exe.js).
 */
 const fs = require("fs");
 const os = require("os");
@@ -16,7 +17,7 @@ const { execFileSync } = require("child_process");
 const RingScript = require(path.join(__dirname, "..", "web", "ringscript.js"));
 const EXAMPLES = require(path.join(__dirname, "..", "web", "examples-data.js"));
 
-const RING_EXE = process.env.RING_EXE || "D:\\ring127\\bin\\ring.exe";
+const RING_EXE = require(path.join(__dirname, "ring-exe.js")).ringExe();
 const wasmPath = path.join(__dirname, "..", "web", "ringscript.wasm");
 
 function runNative(code, input) {

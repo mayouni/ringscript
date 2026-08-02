@@ -1,7 +1,7 @@
 # Vendor patches to language/
 
 `language/` is the vendored Ring VM source (currently **1.27**, from
-`D:\ring127`). It carries two deliberate RingScript patches, both marked
+the official 1.27 distribution). It carries two deliberate RingScript patches, both marked
 with `RINGSCRIPT PATCH` comments at the site. **Any future vendor swap
 must re-apply them** — then run `zig build -Drelease=true` and
 `node tests/gates.js` (the P2 line-number gates fail if either patch is
