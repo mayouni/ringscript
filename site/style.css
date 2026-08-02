@@ -107,9 +107,12 @@ a:hover .newtab { opacity: 1; }
    the whole scroll. */
 @media (max-width: 767px) {
     nav { position: static; }
-    nav .wrap { flex-wrap: wrap; gap: .55rem 1rem; }
+    nav .wrap { flex-wrap: wrap; gap: .15rem 1rem; }
     nav .brand { width: 100%; margin-right: 0; }
-    nav a { font-size: .98rem; }
+    /* A 27px line of text is a poor thumb target. Padding takes each link
+       to ~40px tall; the row gap shrinks to match, so the bar keeps its
+       height. The CTA has its own padding and is already big enough. */
+    nav a { font-size: .98rem; padding-top: .4rem; padding-bottom: .4rem; }
 }
 
 /* -------------------------------------------------------------- cards */
