@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The story behind RingScript — Softanza, StzWeb, and real applications</title>
+<meta name="description" content="How the Softanza library and engine, and business applications built for a bank, a restaurant and a high school in Niger, led to StzWeb and to RingScript.">
+<link rel="icon" href="playground/favicon.ico">
+<link rel="stylesheet" href="style.css">
+<style>
+    article { max-width: 44rem; }
+    article h2 { margin-top: 2.6rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.12rem; color: var(--ink); }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.2rem;
+        border-left: 3px solid var(--accent);
+        font-size: 1.1rem; color: var(--ink);
+    }
+    .layers { display: grid; gap: .7rem; margin: 1.4rem 0; }
+    .layer { display: grid; grid-template-columns: 8.5rem 1fr; gap: 1rem; align-items: start;
+             background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1.1rem; }
+    .layer b { color: var(--accent); }
+    .layer span { color: var(--ink-soft); font-size: .96rem; }
+    @media (max-width: 620px) { .layer { grid-template-columns: 1fr; gap: .2rem; } }
+    .field { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin: 1.4rem 0; }
+    .field div { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; }
+    .field h3 { margin-bottom: .3rem; }
+    .field p { margin: 0; font-size: .95rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="ringscript-logo.png" alt="">RingScript</a>
+    <a href="index.html">Home</a>
+    <a class="active" href="story.html">The story</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md">Docs</a>
+    <a class="cta" href="playground/">Playground</a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+  <h1>Why this exists</h1>
+  <p class="first">RingScript did not start as a browser experiment. It arrived at the end of a
+  long road that runs through a library, an engine, a framework — and, before any of them,
+  through real applications built for people who had to use them every day.</p>
+
+  <h2>The applications came first</h2>
+  <p>Over the years I built business software where it actually gets used, not where it demos
+  well: <strong>inside a bank</strong>, for a <strong>restaurant</strong>, and for a
+  <strong>high school in Niger</strong>. Different worlds, the same lessons, learned the hard way.</p>
+
+  <div class="field">
+    <div>
+      <h3>A bank</h3>
+      <p>Rules are the product. They change, they must be auditable, and "the system says so"
+      is never an acceptable answer to a customer.</p>
+    </div>
+    <div>
+      <h3>A restaurant</h3>
+      <p>Speed and simplicity beat features. Staff turn over; whoever is at the counter tonight
+      must be productive in ten minutes.</p>
+    </div>
+    <div>
+      <h3>A high school in Niger</h3>
+      <p>The connection drops, the power cuts, the browser is old. Software that assumes the
+      cloud is always there is software that stops working.</p>
+    </div>
+  </div>
+
+  <blockquote>The constraint that shaped everything: business software must keep working
+  offline, stay understandable to the people who own the rules, and outlive the fashion of the
+  season.</blockquote>
+
+  <h2>Softanza: a library, then an engine</h2>
+  <p>Writing those systems in <a href="https://ring-lang.github.io/">Ring</a> made me want the
+  language to say more with less. That became the <strong>Softanza Project</strong> — first a
+  <strong>library</strong> that gives Ring a fluent, declarative way to work with strings,
+  lists, data and rules; then an <strong>engine</strong> underneath it, so the same expressive
+  code could stay fast and portable instead of paying for its elegance at runtime.</p>
+  <p>Softanza's premise is simple: code should read like the intention of the person who asked
+  for it. When a banker describes a rule, the program should look like that sentence.</p>
+
+  <h2>StzWeb: business applications that keep working</h2>
+  <p>Libraries and engines still leave you facing the modern web stack. For the kind of
+  applications above, that stack is a poor trade: a build pipeline to maintain, a dependency
+  tree that rots, a framework that will be rewritten before the school year ends — and, at the
+  end of it, an app that assumes a network.</p>
+  <p>So <strong>StzWeb</strong> was built the other way round: a framework for
+  <strong>business applications that run offline</strong>, in the browser, on web standards
+  that do not expire. Its core ideas come straight from the field:</p>
+
+  <div class="layers">
+    <div class="layer"><b>Declare, don't code</b>
+      <span>Entities, norms and flows are <em>declared</em> in a small closed grammar. The
+      declaration is the specification, the documentation and the program at once.</span></div>
+    <div class="layer"><b>Offline first</b>
+      <span>The application runs in the browser and keeps its own durable, tamper-evident
+      record. The network is an optimisation, not a prerequisite.</span></div>
+    <div class="layer"><b>Visible over hidden</b>
+      <span>Rejections, violations and refusals are shown, never silently swallowed. Trust is
+      the product in a bank, and it is built from what the system is willing to show.</span></div>
+    <div class="layer"><b>Calm over power</b>
+      <span>Fewer moving parts, no build step, no framework churn — so a small team can still
+      maintain the thing three years later.</span></div>
+  </div>
+
+  <h2>The missing half: the language in the page</h2>
+  <p>One gap remained. StzWeb could declare the business, store it and serve it — but the
+  moment a page needed <em>logic</em>, we were back in JavaScript. Ring already speaks on the
+  server, through <a href="https://ring-lang.github.io/doc1.27/web.html">Ring WebLib</a> and
+  the <a href="https://ysdragon.github.io/bolt/">Bolt</a> framework. The browser was the one
+  place the language could not go.</p>
+  <p><strong>RingScript closes that gap.</strong> Ring's own compiler and virtual machine,
+  compiled to WebAssembly and kept resident in the page, so the same language writes the
+  request handler and the click handler. For StzWeb it means a business rule can be evaluated
+  by the JavaScript runtime and by Ring — side by side, from the same declaration, reaching
+  the same verdict. For everyone else it means something simpler: you can script a web page in
+  a calm language, with two files and no toolchain.</p>
+
+  <h2>Where it stands</h2>
+  <p>RingScript is <strong>version 0.9</strong>. It is complete in function and verified
+  program-by-program against native Ring, and it already carries real work — the same four
+  domains that started this story. It is not 1.0 yet because Softanza and StzWeb are
+  themselves in progress, and a version number should be earned in production rather than
+  announced.</p>
+  <p>If you build the kind of software that has to work in a school with no internet, in a
+  restaurant at rush hour, or in a bank where every refusal must be explainable — this was
+  built from that experience, and you are welcome to it.</p>
+
+  <p style="margin-top:2rem">— Mansour Ayouni, creator of the Softanza library for Ring</p>
+
+  <div class="actions" style="justify-content:flex-start; margin-top:1.6rem">
+    <a class="btn primary" href="playground/">Try RingScript</a>
+    <a class="btn ghost" href="https://github.com/mayouni/ringscript">See the source</a>
+  </div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md">Documentation</a>
+    <a href="https://ring-lang.github.io/">Ring language</a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

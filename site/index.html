@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingScript — script the frontend in Ring, not JavaScript</title>
+<meta name="description" content="RingScript runs the real Ring VM in the browser via WebAssembly. Script your pages in a calm, readable language — two static files, no build step, no npm, no framework churn.">
+<link rel="icon" href="playground/favicon.ico">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="ringscript-logo.png" alt="">RingScript</a>
+    <a class="active" href="index.html">Home</a>
+    <a href="story.html">The story</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md">Docs</a>
+    <a class="cta" href="playground/">Playground</a>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <img class="logo" src="ringscript-logo.png" alt="RingScript">
+  <h1>Script your frontend in <em>Ring</em>.<br>Not in JavaScript.</h1>
+  <p class="sub">RingScript puts a real programming-language VM inside the browser — compiled to
+  WebAssembly, resident in the page. You write clear, boring, readable code. No build step,
+  no bundler, no node_modules, no framework to relearn next year.</p>
+  <div class="badges">
+    <span class="badge">version 0.9</span>
+    <span class="badge">2 files · ~360 KB</span>
+    <span class="badge">zero dependencies</span>
+    <span class="badge">MIT</span>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="playground/">Try it in the Playground</a>
+    <a class="btn ghost" href="story.html">Why it exists</a>
+  </div>
+</header>
+
+<section class="wrap">
+  <div class="try" id="try">
+    <div class="try-head">
+      <span>This is the real Ring VM, running in this page</span>
+      <span id="try-status">loading…</span>
+    </div>
+    <textarea id="try-code" spellcheck="false" rows="4">aTeam = ["Aminata", "Moussa", "Fatima"]
+
+for cName in aTeam
+    ? "Hello " + cName
+next</textarea>
+    <div class="try-bar">
+      <button id="try-run" disabled>&#9654; Run</button>
+      <pre id="try-out">→ output appears here</pre>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>The same page, two ways</h2>
+  <p class="lead">A name field, a greeting, a counter. On the left the usual ceremony;
+  on the right the whole thing in Ring — the logic reads like what it does.</p>
+  <div class="compare">
+    <div>
+      <span class="label"><b>JavaScript</b> — listeners, queries, state</span>
+<pre class="code">&lt;input id="guest"&gt;
+&lt;button id="go"&gt;Greet&lt;/button&gt;
+&lt;div id="hello"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+<span class="k">let</span> clicks = <span class="n">0</span>;
+<span class="k">const</span> $ = (id) =&gt; <span class="f">document</span>.getElementById(id);
+
+$(<span class="s">"go"</span>).addEventListener(<span class="s">"click"</span>, () =&gt; {
+  <span class="k">const</span> name = $(<span class="s">"guest"</span>).value || <span class="s">"stranger"</span>;
+  $(<span class="s">"hello"</span>).textContent = <span class="s">`Ahlan, ${name}!`</span>;
+  clicks++;
+});
+&lt;/script&gt;</pre>
+    </div>
+    <div>
+      <span class="label"><b>Ring</b> — with RingScript</span>
+<pre class="code">&lt;input id="guest"&gt;
+&lt;button onclick="ring.call('Greet')"&gt;Greet&lt;/button&gt;
+&lt;div id="hello"&gt;&lt;/div&gt;
+
+<span class="t">&lt;script</span> <span class="f">src</span>=<span class="s">"ringscript.js"</span><span class="t">&gt;&lt;/script&gt;</span>
+<span class="t">&lt;script&gt;</span>RingScript.boot()<span class="t">&lt;/script&gt;</span>
+
+<span class="t">&lt;script</span> <span class="f">type</span>=<span class="s">"text/ring"</span><span class="t">&gt;</span>
+nClicks = <span class="n">0</span>
+
+<span class="k">func</span> Greet aEv
+    cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
+    <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
+    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
+        <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName + <span class="s">"!"</span> ])
+    nClicks++
+<span class="t">&lt;/script&gt;</span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>What you get</h2>
+  <div class="grid">
+    <div class="card">
+      <span class="icon">🧠</span>
+      <h3>A resident VM</h3>
+      <p>One virtual machine lives for the whole page. Define something in one evaluation,
+      use it in the next — variables, functions and classes simply stay.</p>
+    </div>
+    <div class="card">
+      <span class="icon">🛡️</span>
+      <h3>Errors that don't kill the page</h3>
+      <p>A mistake returns a message with its real line number and the VM keeps running.
+      A thousand failing evaluations later, memory is still flat.</p>
+    </div>
+    <div class="card">
+      <span class="icon">🤝</span>
+      <h3>JSON both ways</h3>
+      <p><code>ring.call("Price", {qty: 3})</code> goes in as JSON and comes back as JSON.
+      Ring can call your JavaScript too. The seam is thin — and optional.</p>
+    </div>
+    <div class="card">
+      <span class="icon">📦</span>
+      <h3>Two files, any host</h3>
+      <p>A loader and a wasm module. Drop them next to your HTML on GitHub Pages, nginx,
+      S3, a shared host. No toolchain, ever.</p>
+    </div>
+    <div class="card">
+      <span class="icon">🔍</span>
+      <h3>Not a lookalike</h3>
+      <p>It is Ring's own compiler and VM compiled to WebAssembly — verified to print
+      byte-identical output to the native interpreter.</p>
+    </div>
+    <div class="card">
+      <span class="icon">📚</span>
+      <h3>A language you can hold</h3>
+      <p>Ring is small, dynamic and readable, with lists, OOP, declarative blocks and
+      natural-language syntax. Learn it in an afternoon.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Three steps, no ceremony</h2>
+  <div class="compare">
+    <ol class="steps">
+      <li><b>Copy two files</b> next to your HTML: <code>ringscript.js</code> and
+        <code>ringscript.wasm</code>. Or, with Ring installed:
+        <code>ringpm install ringscript from mayouni</code>.</li>
+      <li><b>Boot it</b> with one line — <code>RingScript.boot()</code> — which starts the VM
+        and runs every <code>&lt;script type="text/ring"&gt;</code> block on the page.</li>
+      <li><b>Write Ring.</b> Call functions from your markup with
+        <code>ring.call('Name')</code>; read and write the page with <code>Platform()</code>.</li>
+    </ol>
+    <figure>
+      <a href="playground/"><img src="playground.png" alt="The RingScript Playground"></a>
+      <figcaption>The Playground — 24 examples, editable, running the same runtime you ship.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>Trust, measured</h2>
+  <p class="lead">"It runs Ring" is a claim worth checking, so it is checked continuously
+  against the native interpreter — the whole official sample set and every code block in
+  Ring's documentation.</p>
+  <div class="stats">
+    <div><div class="num">~850</div><div class="what">programs verified byte-identical to native Ring</div></div>
+    <div><div class="num">0</div><div class="what">mismatches across both corpora</div></div>
+    <div><div class="num">29</div><div class="what">gates on state, errors, memory, I/O, bridge</div></div>
+    <div><div class="num">1.27</div><div class="what">Ring version inside the wasm</div></div>
+  </div>
+</section>
+
+<section class="wrap narrow">
+  <h2>Honest limits</h2>
+  <p class="lead">Inside a browser there are no files, no OS calls, no threads — the same rules
+  every web app lives by. Ring programs that ask for them get a clean, catchable error rather
+  than a dead runtime. Everything else in the language behaves exactly as it does natively.</p>
+  <p class="lead">RingScript is for page logic, business rules, teaching, notebooks and
+  offline-first apps. For heavy number crunching, keep using what you already use.</p>
+  <div class="actions" style="justify-content:flex-start">
+    <a class="btn primary" href="playground/">Open the Playground</a>
+    <a class="btn ghost" href="https://github.com/mayouni/ringscript">GitHub</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="story.html">The story</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md">Documentation</a>
+    <a href="https://ring-lang.github.io/">Ring language</a>
+    <span class="sp">a <a href="story.html">Softanza</a> project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ringscript.js"></script>
+<script>
+(async function () {
+    const $ = id => document.getElementById(id);
+    let ring;
+    try {
+        ring = await RingScript.load("playground/ringscript.wasm", { captureStdout: true, onOutput: () => {} });
+        $("try-status").textContent = "Ring " + ring.eval("see version()").output + " ready";
+        $("try-run").disabled = false;
+    } catch (e) {
+        $("try-status").textContent = "failed to load: " + e.message;
+        return;
+    }
+    function run() {
+        const r = ring.eval($("try-code").value);
+        const out = $("try-out");
+        out.classList.add("has");
+        out.textContent = r.output || "(no output)";
+        if (r.error) {
+            const s = document.createElement("span");
+            s.className = "err";
+            s.textContent = (r.output ? "\n" : "") + r.error;
+            out.appendChild(s);
+        }
+    }
+    $("try-run").addEventListener("click", run);
+    $("try-code").addEventListener("keydown", e => {
+        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
+    });
+})();
+</script>
+</body>
+</html>

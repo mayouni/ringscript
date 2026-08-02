@@ -1,0 +1,61 @@
+name: Deploy site to GitHub Pages
+
+# The published site is assembled from files already in the repository —
+# no build step, because RingScript ships prebuilt artifacts:
+#
+#   site/            the marketing site (index.html, story.html, style.css)
+#   playground/      the Playground + the runtime it loads
+#   *.png            logo and screenshot used by both
+#
+# Result:  /  → the site      /playground/  → the Playground
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'playground/**'
+      - '*.png'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -r site/. _site/
+          mkdir -p _site/playground
+          cp -r playground/. _site/playground/
+          cp ringscript-logo.png playground.png _site/
+          # No Jekyll processing: this is plain static HTML.
+          touch _site/.nojekyll
+          ls -R _site | head -40
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
