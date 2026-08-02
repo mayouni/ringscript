@@ -49,10 +49,20 @@ node web/serve.js
 ```
 
 and open <http://localhost:8377/> — a REPL page against the resident VM —
-or <http://localhost:8377/examples.html>, a gallery of classic Ring
-examples (interactive input, OOP, brace magic, Arabic keywords…) that all
-match native ring.exe output byte-for-byte
+or <http://localhost:8377/examples.html>, an IDE-style gallery of 24 Ring
+examples (interactive input, OOP, functional programming, operator
+overloading, private attributes, packages, reflection, Arabic keywords…)
+that all match native ring.exe output byte-for-byte
 (`node tests/examples-oracle.js` verifies this against `D:\ring127`).
+
+Beyond the gallery, the runtime is swept against Ring's own corpus:
+`tests/samples-sweep.js` runs the language-relevant samples from
+`D:\ring127\samples` (~284 programs) and ~550 code blocks extracted from
+the official documentation (`tests/extract-doc-snippets.js`, the same
+content ring-lang.github.io serves) through native ring.exe and the wasm
+side by side — currently **zero mismatches and zero failures**; programs
+excluded by design (files, OS, GUI, threads, multi-file loads) fail with
+clean trappable errors, never crashes.
 
 ## Verification
 

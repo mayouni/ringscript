@@ -110,6 +110,10 @@ pub fn build(b: *std.Build) void {
     exe.wasi_exec_model = .reactor;
     // Keep the rs_* exports visible in the wasm export table.
     exe.rdynamic = true;
+    // Deep C recursion happens in the parser (nested expressions) and in
+    // recursive list operations (copy/delete/print of deeply nested lists);
+    // the default 1 MB wasm shadow stack overflows well before native does.
+    exe.stack_size = 8 * 1024 * 1024;
 
     b.installArtifact(exe);
 

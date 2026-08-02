@@ -57,7 +57,8 @@
                 return WASI_ESUCCESS; // EOF on stdin
             },
             fd_close() { return WASI_ESUCCESS; },
-            fd_seek(fd, offsetLo, offsetHi, whence, newOffsetPtr) {
+            // offset is a wasm i64 -> a single BigInt argument in JS
+            fd_seek(fd, offset, whence, newOffsetPtr) {
                 return WASI_EBADF;
             },
             fd_fdstat_get(fd, bufPtr) {
@@ -81,9 +82,16 @@
             path_remove_directory() { return WASI_ENOSYS; },
             fd_filestat_get() { return WASI_ENOSYS; },
             fd_readdir() { return WASI_ENOSYS; },
-            clock_time_get(clockId, precisionLo, precisionHi, timePtr) {
-                const ns = BigInt(Math.round(Date.now() * 1e6));
-                view().setBigUint64(timePtr, ns, true);
+            // precision is a wasm i64 -> a single BigInt argument in JS
+            // (a 4-arg signature here would write the time to the wrong
+            // address and freeze clock()/time() at stale values)
+            clock_time_get(clockId, precision, timePtr) {
+                // CLOCK_MONOTONIC(1)/PROCESS_CPUTIME(2)/THREAD_CPUTIME(3):
+                // performance.now() keeps clock() advancing sub-ms; REALTIME(0)
+                // uses the wall clock for time()/date().
+                const ms = clockId === 0 ? Date.now()
+                    : (typeof performance !== "undefined" ? performance.now() : Date.now());
+                view().setBigUint64(timePtr, BigInt(Math.round(ms * 1e6)), true);
                 return WASI_ESUCCESS;
             },
             clock_res_get(clockId, resPtr) {
@@ -224,6 +232,15 @@
             return decoder.decode(mem.subarray(ptr, end));
         }
 
+        // Binary-safe: Ring output may contain NUL bytes (e.g. int2bytes),
+        // so read the exact byte length instead of stopping at NUL.
+        function readOutput() {
+            const len = ex.rs_last_output_size();
+            if (!len) return "";
+            const ptr = ex.rs_last_output();
+            return decoder.decode(new Uint8Array(memory.buffer).subarray(ptr, ptr + len));
+        }
+
         function withCString(str, fn) {
             const data = encoder.encode(str);
             const ptr = ex.rs_alloc(data.length + 1);
@@ -244,18 +261,19 @@
             reset() { return ex.rs_reset(); },
             /// eval(code[, input]) — `input` is the text queue served to
             /// Ring's `give`, line by line. Each eval starts with a fresh
-            /// queue (empty when the argument is omitted).
+            /// queue (empty when the argument is omitted). CRLF is
+            /// normalized to LF, matching native Ring's text-mode reads.
             eval(code, input) {
-                withCString(input || "", function (ptr) { ex.rs_set_input(ptr); });
-                const rc = withCString(code, function (ptr) { return ex.rs_eval(ptr); });
+                withCString((input || "").replace(/\r\n/g, "\n"), function (ptr) { ex.rs_set_input(ptr); });
+                const rc = withCString(String(code).replace(/\r\n/g, "\n"), function (ptr) { return ex.rs_eval(ptr); });
                 return {
                     ok: rc === 0,
                     code: rc,
-                    output: readCString(ex.rs_last_output()),
+                    output: readOutput(),
                     error: readCString(ex.rs_last_error()),
                 };
             },
-            lastOutput() { return readCString(ex.rs_last_output()); },
+            lastOutput() { return readOutput(); },
             lastError() { return readCString(ex.rs_last_error()); },
             /// Call a Ring function with one JSON-serializable argument;
             /// returns { ok, result (parsed), output, error }.
@@ -275,7 +293,7 @@
                 return {
                     ok: !error,
                     result: result,
-                    output: readCString(ex.rs_last_output()),
+                    output: readOutput(),
                     error: error,
                 };
             },

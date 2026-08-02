@@ -34,22 +34,21 @@ extern fn ring_vm_api_getnumber(p: ?*anyopaque, n: c_int) f64;
 extern fn ring_vm_api_islist(p: ?*anyopaque, n: c_int) c_int;
 extern fn ring_vm_api_getlist(p: ?*anyopaque, n: c_int) ?*List;
 extern fn ring_vm_api_ispointer(p: ?*anyopaque, n: c_int) c_int;
+extern fn ring_vm_api_getpointer(p: ?*anyopaque, n: c_int) ?*anyopaque;
 
 extern fn ring_vm_api_retstring2(p: ?*anyopaque, s: [*]const u8, n: c_uint) void;
-
-// getsize/getstring/getdouble are macros in rlist.h — wrapped in wasi_stubs.c.
-extern fn rs_list_getsize(pList: ?*List) c_uint;
-extern fn rs_list_getstring(pList: ?*List, n: c_uint) ?[*:0]u8;
-extern fn rs_list_getdouble(pList: ?*List, n: c_uint) f64;
 
 /// Line number captured at error time by the RINGSCRIPT PATCH in
 /// language/src/vmerror.c (catch-time state restore rewinds pVM->nLineNumber,
 /// so it cannot be read from the VM once the catch block runs).
 extern var rs_error_line: c_uint;
-extern fn ring_list_isstring(pList: ?*List, n: c_uint) c_uint;
-extern fn ring_list_isnumber(pList: ?*List, n: c_uint) c_uint;
-extern fn ring_list_islist(pList: ?*List, n: c_uint) c_uint;
-extern fn ring_list_getlist(pList: ?*List, n: c_uint) ?*List;
+extern fn rs_vm_decimals(p: ?*anyopaque) c_uint;
+extern fn ring_general_numtostring(nNum: f64, cStr: [*]u8, nDecimals: c_int) [*:0]u8;
+
+// Exact-mirror value printers implemented in wasi_stubs.c (vendor rlist.c
+// semantics: byte-exact strings, objects, circular-ref guard, pointers).
+extern fn rs_print_value_list(p: ?*anyopaque, pList: ?*List) void;
+extern fn rs_print_pointer(p: ?*anyopaque, pValue: ?*anyopaque) void;
 
 // ---------------------------------------------------------------- state
 
@@ -69,37 +68,17 @@ fn appendOut(bytes: []const u8) void {
     g_out.appendSlice(alloc, bytes) catch {};
 }
 
-fn appendNumber(n: f64) void {
-    var buf: [64]u8 = undefined;
-    const int: i64 = @intFromFloat(if (n >= -9007199254740992.0 and n <= 9007199254740992.0) n else 0);
-    // Match native `see`: integers print bare, non-integers use Ring's
-    // default decimals(2) formatting (e.g. 201.5 prints as 201.50).
-    const s = if (n == @as(f64, @floatFromInt(int)))
-        std.fmt.bufPrint(&buf, "{d}", .{int}) catch return
-    else
-        std.fmt.bufPrint(&buf, "{d:.2}", .{n}) catch return;
-    appendOut(s);
-}
-
-fn serializeList(list: ?*List) void {
-    const pList = list orelse return;
-    const size = rs_list_getsize(pList);
-    var i: c_uint = 1;
-    while (i <= size) : (i += 1) {
-        if (ring_list_isstring(pList, i) != 0) {
-            if (rs_list_getstring(pList, i)) |s| appendOut(std.mem.span(s));
-            appendOut("\n");
-        } else if (ring_list_isnumber(pList, i) != 0) {
-            appendNumber(rs_list_getdouble(pList, i));
-            appendOut("\n");
-        } else if (ring_list_islist(pList, i) != 0) {
-            serializeList(ring_list_getlist(pList, i));
-        }
-    }
+/// Format a number exactly like native `see`: through the VM's own
+/// ring_general_numtostring with the state's live decimals() setting.
+fn appendNumber(p: ?*anyopaque, n: f64) void {
+    var buf: [160]u8 = undefined; // RING_MEDIUMBUF is 128
+    const s = ring_general_numtostring(n, &buf, @intCast(rs_vm_decimals(p)));
+    appendOut(std.mem.span(s));
 }
 
 /// C hook the VM calls for every `see` (registered as ring_vm_see, wired to
-/// the Ring-level `ringvm_see` override in rs_init).
+/// the Ring-level `ringvm_see` override in rs_init). Lists, objects and
+/// pointers delegate to the exact-mirror printers in wasi_stubs.c.
 fn seeHook(p: ?*anyopaque) callconv(.c) void {
     if (ring_vm_api_isstring(p, 1) != 0) {
         if (ring_vm_api_getstring(p, 1)) |s| {
@@ -107,11 +86,11 @@ fn seeHook(p: ?*anyopaque) callconv(.c) void {
             appendOut(s[0..len]);
         }
     } else if (ring_vm_api_isnumber(p, 1) != 0) {
-        appendNumber(ring_vm_api_getnumber(p, 1));
+        appendNumber(p, ring_vm_api_getnumber(p, 1));
     } else if (ring_vm_api_islist(p, 1) != 0) {
-        serializeList(ring_vm_api_getlist(p, 1));
+        rs_print_value_list(p, ring_vm_api_getlist(p, 1));
     } else if (ring_vm_api_ispointer(p, 1) != 0) {
-        appendOut("[Object]");
+        rs_print_pointer(p, ring_vm_api_getpointer(p, 1));
     }
 }
 
@@ -264,31 +243,24 @@ fn giveHook(p: ?*anyopaque) callconv(.c) void {
 extern fn ring_vm_error(pVM: ?*anyopaque, cStr: [*:0]const u8) void;
 
 extern fn ring_vm_api_retnumber(p: ?*anyopaque, n: f64) void;
+extern fn rs_vm_maincalled(p: ?*anyopaque) c_uint;
 
-/// C hook: latch that the auto-main pass found and is about to run main()
-/// (native Ring calls a defined main() once, after top-level statements).
-/// Returns 0 so the call_main_shim condition can chain on it.
+/// C hook for the auto-main pass. Returns 0 when the shim should call
+/// main(), 1 when it must not: either we already ran it, or the VM's own
+/// end-of-program auto-call fired inside the eval (that built-in path
+/// triggers only when the eval'd code contains a class — the final return
+/// stays unconverted and reaches the end-of-program handling).
 fn mainFoundHook(p: ?*anyopaque) callconv(.c) void {
+    if (g_main_called or rs_vm_maincalled(p) != 0) {
+        g_main_called = true;
+        ring_vm_api_retnumber(p, 1);
+        return;
+    }
     g_main_called = true;
     ring_vm_api_retnumber(p, 0);
 }
 
-// see: native-like printing, including object attributes (native Ring prints
-// "attr: value" lines for objects; the plain C hook can only see a pointer).
-// give: pull from the JS-supplied input queue, echoing the consumed line the
-// way a terminal would.
-const see_shim =
-    \\func ringvm_see cData
-    \\  if isobject(cData)
-    \\    for cAttr in attributes(cData)
-    \\      ring_vm_see(cAttr + ": ")
-    \\      ring_vm_see(getattribute(cData, cAttr))
-    \\      ring_vm_see(nl)
-    \\    next
-    \\  else
-    \\    ring_vm_see(cData)
-    \\  ok
-;
+const see_shim = "func ringvm_see cData ring_vm_see(cData)";
 const load_json_shim = "load \"ringlib/json.ring\"";
 
 /// Every eval runs through this wrapper: errors (compile errors surface as
@@ -339,16 +311,21 @@ export fn rs_eval(code: [*:0]const u8) i32 {
     g_out.clearRetainingCapacity();
     g_err.clearRetainingCapacity();
 
-    // Append a uniquely-named terminator function. If the code ends inside a
+    // Append a uniquely-named terminator CLASS. If the code ends inside a
     // class region (e.g. `class point x y z` with no methods), the region
     // would otherwise be closed by eval's return-from-eval instruction and
     // `new` on that class silently aborts the eval mid-statement. A trailing
-    // func delimits the region the way the next declaration would in a file.
+    // declaration delimits the region the way the next one would in a file.
+    // A class (not a func) on purpose: a trailing func would JOIN the user's
+    // last class as a method and can change semantics (e.g. it breaks
+    // inherited-method resolution after mergemethods() — reproduced on
+    // native); the terminator class's own region is never executed because
+    // nothing instantiates it.
     g_eval_counter += 1;
     g_evalcode.clearRetainingCapacity();
     g_evalcode.appendSlice(alloc, std.mem.span(code)) catch return -1;
     var buf: [48]u8 = undefined;
-    const term = std.fmt.bufPrint(&buf, "\nfunc __rs_end_{d}", .{g_eval_counter}) catch return -1;
+    const term = std.fmt.bufPrint(&buf, "\nclass __rs_end_{d}", .{g_eval_counter}) catch return -1;
     g_evalcode.appendSlice(alloc, term) catch return -1;
 
     g_code = g_evalcode.items;
@@ -405,6 +382,13 @@ export fn rs_last_output() [*:0]const u8 {
     g_out.append(alloc, 0) catch return "";
     defer _ = g_out.pop();
     return @ptrCast(g_out.items.ptr);
+}
+
+/// Byte length of the last output — read this many bytes from
+/// rs_last_output()'s pointer for binary-safe output (Ring strings may
+/// legitimately contain NUL bytes, e.g. from int2bytes()).
+export fn rs_last_output_size() usize {
+    return g_out.items.len;
 }
 
 export fn rs_last_error() [*:0]const u8 {

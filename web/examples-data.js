@@ -105,6 +105,59 @@
         },
     ];
 
+    // ---- second wave: from the Ring documentation (doc1.27) and samples,
+    // ---- byte-verified against native ring.exe by tests/samples-sweep.js
+    RING_EXAMPLES.push(
+        {
+            id: "functional-map",
+            title: "Functional: Anonymous Functions & Map",
+            input: "",
+            code: 'Func Main\n\taList = [1,2,3,4]\n\tMap (aList , func x { \n\t\t\t\treturn x*x \n\t\t\t    } )\n\tsee aList\n\taList = [11,12,13,14]\n\tMap (aList , func x {\n\t\tif x%2=0\n\t\t\treturn "even"\n\t\telse\n\t\t\treturn "odd"\n\t\tok\n\t})\n\tsee aList\n\nFunc Map aList,cFunc\n\tfor x in aList\n\t\tx = call cFunc(x)\n\tnext\n',
+        },
+        {
+            id: "first-class-functions",
+            title: "First-class Functions",
+            input: "",
+            code: 'Func Main\n\tsee "before test2()" + nl\n\tf = Test2(:Test)\n\tsee "after test2()" + nl\n\tcall f()\n\nFunc Test\n\tsee "Message from test!" + nl\n\nFunc Test2 f1\n\tcall f1()\n\tSee "Message from test2!" + nl\n\treturn f1\n',
+        },
+        {
+            id: "equality-of-functions",
+            title: "Equality of Functions",
+            input: "",
+            code: 'f1 = func { see "hello" + nl }\n\nf2 = func { see "how are you?" + nl }\n\nf3 = f1\n\ncall f1()\ncall f2()\ncall f3()\n\nsee (f1 = f2) + nl\nsee (f2 = f3) + nl\nsee (f1 = f3) + nl\n',
+        },
+        {
+            id: "operator-overloading",
+            title: "Operator Overloading",
+            input: "",
+            code: 'o1 = new point { x = 10 y = 10 print("P1    : ") }\no2 = new point { x = 20 y = 40 print("P2    : ") }\n\no3 = o1 + o2\no3.print("P1+P2 : ")\n\nclass point x y\n\n\tfunc operator cOperator,Para\n\t\tresult = new point\n\t\tswitch cOperator\n\t\ton "+"\n\t\t\tresult.x = x + Para.x\n\t\t\tresult.y = y + Para.y\n\t\ton "-"\n\t\t\tresult.x = x - Para.x\n\t\t\tresult.y = y - Para.y\n\t\toff\n\t\treturn result\n\n\tfunc print cPoint\n\t\tsee cPoint + "(" + x + ", " + y + ")" + nl\n',
+        },
+        {
+            id: "inheritance-super",
+            title: "Inheritance & Super",
+            input: "",
+            code: 'o = new child\no.hello()\n\nclass parent\n\tfunc hello\n\t\tsee "parent says hello" + nl\n\nclass child from parent\n\tfunc hello\n\t\tsuper.hello()\n\t\tsee "child says hello" + nl\n',
+        },
+        {
+            id: "private-attributes",
+            title: "Private Attributes & Methods",
+            input: "",
+            code: 'o1 = new person {\n\tname = "Test"\n\tage = 20\n\tprint()\n\to1.printsalary()\n}\n\ntry\n\tsee o1.salary\ncatch\n\tsee cCatchError + nl\ndone\n\ntry\n\to1.increasesalary(1000)\ncatch\n\tsee cCatchError + nl\ndone\n\nClass Person\n\n\tname age\n\n\tfunc print\n\t\tsee "Name   : " + name + nl +\n\t\t    "Age    : " + age + nl\n\n\tfunc printsalary\n\t\tsee "Salary : " + salary + nl\n\n\tprivate\n\n\tsalary = 15000\n\n\tfunc increasesalary x\n\t\tsalary += x\n',
+        },
+        {
+            id: "packages",
+            title: "Packages",
+            input: "",
+            code: 'import mypkg\no = new helper\no.hi()\n\npackage mypkg\n\tclass helper\n\t\tfunc hi\n\t\t\tsee "hello from a packaged class" + nl\n',
+        },
+        {
+            id: "reflection",
+            title: "Reflection & Meta-programming",
+            input: "",
+            code: 'o = new point\nsee "attributes:" + nl\nsee attributes(o)\nsee "methods:" + nl\nsee methods(o)\n\naddattribute(o, "color")\no.color = "red"\nsee "color: " + o.color + nl\n\naddmethod(o, "info", func { see "x=" + x + " y=" + y + nl })\no.info()\n\nclass point\n\tx = 5\n\ty = 7\n\tfunc area\n\t\treturn x * y\n',
+        }
+    );
+
     if (typeof module !== "undefined" && module.exports) {
         module.exports = RING_EXAMPLES;
     }

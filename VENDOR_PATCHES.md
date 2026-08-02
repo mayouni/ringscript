@@ -26,3 +26,25 @@ number to its try-time value *before* the catch block runs — by the time
 
 Together these make `rs_last_error()` report the real failing line for
 multi-line evals (e.g. an error on line 3 reports `line 3: …`).
+
+## 3. `language/src/stmt.c` — fix `private` inside eval (upstream crash)
+
+In the `K_PRIVATE` handler, `pParser->nClassMark` (from `newlabel2`) is a
+GLOBAL instruction number (`pGenCode size + nInstructionsCount`), but
+`ring_parser_icg_getoperationlist` indexes the LOCAL `pGenCode` list. With
+any prior code in the state the raw index reads far past the list. This
+crashes **stock native Ring 1.27** too — `eval("class q private b = 2")`
+kills ring.exe — and since the resident bridge routes everything through
+eval, every class with a `private` section crashed the wasm instance.
+The patch subtracts `nInstructionsCount` at the lookup. Worth reporting
+upstream (a real crash bug, unlike the global/attribute scope rule).
+
+## 4. `language/src/vmexpr.c` — strtod errno portability (musl vs MSVC)
+
+In `ring_vm_stringtonum`, the error branch fires when `strtod` returned 0
+with `errno` set. On no-conversion input, musl (wasi-libc) sets `errno`
+to EINVAL while MSVC/glibc leave it untouched — so `"test" = 5` raised
+`R41 Invalid numeric string` under wasm where native prints `0` (false).
+The patch adds a `cEndStr != cStr` guard so plain no-conversion falls to
+the existing no-conversion branch. Portability fix, worth upstreaming
+(bites any musl-based Ring build, not just wasm).

@@ -900,7 +900,13 @@ RING_API double ring_vm_stringtonum(VM *pVM, const char *cStr) {
 		return RING_ZEROF;
 	}
 	nResult = strtod(cStr, &cEndStr);
-	if (nResult == 0 && (errno != 0)) {
+	/*
+	**  RINGSCRIPT PATCH: on no-conversion, musl (wasi-libc) sets errno to
+	**  EINVAL while MSVC/glibc leave it untouched, so without the
+	**  cEndStr != cStr guard a plain non-numeric string ("test" = 5) raises
+	**  R41 instead of comparing false. Portability fix, worth upstreaming.
+	*/
+	if (nResult == 0 && (errno != 0) && (cEndStr != cStr)) {
 		if (errno == ERANGE) {
 			ring_vm_error(pVM, RING_VM_ERROR_NUMERICUNDERFLOW);
 		} else {
