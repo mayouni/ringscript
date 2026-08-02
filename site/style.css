@@ -87,6 +87,16 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 .btn.ghost { color: var(--accent); background: transparent; }
 .btn:hover { opacity: .9; }
 
+/* Marks a link that opens in a new tab. Kept at .9em (never small in
+   absolute terms) and slightly lifted, so it reads as a sign, not a glyph. */
+.newtab {
+    font-size: 1em;          /* never smaller than the label it marks */
+    display: inline-block;
+    transform: translateY(-.06em);
+    opacity: .8;
+}
+a:hover .newtab { opacity: 1; }
+
 /* -------------------------------------------------------------- cards */
 /* Sections breathe: a clear gap from whatever sits above them. */
 section { padding: 4.5rem 0 1rem; }
