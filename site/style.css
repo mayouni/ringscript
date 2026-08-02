@@ -15,10 +15,18 @@
     --accent-ink: #ffffff;
     --error: #b42318;
     --border: #e2e8ee;
-    --code-bg: #0d1420;
-    --code-ink: #d6e2f0;
-    --code-border: #223047;
-    --k: #c792ea; --s: #7ee2a8; --n: #f0a45d; --c: #7d8b9d; --a: #6cb6ff; --t: #7aa2f7; --f: #e2c08d;
+    /* Code sits on a soft light panel, not a black box — easier on the eye
+       against a white page, and the syntax colours stay legible. */
+    --code-bg: #f7f9fc;
+    --code-ink: #24313f;
+    --code-border: #dbe3ec;
+    --k: #8b3fc9;   /* keywords   */
+    --s: #0a7d4b;   /* strings    */
+    --n: #b35c00;   /* numbers    */
+    --c: #71808f;   /* comments   */
+    --a: #0b6bcb;   /* :atoms     */
+    --t: #1f6feb;   /* html tags  */
+    --f: #7a4f01;   /* functions  */
     --mono: "Cascadia Code", Consolas, "SF Mono", monospace;
 }
 
@@ -28,7 +36,7 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font: 17px/1.7 system-ui, "Segoe UI", -apple-system, sans-serif;
+    font: 18.5px/1.75 system-ui, "Segoe UI", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 /* Horizontal only: the shorthand would win on specificity over the vertical
@@ -43,12 +51,14 @@ nav {
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--border);
 }
-nav .wrap { display: flex; align-items: center; gap: 1.4rem; padding-top: .6rem; padding-bottom: .6rem; }
-nav a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+nav .wrap { display: flex; align-items: center; gap: 1.4rem; padding-top: .7rem; padding-bottom: .7rem; }
+nav a { color: var(--ink-soft); text-decoration: none; font-size: 1rem; }
 nav a:hover { color: var(--ink); }
 nav a.active { color: var(--accent); font-weight: 600; }
-nav .brand { display: flex; align-items: center; gap: .5rem; margin-right: auto; font-weight: 700; color: var(--ink); font-size: 1.05rem; }
-nav .brand img { height: 30px; width: auto; }
+nav .brand { margin-right: auto; font-weight: 700; color: var(--ink); font-size: 1.15rem; }
+nav .brand span { color: var(--accent); }
+nav a.repo { display: inline-flex; align-items: center; gap: .4rem; }
+nav a.repo svg { width: 1.05em; height: 1.05em; fill: currentColor; }
 nav .cta {
     background: var(--accent); color: var(--accent-ink);
     padding: .35rem 1rem; border-radius: 7px; font-weight: 600;
@@ -63,9 +73,9 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 .hero p.sub { font-size: 1.2rem; color: var(--ink-soft); max-width: 40rem; margin: 0 auto 1.4rem; }
 .badges { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.6rem; }
 .badge {
-    font-size: .8rem; color: var(--muted);
+    font-size: .95rem; color: var(--ink-soft);
     border: 1px solid var(--border); border-radius: 100px;
-    padding: .2rem .8rem; background: var(--panel);
+    padding: .25rem .9rem; background: var(--panel);
 }
 .actions { display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; }
 .btn {
@@ -86,7 +96,7 @@ h3 { font-size: 1.1rem; margin: 0 0 .35rem; }
 .lead { color: var(--ink-soft); font-size: 1.05rem; max-width: 44rem; margin: 0 0 2rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.3rem 1.4rem; }
-.card p { margin: 0; color: var(--ink-soft); font-size: .96rem; }
+.card p { margin: 0; color: var(--ink-soft); font-size: 1.02rem; }
 /* Neutral geometric glyphs, deliberately not emoji: they inherit a calm
    grey and never fight the text for attention. */
 .card .icon {
@@ -100,8 +110,8 @@ pre, code { font-family: var(--mono); }
 pre.code {
     background: var(--code-bg); color: var(--code-ink);
     border: 1px solid var(--code-border); border-radius: 10px;
-    padding: 1rem 1.1rem; overflow-x: auto; margin: 0;
-    font-size: 13.5px; line-height: 1.65;
+    padding: 1.1rem 1.2rem; overflow-x: auto; margin: 0;
+    font-size: 15px; line-height: 1.7;
 }
 pre.code .k { color: var(--k); font-weight: 600; }
 pre.code .s { color: var(--s); }
@@ -112,14 +122,26 @@ pre.code .t { color: var(--t); }
 pre.code .f { color: var(--f); }
 p code, li code, td code {
     background: var(--accent-soft); color: var(--ink);
-    padding: .08em .35em; border-radius: 4px; font-size: .88em;
+    padding: .08em .35em; border-radius: 4px; font-size: .95em;
 }
 
 /* ------------------------------------------------------------ compare */
-.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
-@media (max-width: 760px) { .compare { grid-template-columns: 1fr; } }
-.compare .label { font-size: .82rem; color: var(--muted); margin-bottom: .4rem; display: block; }
-.compare .label b { color: var(--ink); }
+/* Stacked, never side by side: the two versions are line-for-line
+   equivalents, and reading them one under the other is what makes the
+   difference visible. */
+.compare { display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start; max-width: 52rem; }
+.compare .label {
+    font-size: 1.05rem; color: var(--ink-soft);
+    margin-bottom: .6rem; display: block;
+}
+.compare .label b { color: var(--ink); font-size: 1.12rem; }
+.compare .label .tag {
+    display: inline-block; margin-left: .5rem; padding: .05em .7em;
+    border-radius: 100px; font-size: 1rem; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent);
+}
+.preamble { max-width: 52rem; margin: 0 0 2rem; }
+.preamble p { color: var(--ink-soft); margin: 0 0 .6rem; }
 
 /* ---------------------------------------------------------- try panel */
 .try { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; max-width: 42rem; margin: 0 auto; }
@@ -150,13 +172,13 @@ p code, li code, td code {
 }
 .steps li b { color: var(--ink); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; background: var(--accent-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; text-align: center; }
-.stats .num { font-size: 1.7rem; font-weight: 700; color: var(--accent); }
-.stats .what { font-size: .87rem; color: var(--ink-soft); }
+.stats .num { font-size: 1.9rem; font-weight: 700; color: var(--accent); }
+.stats .what { font-size: 1rem; color: var(--ink-soft); }
 figure { margin: 0; }
 figure img { width: 100%; border: 1px solid var(--border); border-radius: 12px; display: block; }
-figcaption { font-size: .87rem; color: var(--muted); text-align: center; margin-top: .6rem; }
+figcaption { font-size: 1.02rem; color: var(--ink-soft); text-align: center; margin-top: .9rem; line-height: 1.6; }
 
-footer { border-top: 1px solid var(--border); margin-top: 2rem; padding: 2rem 0 3rem; color: var(--muted); font-size: .9rem; }
+footer { border-top: 1px solid var(--border); margin-top: 2rem; padding: 2rem 0 3rem; color: var(--ink-soft); font-size: 1rem; }
 footer a { color: var(--accent); text-decoration: none; }
 footer .wrap { display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; }
 footer .sp { margin-left: auto; }
