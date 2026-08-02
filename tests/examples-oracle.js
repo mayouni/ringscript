@@ -57,8 +57,14 @@ function stripEchoes(wasmOut, input) {
     const which = process.argv[2] ? EXAMPLES.filter(e => e.id === process.argv[2]) : EXAMPLES;
     if (!which.length) { console.error("unknown example id"); process.exit(2); }
 
+    // The Ring lives in playground/examples/<id>.ring — the same files the
+    // Playground fetches — so this compares what a reader actually sees.
+    const sourceOf = ex => fs.readFileSync(
+        path.join(__dirname, "..", "playground", "examples", ex.id + ".ring"), "utf8");
+
     let failures = 0;
     for (const ex of which) {
+        ex.code = sourceOf(ex);
         // fresh VM per example: ChangeRingKeyword etc. pollute the resident state
         const ring = await RingScript.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength), {
             captureStdout: true,

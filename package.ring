@@ -35,6 +35,33 @@ aPackageInfo = [
 		# The Playground (served by `ringpm run ringscript`)
 		"playground/index.html",
 		"playground/examples-data.js",
+
+		# One .ring file per example, fetched by the Playground and
+		# checked against native Ring by tests/examples-oracle.js
+		"playground/examples/hello-world.ring",
+		"playground/examples/print-numbers.ring",
+		"playground/examples/say-hello.ring",
+		"playground/examples/sum-two-numbers.ring",
+		"playground/examples/using-functions.ring",
+		"playground/examples/using-objects.ring",
+		"playground/examples/variable-scope.ring",
+		"playground/examples/using-lists.ring",
+		"playground/examples/lists-as-hashtables.ring",
+		"playground/examples/exit-two-loops.ring",
+		"playground/examples/using-evals.ring",
+		"playground/examples/change-keywords-arabic.ring",
+		"playground/examples/call-methods-braces.ring",
+		"playground/examples/brace-expr-eval.ring",
+		"playground/examples/natural-commands.ring",
+		"playground/examples/main-menu.ring",
+		"playground/examples/functional-map.ring",
+		"playground/examples/first-class-functions.ring",
+		"playground/examples/equality-of-functions.ring",
+		"playground/examples/operator-overloading.ring",
+		"playground/examples/inheritance-super.ring",
+		"playground/examples/private-attributes.ring",
+		"playground/examples/packages.ring",
+		"playground/examples/reflection.ring",
 		"playground/site.css",
 		"playground/favicon.ico",
 

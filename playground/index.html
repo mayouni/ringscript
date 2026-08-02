@@ -513,9 +513,22 @@
     function currentExample() {
         return RING_EXAMPLES.find(e => e.id === picker.value) || RING_EXAMPLES[0];
     }
-    function loadExample() {
+    // Each example is a real .ring file under examples/ — the same files
+    // tests/examples-oracle.js checks against native Ring, and files you can
+    // run with ring.exe unchanged. They are fetched on demand and kept, so
+    // returning to one you have already seen costs nothing.
+    const sourceCache = new Map();
+    async function exampleSource(ex) {
+        if (sourceCache.has(ex.id)) return sourceCache.get(ex.id);
+        const resp = await fetch(exampleFile(ex.id));
+        if (!resp.ok) throw new Error(resp.status + " " + resp.statusText);
+        const src = (await resp.text()).replace(/\r\n/g, "\n");
+        sourceCache.set(ex.id, src);
+        return src;
+    }
+
+    async function loadExample() {
         const ex = currentExample();
-        codeEl.value = ex.code;
         // Interactive by default: leave the queue empty so `give` pauses and
         // asks in the answer box; canned answers appear only as a suggestion.
         $("input").value = "";
@@ -525,9 +538,23 @@
         liveAnswers = [];
         askHide();
         showOutput("", "");
-        $("status").textContent = "ready";
         codeEl.scrollTop = 0;
         codeEl.selectionStart = codeEl.selectionEnd = 0;
+
+        $("status").textContent = "loading…";
+        try {
+            codeEl.value = await exampleSource(ex);
+            $("status").textContent = "ready";
+        } catch (e) {
+            // Nearly always means the page was opened from the filesystem
+            // rather than served, so say that instead of the raw failure.
+            codeEl.value = "";
+            $("status").textContent = "could not load example";
+            showOutput("", "Could not load " + exampleFile(ex.id) + " (" + e.message + ").\n\n" +
+                "The Playground reads each example from its own .ring file, so it has to be\n" +
+                "served over http:// — opening index.html straight from a folder will not work.\n" +
+                "Run start-playground and it will serve this folder for you.");
+        }
         refresh();
     }
     picker.addEventListener("change", loadExample);
@@ -614,19 +641,23 @@
     });
 
     (async () => {
+        // The runtime and the first example are fetched together — neither
+        // waits on the other. Both want to write the status line, so the
+        // order is made explicit: loadExample owns it, unless the wasm
+        // failed, which is the more important thing to report.
+        const firstExample = loadExample();
         try {
             const resp = await fetch("ringscript.wasm");
             wasmBytes = await resp.arrayBuffer();
             const probe = await RingScript.load(wasmBytes.slice(0), { onOutput: () => {} });
             $("version").textContent = "v" + probe.version + " · Ring " + probe.eval("see version()").output;
             $("run").disabled = false;
-            $("status").textContent = "ready";
+            await firstExample;
         } catch (e) {
+            await firstExample;
             $("status").textContent = "failed to load wasm: " + e.message;
         }
     })();
-
-    loadExample();
 })();
 </script>
 </body>
