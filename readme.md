@@ -1,6 +1,6 @@
-<img src="ringscript-logo.png" alt="RingScript" width="180">
+<img src="ringscript-logo.png" alt="RingScript" width="460">
 
-# RingScript — the Ring language, resident in your browser
+# The Ring language, resident in your browser
 
 RingScript compiles the [Ring](https://ring-lang.github.io/) VM to
 WebAssembly and wraps it in a small resident bridge: persistent state
