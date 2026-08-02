@@ -6,7 +6,7 @@
 <title>Why Ring? — the road from a language to Softanza and RingScript</title>
 <meta name="description" content="Why I chose Ring in 2018, wrote a book about it, built the Softanza library and engine on top of it, and ended up porting the language to WebAssembly.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.10">
+<link rel="stylesheet" href="style.css?v=0.9.11">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
@@ -22,6 +22,11 @@
     .ringmark { margin: 0 0 1.6rem; max-width: 265px; }
     .ringmark a { display: block; }
     .ringmark img { width: 100%; height: auto; display: block; }
+    /* Below 360px the text column is only 280px, where 265 fills it almost
+       edge to edge and the mark starts reading as a banner. */
+    @media (max-width: 359px) {
+        .ringmark { max-width: 200px; margin-bottom: 1.3rem; }
+    }
 
     /* a year-marked narrative */
     .timeline { margin: 2rem 0; border-left: 2px solid var(--border); padding-left: 1.6rem; }
