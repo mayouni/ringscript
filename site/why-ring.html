@@ -6,7 +6,7 @@
 <title>Why Ring? — the road from a language to Softanza and RingScript</title>
 <meta name="description" content="Why I chose Ring in 2018, wrote a book about it, built the Softanza library and engine on top of it, and ended up porting the language to WebAssembly.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.12">
+<link rel="stylesheet" href="style.css?v=0.9.13">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
@@ -22,10 +22,10 @@
     .ringmark { margin: 0 0 1.6rem; max-width: 265px; }
     .ringmark a { display: block; }
     .ringmark img { width: 100%; height: auto; display: block; }
-    /* Under 380px the text column is 340px or less, where 265 crowds it and
-       the mark starts reading as a banner. This catches the 360px Android
-       widths as well as the narrower iPhones. */
-    @media (max-width: 379px) {
+    /* Up to 374px the text column is 334px or less, where 265 crowds it and
+       the mark starts reading as a banner. Stops at 374 rather than 375 on
+       purpose: 375 is the iPhone width, and it keeps the full-size mark. */
+    @media (max-width: 374px) {
         .ringmark { max-width: 200px; margin-bottom: 1.3rem; }
     }
 
