@@ -20,8 +20,8 @@ command.
 
 ## Using it — copy two files
 
-Deployment is hosting two files from `web/` next to your HTML on any
-static server — no toolchain, no bundler, no server code:
+Deployment is hosting two files from `playground/` next to your HTML on
+any static server — no toolchain, no bundler, no server code:
 
 ```
 your-site/
@@ -110,7 +110,7 @@ ringscript/
 ├── language/                    vendored Ring 1.27 VM (src + include only),
 │                                with 4 marked patches → docs/VENDOR_PATCHES.md
 │
-├── web/                         the deployable side (and the Playground)
+├── playground/                  the site — and the two files you deploy
 │   ├── index.html               the Playground — the project's single page
 │   ├── examples-data.js         its 24 examples (id / title / code / input)
 │   ├── site.css                 shared design tokens

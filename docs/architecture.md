@@ -29,7 +29,7 @@ Three layers, three languages, each doing the one thing it is best at:
   (`rs_init/rs_eval/rs_call/rs_last_output/…`) and owning the things a
   browser runtime must own: the one long-lived `RingState`, error
   trapping, the input queue, the embedded file map, value printing.
-- **The loader** (`web/ringscript.js`) — the only JavaScript: a ~150
+- **The loader** (`playground/ringscript.js`) — the only JavaScript: a ~150
   line WASI shim (clocks, randomness, stdout) plus the public API.
   No frameworks, no dependencies, classic script.
 
@@ -103,7 +103,7 @@ ringscript/
 │
 ├── language/                    vendored Ring 1.27 (src + include) + 4 patches
 │
-├── web/
+├── playground/
 │   ├── index.html               the Playground (the site's single page)
 │   ├── examples-data.js         its 24 examples (id / title / code / input)
 │   ├── site.css                 shared design tokens
@@ -123,13 +123,13 @@ ringscript/
 ## 5. Building and developing
 
 ```bash
-zig build serve      # build wasm + refresh web/ + serve http://localhost:8377/
+zig build serve      # build wasm + refresh playground/ + serve http://localhost:8377/
 zig build -Drelease=true   # just build (ReleaseSmall, ~340 KB wasm)
 ```
 
 Requires Zig 0.15+ only. The dev server (`src/serve.zig`) is part of
 the build — no Node, no Python. Iterating: edit `src/bridge.zig` or a
-page in `web/`, re-run `zig build serve`, refresh the browser.
+page in `playground/`, re-run `zig build serve`, refresh the browser.
 
 ### Extending the embedded library
 

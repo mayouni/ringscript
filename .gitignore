@@ -1,5 +1,5 @@
 .zig-cache/
 zig-out/
-web/ringscript.wasm
+playground/ringscript.wasm
 tests/doc-snippets/
 tests/sweep-failures.json

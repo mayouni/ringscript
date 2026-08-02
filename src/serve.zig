@@ -2,11 +2,11 @@
 // RingScript dev server — `zig build serve`
 // ==========================================================================
 // Minimal static file server over std.net (no dependencies): serves the
-// web/ folder so the wasm module loads over HTTP the way browsers require.
+// playground/ folder so the wasm module loads over HTTP the way browsers require.
 // HTTP/1.0-style: one request per connection, then close. Serves .wasm with
 // the correct MIME type so WebAssembly.instantiateStreaming works.
 //
-// Usage: ringscript-serve [port]        (default 8377, root: ./web)
+// Usage: ringscript-serve [port]        (default 8377, root: ./playground)
 // ==========================================================================
 
 const std = @import("std");
@@ -87,7 +87,7 @@ fn handle(allocator: std.mem.Allocator, conn: std.net.Server.Connection) !void {
         eff_path = std.fmt.bufPrint(&path_buf, "{s}index.html", .{path}) catch path;
     }
 
-    const full = std.fs.path.join(allocator, &.{ "web", eff_path[1..] }) catch return;
+    const full = std.fs.path.join(allocator, &.{ "playground", eff_path[1..] }) catch return;
     defer allocator.free(full);
 
     const body = std.fs.cwd().readFileAlloc(allocator, full, 64 * 1024 * 1024) catch {

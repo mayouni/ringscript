@@ -16,7 +16,7 @@ your-site/
 └── ringscript.wasm    the Ring VM — the real compiler + VM, ~340 KB
 ```
 
-Both files live in this repository under `web/`. (Building them from
+Both files live in this repository under `playground/`. (Building them from
 source with Zig is covered in [Architecture](architecture.md) — it only
 concerns you if you want to change the runtime itself.)
 
@@ -72,7 +72,7 @@ Ring from a curiosity into a *scripting language for the page*: a
 button clicked two minutes later can call a function your `text/ring`
 block defined at load time.
 
-You can feel this in the [Playground](../web/index.html) (or by
+You can feel this in the [Playground](../playground/index.html) (or by
 double-clicking `start-playground.bat` / `start-playground.sh`): run `x = 5` — then, as a
 second run, `see x`. The `5` is still there.
 

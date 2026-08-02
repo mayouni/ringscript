@@ -99,7 +99,7 @@ the eval stop, collect the user's answer in your own UI, and **re-run
 the same code with all answers so far in the input queue**. On a fresh
 VM the replay is deterministic, so the program lands exactly one
 question further each time — the pause is indistinguishable from real
-blocking. The Playground's source (`web/index.html`, `run()` /
+blocking. The Playground's source (`playground/index.html`, `run()` /
 `continueRun()`) is a complete ~40-line reference implementation.
 
 **CRLF is normalized** in both code and input, matching how native Ring

@@ -1,5 +1,5 @@
 /*
-** Challenge harness: run every example from web/examples-data.js through
+** Challenge harness: run every example from playground/examples-data.js through
 ** BOTH the native ring.exe (the oracle) and the wasm runtime, then compare.
 **
 ** The wasm's `give` echoes the consumed line (terminal-transcript fidelity);
@@ -14,11 +14,11 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
-const RingScript = require(path.join(__dirname, "..", "web", "ringscript.js"));
-const EXAMPLES = require(path.join(__dirname, "..", "web", "examples-data.js"));
+const RingScript = require(path.join(__dirname, "..", "playground", "ringscript.js"));
+const EXAMPLES = require(path.join(__dirname, "..", "playground", "examples-data.js"));
 
 const RING_EXE = require(path.join(__dirname, "ring-exe.js")).ringExe();
-const wasmPath = path.join(__dirname, "..", "web", "ringscript.wasm");
+const wasmPath = path.join(__dirname, "..", "playground", "ringscript.wasm");
 
 function runNative(code, input) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ring-oracle-"));

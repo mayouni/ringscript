@@ -5,9 +5,9 @@
 */
 const fs = require("fs");
 const path = require("path");
-const RingScript = require(path.join(__dirname, "..", "web", "ringscript.js"));
+const RingScript = require(path.join(__dirname, "..", "playground", "ringscript.js"));
 
-const wasmPath = path.join(__dirname, "..", "web", "ringscript.wasm");
+const wasmPath = path.join(__dirname, "..", "playground", "ringscript.wasm");
 
 let failures = 0;
 function check(name, cond, detail) {

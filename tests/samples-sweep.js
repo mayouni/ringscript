@@ -21,7 +21,7 @@ const ringWhere = require(path.join(__dirname, "ring-exe.js"));
 const RING_HOME = ringWhere.ringHome();
 const RING_EXE = ringWhere.ringExe();
 const SAMPLES = path.join(RING_HOME, "samples");
-const wasmPath = path.join(__dirname, "..", "web", "ringscript.wasm");
+const wasmPath = path.join(__dirname, "..", "playground", "ringscript.wasm");
 
 const argRoot = (process.argv.find(a => a.startsWith("--root=")) || "").replace("--root=", "");
 const ROOT = argRoot ? path.resolve(argRoot) : SAMPLES;
@@ -118,7 +118,7 @@ function makeWorker() {
     return new Worker(WORKER_SRC, {
         eval: true,
         workerData: {
-            loaderPath: path.join(__dirname, "..", "web", "ringscript.js"),
+            loaderPath: path.join(__dirname, "..", "playground", "ringscript.js"),
             wasmPath: wasmPath,
         },
     });

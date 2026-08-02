@@ -119,10 +119,10 @@ pub fn build(b: *std.Build) void {
 
     // `zig build` drops the artifact in zig-out/bin/ringscript.wasm; also copy
     // it next to the web pages so the site folder is self-contained.
-    const copy = b.addInstallFile(exe.getEmittedBin(), "../web/ringscript.wasm");
+    const copy = b.addInstallFile(exe.getEmittedBin(), "../playground/ringscript.wasm");
     b.getInstallStep().dependOn(&copy.step);
 
-    // `zig build serve` — build everything, then serve web/ on localhost.
+    // `zig build serve` — build everything, then serve playground/ on localhost.
     // The one command a programmer needs: compile the VM to wasm, refresh
     // the site artifact, start the dev server, print the URLs.
     const serve_exe = b.addExecutable(.{
