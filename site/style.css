@@ -1,37 +1,25 @@
 /* RingScript site — one calm palette, light & dark, no dependencies. */
 
+/* One light theme on purpose: a white page, code always on dark panels.
+   (The Playground keeps its own editor styling.) */
 :root {
-    --bg: #f7f8fa;
+    color-scheme: light;
+    --bg: #ffffff;
     --panel: #ffffff;
     --ink: #1c2126;
     --ink-soft: #4a5560;
     --muted: #6a737d;
     --accent: #1a7f5a;
     --accent-2: #0b6bcb;
-    --accent-soft: #e7f4ee;
+    --accent-soft: #eef6f2;
     --accent-ink: #ffffff;
     --error: #b42318;
-    --border: #dde3e9;
+    --border: #e2e8ee;
     --code-bg: #0d1420;
     --code-ink: #d6e2f0;
     --code-border: #223047;
     --k: #c792ea; --s: #7ee2a8; --n: #f0a45d; --c: #7d8b9d; --a: #6cb6ff; --t: #7aa2f7; --f: #e2c08d;
     --mono: "Cascadia Code", Consolas, "SF Mono", monospace;
-}
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #12161a;
-        --panel: #191f25;
-        --ink: #e3e8ee;
-        --ink-soft: #b9c2cc;
-        --muted: #8b949e;
-        --accent: #3fb984;
-        --accent-2: #6cb6ff;
-        --accent-soft: #16241d;
-        --accent-ink: #0c1210;
-        --error: #ef6a5a;
-        --border: #2b333c;
-    }
 }
 
 * { box-sizing: border-box; }
@@ -43,7 +31,9 @@ body {
     font: 17px/1.7 system-ui, "Segoe UI", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 64rem; margin: 0 auto; padding: 0 1.25rem; }
+/* Horizontal only: the shorthand would win on specificity over the vertical
+   padding of `section`, and every section is also a .wrap. */
+.wrap { max-width: 64rem; margin: 0 auto; padding-left: 1.25rem; padding-right: 1.25rem; }
 .narrow { max-width: 46rem; }
 
 /* ---------------------------------------------------------------- nav */
@@ -66,8 +56,8 @@ nav .cta {
 nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 
 /* --------------------------------------------------------------- hero */
-.hero { text-align: center; padding: 4rem 0 2rem; }
-.hero img.logo { width: 150px; height: auto; margin-bottom: .5rem; }
+.hero { text-align: center; padding: 4rem 0 2.5rem; }
+.hero img.logo { width: 200px; height: auto; margin-bottom: .6rem; }
 .hero h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.15; margin: .3rem 0 .8rem; letter-spacing: -.02em; }
 .hero h1 em { font-style: normal; color: var(--accent); }
 .hero p.sub { font-size: 1.2rem; color: var(--ink-soft); max-width: 40rem; margin: 0 auto 1.4rem; }
@@ -88,14 +78,22 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 .btn:hover { opacity: .9; }
 
 /* -------------------------------------------------------------- cards */
-section { padding: 3rem 0; }
-h2 { font-size: 1.6rem; letter-spacing: -.01em; margin: 0 0 .5rem; }
+/* Sections breathe: a clear gap from whatever sits above them. */
+section { padding: 4.5rem 0 1rem; }
+section + section { padding-top: 4.5rem; }
+h2 { font-size: 1.6rem; letter-spacing: -.01em; margin: 0 0 .6rem; }
 h3 { font-size: 1.1rem; margin: 0 0 .35rem; }
-.lead { color: var(--ink-soft); font-size: 1.05rem; max-width: 44rem; margin: 0 0 1.6rem; }
+.lead { color: var(--ink-soft); font-size: 1.05rem; max-width: 44rem; margin: 0 0 2rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.3rem 1.4rem; }
 .card p { margin: 0; color: var(--ink-soft); font-size: .96rem; }
-.card .icon { font-size: 1.3rem; display: block; margin-bottom: .4rem; }
+/* Neutral geometric glyphs, deliberately not emoji: they inherit a calm
+   grey and never fight the text for attention. */
+.card .icon {
+    font-size: 2rem; line-height: 1;
+    display: block; margin-bottom: .7rem;
+    color: var(--muted); opacity: .55;
+}
 
 /* --------------------------------------------------------------- code */
 pre, code { font-family: var(--mono); }
@@ -142,7 +140,7 @@ p code, li code, td code {
 .try-bar pre .err { color: var(--error); }
 
 /* -------------------------------------------------------------- misc */
-.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; max-width: 46rem; }
 .steps li { counter-increment: s; position: relative; padding-left: 2.4rem; margin-bottom: 1rem; color: var(--ink-soft); }
 .steps li::before {
     content: counter(s); position: absolute; left: 0; top: .05rem;

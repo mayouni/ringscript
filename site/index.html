@@ -38,22 +38,13 @@
   </div>
 </header>
 
-<section class="wrap">
-  <div class="try" id="try">
-    <div class="try-head">
-      <span>This is the real Ring VM, running in this page</span>
-      <span id="try-status">loading…</span>
-    </div>
-    <textarea id="try-code" spellcheck="false" rows="4">aTeam = ["Aminata", "Moussa", "Fatima"]
-
-for cName in aTeam
-    ? "Hello " + cName
-next</textarea>
-    <div class="try-bar">
-      <button id="try-run" disabled>&#9654; Run</button>
-      <pre id="try-out">→ output appears here</pre>
-    </div>
-  </div>
+<section class="wrap" style="padding-top:1rem">
+  <figure>
+    <a href="playground/"><img src="playground.png" alt="The RingScript Playground — 24 editable Ring examples running in the browser"></a>
+    <figcaption>The Playground: pick an example, edit it, run it — the Ring VM is resident in the
+    page, and programs that ask for input pause and wait for your answer.
+    <a href="playground/">Try it →</a></figcaption>
+  </figure>
 </section>
 
 <section class="wrap">
@@ -105,37 +96,37 @@ nClicks = <span class="n">0</span>
   <h2>What you get</h2>
   <div class="grid">
     <div class="card">
-      <span class="icon">🧠</span>
+      <span class="icon">&#9673;</span>
       <h3>A resident VM</h3>
       <p>One virtual machine lives for the whole page. Define something in one evaluation,
       use it in the next — variables, functions and classes simply stay.</p>
     </div>
     <div class="card">
-      <span class="icon">🛡️</span>
+      <span class="icon">&#9672;</span>
       <h3>Errors that don't kill the page</h3>
       <p>A mistake returns a message with its real line number and the VM keeps running.
       A thousand failing evaluations later, memory is still flat.</p>
     </div>
     <div class="card">
-      <span class="icon">🤝</span>
+      <span class="icon">&#8646;</span>
       <h3>JSON both ways</h3>
       <p><code>ring.call("Price", {qty: 3})</code> goes in as JSON and comes back as JSON.
       Ring can call your JavaScript too. The seam is thin — and optional.</p>
     </div>
     <div class="card">
-      <span class="icon">📦</span>
+      <span class="icon">&#10064;</span>
       <h3>Two files, any host</h3>
       <p>A loader and a wasm module. Drop them next to your HTML on GitHub Pages, nginx,
       S3, a shared host. No toolchain, ever.</p>
     </div>
     <div class="card">
-      <span class="icon">🔍</span>
+      <span class="icon">&#10697;</span>
       <h3>Not a lookalike</h3>
       <p>It is Ring's own compiler and VM compiled to WebAssembly — verified to print
       byte-identical output to the native interpreter.</p>
     </div>
     <div class="card">
-      <span class="icon">📚</span>
+      <span class="icon">&#10022;</span>
       <h3>A language you can hold</h3>
       <p>Ring is small, dynamic and readable, with lists, OOP, declarative blocks and
       natural-language syntax. Learn it in an afternoon.</p>
@@ -145,21 +136,15 @@ nClicks = <span class="n">0</span>
 
 <section class="wrap">
   <h2>Three steps, no ceremony</h2>
-  <div class="compare">
-    <ol class="steps">
-      <li><b>Copy two files</b> next to your HTML: <code>ringscript.js</code> and
-        <code>ringscript.wasm</code>. Or, with Ring installed:
-        <code>ringpm install ringscript from mayouni</code>.</li>
-      <li><b>Boot it</b> with one line — <code>RingScript.boot()</code> — which starts the VM
-        and runs every <code>&lt;script type="text/ring"&gt;</code> block on the page.</li>
-      <li><b>Write Ring.</b> Call functions from your markup with
-        <code>ring.call('Name')</code>; read and write the page with <code>Platform()</code>.</li>
-    </ol>
-    <figure>
-      <a href="playground/"><img src="playground.png" alt="The RingScript Playground"></a>
-      <figcaption>The Playground — 24 examples, editable, running the same runtime you ship.</figcaption>
-    </figure>
-  </div>
+  <ol class="steps">
+    <li><b>Copy two files</b> next to your HTML: <code>ringscript.js</code> and
+      <code>ringscript.wasm</code>. Or, with Ring installed:
+      <code>ringpm install ringscript from mayouni</code>.</li>
+    <li><b>Boot it</b> with one line — <code>RingScript.boot()</code> — which starts the VM
+      and runs every <code>&lt;script type="text/ring"&gt;</code> block on the page.</li>
+    <li><b>Write Ring.</b> Call functions from your markup with
+      <code>ring.call('Name')</code>; read and write the page with <code>Platform()</code>.</li>
+  </ol>
 </section>
 
 <section class="wrap">
@@ -198,36 +183,5 @@ nClicks = <span class="n">0</span>
   </div>
 </footer>
 
-<script src="playground/ringscript.js"></script>
-<script>
-(async function () {
-    const $ = id => document.getElementById(id);
-    let ring;
-    try {
-        ring = await RingScript.load("playground/ringscript.wasm", { captureStdout: true, onOutput: () => {} });
-        $("try-status").textContent = "Ring " + ring.eval("see version()").output + " ready";
-        $("try-run").disabled = false;
-    } catch (e) {
-        $("try-status").textContent = "failed to load: " + e.message;
-        return;
-    }
-    function run() {
-        const r = ring.eval($("try-code").value);
-        const out = $("try-out");
-        out.classList.add("has");
-        out.textContent = r.output || "(no output)";
-        if (r.error) {
-            const s = document.createElement("span");
-            s.className = "err";
-            s.textContent = (r.output ? "\n" : "") + r.error;
-            out.appendChild(s);
-        }
-    }
-    $("try-run").addEventListener("click", run);
-    $("try-code").addEventListener("keydown", e => {
-        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
-    });
-})();
-</script>
 </body>
 </html>
