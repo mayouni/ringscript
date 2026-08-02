@@ -28,7 +28,8 @@ Does four things, in order:
 
 1. loads the wasm (default `"ringscript.wasm"`, next to your HTML —
    override with `opts.wasm`);
-2. registers the DOM seam handlers `settext` / `gettext` / `getvalue`
+2. registers the DOM seam handlers `settext` / `gettext` / `getvalue`,
+   which Ring reaches through `Page(name, data)`
    (documented in [Scripting pages](scripting-pages.md#3-the-dom-seam-precisely));
 3. evaluates every `<script type="text/ring">` block, in document
    order, in the one resident VM — a block may carry a `src`
@@ -157,16 +158,27 @@ ring.on("notify", payload => {
 });
 ```
 
-Handles Ring's outbound calls. In Ring, use the high-level wrapper
-(decodes the reply for you):
+Handles Ring's outbound calls. In Ring, use one of the two high-level
+wrappers (they encode the payload and decode the reply for you):
 
 ```ring
-aReply = Platform(:notify, [ :msg = "saved" ])
-see aReply[:ack]        # 1
+aReply = Platform(:notify, [ :msg = "saved" ])     # a target capability
+see aReply[:ack]                                   # 1
+
+cName  = Page(:getvalue, [ :id = "guest" ])        # this document
 ```
 
-or the raw form, `jscall("notify", cJsonString) -> cJsonString`, when
-you want to manage JSON yourself. Calls with no registered handler are
+`Page` and `Platform` are the same seam with two vocabularies, and the
+distinction is Softanza's: `Page(…)` touches the document in front of
+the user and is web-only by nature, while `Platform(…)` asks for a
+capability of the deployment target — storage, notifications, exit —
+which is StzWeb's `stz.platform` contract and stays portable across
+web, desktop and mobile. Nothing enforces the split; it exists so a
+reader can tell portable code from web-only code at a glance. See
+[Scripting pages](scripting-pages.md#page-or-platform).
+
+Either way the raw form is `jscall("notify", cJsonString) -> cJsonString`,
+when you want to manage JSON yourself. Calls with no registered handler are
 dispatched as DOM `CustomEvent`s named `ringscript:<name>` with the
 payload in `event.detail` — a zero-coupling way to observe Ring from
 elsewhere in the page.

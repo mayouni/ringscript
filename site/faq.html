@@ -235,7 +235,10 @@ cReply = jscall(<span class="s">"savedraft"</span>, JsonEncode([ <span class="a"
 <pre class="code"><span class="c">// JavaScript calling in: JSON in, JSON out</span>
 <span class="k">const</span> r = ring.call(<span class="s">"Price"</span>, {qty: <span class="n">3</span>});
 console.log(r.result);</pre>
-    <p>The seam is deliberately thin, and entirely optional: plenty of pages never use it.</p>
+    <p><code>Page()</code> and <code>Platform()</code> are the same seam with the JSON
+    handled for you: <code>Page()</code> for this document, <code>Platform()</code> for a
+    capability of whatever the app is deployed to — storage, notifications, exit. The
+    seam is deliberately thin, and entirely optional: plenty of pages never use it.</p>
   </div>
 
   <div class="qa">
