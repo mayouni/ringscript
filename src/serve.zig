@@ -33,13 +33,12 @@ pub fn main() !void {
         \\  ---------------------
         \\  Site       : http://localhost:{d}/
         \\  Playground : http://localhost:{d}/examples.html
-        \\  REPL       : http://localhost:{d}/repl.html
         \\  Tutorial   : http://localhost:{d}/tutorial.html
         \\
         \\  Ctrl+C to stop
         \\
         \\
-    , .{ port, port, port, port });
+    , .{ port, port, port });
 
     while (true) {
         const conn = server.accept() catch continue;

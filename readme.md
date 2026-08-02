@@ -19,9 +19,8 @@ HTTP server:
 
 | Page | What it is |
 |---|---|
-| `/` | The site — what RingScript is, how it's verified |
+| `/` | The site — try Ring live right on the homepage |
 | `/examples.html` | **Playground** — IDE with 24 editable examples (syntax highlighting, line numbers, input queue) |
-| `/repl.html` | **REPL** — minimal page against one resident VM |
 | `/tutorial.html` | **Tutorial** — embedding Ring in a page, 9 steps, live runnable demos |
 
 Requires [Zig](https://ziglang.org/) 0.15+. Node.js is only needed for

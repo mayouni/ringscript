@@ -33,6 +33,56 @@
     .btn.primary { background: var(--accent); color: var(--accent-ink); }
     .btn.ghost { color: var(--accent); }
 
+    /* try-it widget */
+    .try {
+        text-align: left;
+        max-width: 36rem;
+        margin: 0 auto 1.6rem;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .try-head {
+        display: flex; justify-content: space-between; gap: 1rem;
+        padding: .45rem .8rem;
+        font-size: .78rem; color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        background: var(--gutter-bg);
+    }
+    #try-code {
+        display: block;
+        width: 100%;
+        border: 0; outline: none; resize: vertical;
+        background: var(--panel); color: var(--ink);
+        font: 14px/1.55 var(--mono);
+        padding: .7rem .9rem;
+        min-height: 5.5rem;
+    }
+    .try-bar {
+        display: flex; gap: .7rem; align-items: flex-start;
+        border-top: 1px solid var(--border);
+        padding: .55rem .8rem;
+        background: var(--gutter-bg);
+    }
+    #try-run {
+        border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+        border-radius: 6px; padding: .3rem 1.1rem; font-size: .9rem; font-weight: 600; cursor: pointer;
+        flex: 0 0 auto;
+    }
+    #try-run:disabled { opacity: .5; cursor: default; }
+    #try-out {
+        margin: 0; flex: 1;
+        font: 13px/1.5 var(--mono);
+        white-space: pre-wrap; word-break: break-word;
+        color: var(--muted);
+        max-height: 9rem; overflow-y: auto;
+    }
+    #try-out.has { color: var(--ink); }
+    #try-out .err { color: var(--error); }
+    .try-more { padding: .5rem .8rem .7rem; font-size: .83rem; color: var(--muted); }
+    .try-more a { color: var(--accent); text-decoration: none; }
+
     /* quick start */
     .quick {
         background: var(--panel);
@@ -99,7 +149,6 @@
     <a class="logo" href="index.html">Ring<span>Script</span></a>
     <a class="active" href="index.html">Home</a>
     <a href="examples.html">Playground</a>
-    <a href="repl.html">REPL</a>
     <a href="tutorial.html">Tutorial</a>
     <span class="spacer"></span>
     <a class="ext" href="https://github.com/ring-lang/ring">Ring language ↗</a>
@@ -111,6 +160,24 @@
         <p class="sub">RingScript compiles the Ring VM to WebAssembly and keeps it alive between
         evaluations — persistent state, trapped errors, interactive input, and a two-way JSON
         bridge to JavaScript. No plugins, no server round-trips, no Emscripten.</p>
+
+        <div class="try" id="try">
+            <div class="try-head">
+                <span>Try it — this is the real VM, running in this page</span>
+                <span id="try-status">loading…</span>
+            </div>
+            <textarea id="try-code" spellcheck="false" rows="4">see "Hello from Ring " + version() + nl
+for i = 1 to 3
+    ? "tick " + i
+next</textarea>
+            <div class="try-bar">
+                <button id="try-run" disabled>&#9654; Run</button>
+                <pre id="try-out">→ output appears here</pre>
+            </div>
+            <div class="try-more">Edit the code freely — then take it further in the
+                <a href="examples.html">Playground</a> (24 examples, IDE editor, input queue).</div>
+        </div>
+
         <div class="actions">
             <a class="btn primary" href="examples.html">Open the Playground</a>
             <a class="btn ghost" href="tutorial.html">Read the Tutorial</a>
@@ -144,23 +211,8 @@
         </div>
     </div>
 
-    <h2>What it looks like</h2>
+    <h2>Embedding it in your own page</h2>
     <div class="example">
-        <div class="pane">
-            <div class="head">Ring — runs in the Playground exactly like this</div>
-            <pre><span class="k">new</span> point { x=10 y=20 z=30 ? <span class="k">self</span> }
-
-<span class="k">class</span> point x y z</pre>
-        </div>
-        <div class="pane">
-            <div class="head">Output — same bytes as native Ring</div>
-            <pre>x: <span class="n">10</span>
-y: <span class="n">20</span>
-z: <span class="n">30</span></pre>
-        </div>
-    </div>
-
-    <div class="example" style="margin-top:1rem">
         <div class="pane">
             <div class="head">JavaScript — the embedding API</div>
             <pre><span class="k">const</span> ring = <span class="k">await</span> RingScript.load(<span class="s">"ringscript.wasm"</span>);
@@ -196,5 +248,39 @@ ways — and entirely optional.</pre>
         <a href="https://ring-lang.github.io/">Ring documentation ↗</a>
     </footer>
 </main>
+
+<script src="ringscript.js"></script>
+<script>
+(async function () {
+    const status = document.getElementById("try-status");
+    const btn = document.getElementById("try-run");
+    const out = document.getElementById("try-out");
+    const code = document.getElementById("try-code");
+    let ring;
+    try {
+        ring = await RingScript.load("ringscript.wasm", { captureStdout: true, onOutput: () => {} });
+        status.textContent = "VM ready — " + ring.eval("see version()").output;
+        btn.disabled = false;
+    } catch (e) {
+        status.textContent = "failed to load: " + e.message;
+        return;
+    }
+    function run() {
+        const r = ring.eval(code.value);
+        out.classList.add("has");
+        out.textContent = r.output || "(no output)";
+        if (r.error) {
+            const s = document.createElement("span");
+            s.className = "err";
+            s.textContent = (r.output ? "\n" : "") + r.error;
+            out.appendChild(s);
+        }
+    }
+    btn.addEventListener("click", run);
+    code.addEventListener("keydown", e => {
+        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
+    });
+})();
+</script>
 </body>
 </html>
