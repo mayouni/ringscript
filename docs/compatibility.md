@@ -50,7 +50,8 @@ ever brings the runtime down.
 ## 3. Ring on both sides of the wire
 
 Ring already speaks server-side: **Ring WebLib** (the CGI library that
-has shipped with Ring for years) and the **Bolt** web framework
+has shipped with Ring for years) and the
+[**Bolt**](https://ysdragon.github.io/bolt/) web framework
 (Express-style DSL, new in Ring 1.27) build and serve real sites in
 Ring today. What was always missing was the *front* end — the part
 browsers only ran JavaScript for.

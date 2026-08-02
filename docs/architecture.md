@@ -86,23 +86,38 @@ Three layers, three languages, each doing the one thing it is best at:
 ## 4. Repository layout
 
 ```
-build.zig                 one build: wasm runtime + dev server + `serve` step
-start-playground.bat/.sh  double-click: build if needed, serve, open Playground
-src/
-  bridge.zig              the bridge (see §2) + embedded file map
-  wasi_stubs.c            the only added C: fopen resolver, exact-mirror
-                          value printers, VM accessors
-  serve.zig               embedded dev HTTP server (correct wasm MIME)
-  ringlib/                pure-Ring code baked into the wasm:
-                          json.ring (codec + Platform), stzZql.ring
-language/                 vendored Ring 1.27 (src+include only) + 4 patches
-web/
-  index.html              the Playground (the site's single page)
-  examples-data.js        its 24 examples (id/title/code/input)
-  ringscript.js           the loader + WASI shim (the whole JS side)
-  ringscript.wasm         the built runtime (gitignored; `zig build` refreshes)
-tests/                    verification — see §6
-docs/                     you are here
+ringscript/
+├── build.zig                    wasm runtime + dev server + the serve step
+├── start-playground.bat         double-click launcher (Windows)
+├── start-playground.sh          double-click launcher (macOS / Linux / BSD)
+│
+├── src/
+│   ├── bridge.zig               the bridge (§2) + the embedded file map
+│   ├── wasi_stubs.c             fopen resolver, exact-mirror value printers,
+│   │                            VM accessors — the only added C
+│   ├── serve.zig                embedded dev HTTP server (correct wasm MIME)
+│   └── ringlib/                 pure Ring baked into the wasm
+│       ├── json.ring            JSON codec + the Platform() seam
+│       ├── stzZql.ring          sample embedded library
+│       └── stzzql_smoke.ring    its test suite
+│
+├── language/                    vendored Ring 1.27 (src + include) + 4 patches
+│
+├── web/
+│   ├── index.html               the Playground (the site's single page)
+│   ├── examples-data.js         its 24 examples (id / title / code / input)
+│   ├── site.css                 shared design tokens
+│   ├── ringscript.js            the loader + WASI shim (the whole JS side)
+│   └── ringscript.wasm          built runtime (gitignored; zig build refreshes)
+│
+├── tests/                       verification — see §6
+│   ├── gates.js                 29 permanent gates
+│   ├── examples-oracle.js       Playground examples vs native ring
+│   ├── samples-sweep.js         bulk corpus sweep vs native ring
+│   ├── extract-doc-snippets.js  builds the doc corpus from your Ring install
+│   └── ring-exe.js              locates the native oracle on any platform
+│
+└── docs/                        you are here
 ```
 
 ## 5. Building and developing

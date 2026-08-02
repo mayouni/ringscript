@@ -91,27 +91,47 @@ documentation in [docs/](docs/README.md).
 ## Repository layout
 
 ```
-build.zig            one build: wasm runtime + dev server + `serve` step
-src/
-  bridge.zig         the resident bridge (rs_init/rs_eval/rs_call/…),
-                     error shim, embedded-file map, see/give hooks
-  wasi_stubs.c       the only added C: fopen→embedded-map resolver,
-                     exact-mirror value printers, VM accessors
-  serve.zig          embedded dev HTTP server (`zig build serve`)
-  ringlib/           pure-Ring payload baked into the wasm:
-                     json.ring, stzZql.ring (+ smoke test)
-language/            vendored Ring 1.27 VM source (src + include only),
-                     with 4 marked patches → docs/VENDOR_PATCHES.md
-web/                 the site: pages above + ringscript.js (the ~300-line
-                     WASI shim & loader — the whole JS side)
-tests/               verification (Node):
-  gates.js           29 permanent gates (state, errors, memory, I/O, bridge)
-  examples-oracle.js all 24 playground examples vs native ring.exe
-  samples-sweep.js   bulk sweep: Ring's samples + doc snippets vs native
-  extract-doc-snippets.js  regenerates the doc corpus from your Ring install
-docs/
-  REPAIR_PLAN.md     the 2026 design & execution record
-  VENDOR_PATCHES.md  the 4 vendor patches — re-apply on Ring upgrades
+ringscript/
+├── build.zig                    one build: wasm runtime + dev server + serve step
+├── start-playground.bat         double-click launcher (Windows)
+├── start-playground.sh          double-click launcher (macOS / Linux / BSD)
+│
+├── src/                         everything that becomes the runtime
+│   ├── bridge.zig               the resident bridge: rs_init / rs_eval / rs_call,
+│   │                            error shim, see & give hooks, embedded-file map
+│   ├── wasi_stubs.c             the only added C: fopen → embedded-map resolver,
+│   │                            exact-mirror value printers, VM accessors
+│   ├── serve.zig                embedded dev HTTP server (correct wasm MIME)
+│   └── ringlib/                 pure Ring, baked into the wasm
+│       ├── json.ring            JSON codec + the Platform() seam
+│       ├── stzZql.ring          the StzWeb grammar engine (sample payload)
+│       └── stzzql_smoke.ring    its test suite — runs inside the browser
+│
+├── language/                    vendored Ring 1.27 VM (src + include only),
+│                                with 4 marked patches → docs/VENDOR_PATCHES.md
+│
+├── web/                         the deployable side (and the Playground)
+│   ├── index.html               the Playground — the project's single page
+│   ├── examples-data.js         its 24 examples (id / title / code / input)
+│   ├── site.css                 shared design tokens
+│   ├── ringscript.js            the loader + WASI shim — the whole JS side
+│   └── ringscript.wasm          the built runtime (gitignored; zig build makes it)
+│
+├── tests/                       verification, all runnable with Node
+│   ├── gates.js                 29 permanent gates: state, errors, memory, I/O, bridge
+│   ├── examples-oracle.js       the 24 Playground examples vs native ring
+│   ├── samples-sweep.js         bulk sweep: Ring's own samples + doc snippets
+│   ├── extract-doc-snippets.js  regenerates the doc corpus from your Ring install
+│   └── ring-exe.js              locates the native Ring oracle on any platform
+│
+└── docs/                        the documentation set (start at docs/README.md)
+    ├── getting-started.md       host two files, run Ring in a page
+    ├── scripting-pages.md       Ring instead of JavaScript, the DOM seam
+    ├── api.md                   every call and option, with the reasoning
+    ├── architecture.md          how it works inside; building and extending
+    ├── compatibility.md         what works, what's excluded, and why
+    ├── VENDOR_PATCHES.md        the 4 vendor patches — re-apply on Ring upgrades
+    └── REPAIR_PLAN.md           the 2026 design & execution record
 ```
 
 ## The JS API (all of it)
@@ -152,9 +172,10 @@ GUI — get a clean, trappable Ring error, never a dead runtime.
 ## One language, both sides of the wire
 
 Ring already speaks server-side — [Ring
-WebLib](https://ring-lang.github.io/doc1.27/web.html) and the **Bolt**
-web framework (Express-style DSL, new in Ring 1.27) build and serve real
-sites in Ring today. RingScript completes the picture on the *front* end:
+WebLib](https://ring-lang.github.io/doc1.27/web.html) and the
+[**Bolt**](https://ysdragon.github.io/bolt/) web framework
+(Express-style DSL, new in Ring 1.27) build and serve real sites in Ring
+today. RingScript completes the picture on the *front* end:
 the same language from the request handler on the server to the click
 handler in the page.
 
