@@ -130,6 +130,16 @@ pre.code .c { color: var(--c); font-style: italic; }
 pre.code .a { color: var(--a); }
 pre.code .t { color: var(--t); }
 pre.code .f { color: var(--f); }
+/* Marks something announced but not yet released. */
+.soon {
+    display: inline-block; vertical-align: middle;
+    margin-left: .5rem; padding: .1em .7em;
+    border: 1px solid var(--border); border-radius: 100px;
+    background: var(--bg);
+    font-size: .95rem; font-weight: 600; color: var(--muted);
+    white-space: nowrap;
+}
+
 /* Links inside prose and cards: the site's green, underlined on hover —
    never the browser default blue. Buttons keep their own styling. */
 article a:not(.btn), .card a, .pair a, .limit a, .layer a {
