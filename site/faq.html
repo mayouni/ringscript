@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Questions and answers — RingScript</title>
+<meta name="description" content="Does load &quot;myfile.ring&quot; work in the browser? How do I split a program across files, read input, call Ring from a button? Plain answers for Ring developers.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.6">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+
+    /* Each question is a self-contained block: the heading is the question,
+       and the first line of the answer is the answer. No hunting. */
+    .qa { margin: 0 0 2.6rem; }
+    .qa h3 {
+        font-size: 1.22rem; color: var(--ink); line-height: 1.4;
+        margin: 0 0 .6rem;
+    }
+    .qa p { margin: 0 0 .9rem; }
+    .qa pre.code { margin: 1rem 0; }
+    .qa p:last-child, .qa pre.code:last-child { margin-bottom: 0; }
+
+    /* The one-line verdict that opens an answer. */
+    .verdict {
+        display: inline-block; margin: 0 0 .6rem;
+        padding: .15em .8em; border-radius: 100px;
+        font-size: 1rem; font-weight: 600;
+    }
+    .verdict.no  { background: #fdecea; color: #a2231a; }
+    .verdict.yes { background: var(--accent-soft); color: var(--accent); }
+
+    h2.group {
+        margin: 3.4rem 0 1.6rem; padding-bottom: .6rem;
+        border-bottom: 1px solid var(--border);
+    }
+    h2.group:first-of-type { margin-top: 2.6rem; }
+
+    /* What the runtime prints back at you, shown as the terminal-ish thing
+       it is rather than as Ring source. */
+    pre.said {
+        background: #fdecea; border: 1px solid #f5c6c0; border-radius: 10px;
+        color: #7d1c14; padding: 1rem 1.2rem; margin: 1rem 0;
+        font-family: var(--mono);
+        font-size: 15px; line-height: 1.7; overflow-x: auto;
+    }
+
+    .note {
+        background: var(--accent-soft); border-radius: 10px;
+        padding: 1rem 1.2rem; margin: 1.2rem 0;
+    }
+    .note p { color: var(--ink); margin: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html">Ring<span>Script</span></a>
+    <a href="index.html">Home</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a class="active" href="faq.html">Q&amp;A</a>
+    <a class="repo" href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      Docs on GitHub <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+  <h1>Questions and answers</h1>
+  <p class="first">Written for Ring developers who would rather not become web developers.
+  No JavaScript knowledge is assumed, and every answer below was run against the
+  RingScript build this site ships — the error messages are the real ones, copied
+  from the runtime.</p>
+
+  <h2 class="group">Getting your Ring files in</h2>
+
+  <div class="qa">
+    <h3>Does <code>load "myfile.ring"</code> work?</h3>
+    <p><span class="verdict no">Not for your own files</span></p>
+    <p>A browser tab has no filesystem. There is no folder for <code>load</code> to look in —
+    the same rule that stops any web page from reading your hard disk. This is not something
+    RingScript withholds; there is genuinely nothing there to open.</p>
+    <p>If you point <code>load</code> at a file sitting next to your HTML, this is what
+    comes back:</p>
+<pre class="code"><span class="k">load</span> <span class="s">"helpers.ring"</span></pre>
+<pre class="said">Error (E9) : Can't open file helpers.ring
+
+eval Line (1) Error (C27) : Syntax Error!
+
+eval errors count : 1</pre>
+    <p>Two messages, one cause: the file was never found, so nothing could be parsed. If
+    you see <code>E9</code>, stop looking for a syntax mistake — it is a missing file.</p>
+  </div>
+
+  <div class="qa">
+    <h3>So how do I split my program across several files?</h3>
+    <p><span class="verdict yes">Fetch the text, then evaluate it</span></p>
+    <p>This is exactly what <code>load</code> does natively — read a file's text and run it —
+    except the browser does the reading. Put this next to your HTML once and forget it:</p>
+<pre class="code"><span class="t">&lt;script</span> <span class="f">src</span>=<span class="s">"ringscript.js"</span><span class="t">&gt;&lt;/script&gt;</span>
+<span class="t">&lt;script&gt;</span>
+<span class="k">async function</span> <span class="f">start</span>() {
+    <span class="k">const</span> ring = <span class="k">await</span> RingScript.load(<span class="s">"ringscript.wasm"</span>);
+
+    <span class="c">// your .ring files, in the order you want them loaded</span>
+    <span class="k">for</span> (<span class="k">const</span> file <span class="k">of</span> [<span class="s">"helpers.ring"</span>, <span class="s">"invoice.ring"</span>, <span class="s">"main.ring"</span>]) {
+        <span class="k">const</span> source = <span class="k">await</span> (<span class="k">await</span> fetch(file)).text();
+        <span class="k">const</span> r = ring.eval(source);
+        <span class="k">if</span> (!r.ok) console.error(file + <span class="s">": "</span> + r.error);
+    }
+
+    window.ring = ring;   <span class="c">// so buttons can call ring.call('Name')</span>
+}
+start();
+<span class="t">&lt;/script&gt;</span></pre>
+    <p>That is the whole mechanism. Your <code>.ring</code> files stay ordinary Ring files
+    that you can still run with the native interpreter — nothing in them changes.</p>
+    <div class="note">
+      <p><strong>One rule:</strong> the files must be served over <code>http://</code> or
+      <code>https://</code>, not opened as <code>file://</code>. Browsers refuse to fetch
+      from the local disk. RingScript ships a small server for exactly this — double-click
+      <code>start-playground</code> and it serves the folder for you.</p>
+    </div>
+  </div>
+
+  <div class="qa">
+    <h3>Does what I load stay loaded?</h3>
+    <p><span class="verdict yes">Yes — one VM lives for the whole page</span></p>
+    <p>Functions, classes and variables defined by one evaluation are still there for
+    every later one. Loading three files in a row and using all three together works the
+    way you would expect:</p>
+<pre class="code"><span class="c"># helpers.ring, evaluated first</span>
+<span class="k">func</span> Greet cName
+    <span class="k">return</span> <span class="s">"Ahlan, "</span> + cName + <span class="s">"!"</span>
+
+<span class="c"># later, from anywhere else on the page</span>
+? Greet(<span class="s">"Mansour"</span>)        <span class="c"># Ahlan, Mansour!</span></pre>
+    <p>The same holds for classes: define one in a file, create objects from it minutes
+    later in response to a click.</p>
+  </div>
+
+  <div class="qa">
+    <h3>Then why does <code>load</code> exist in RingScript at all?</h3>
+    <p>Because a library can be baked <em>into</em> the wasm when the runtime is built, and
+    for those files <code>load</code> works normally. That is how the JSON codec RingScript
+    uses internally gets there. It is the right route for a library you always want present
+    and never want to fetch — but it means rebuilding the runtime, which needs Zig.</p>
+    <p>For your own application code, fetching and evaluating is simpler and needs no
+    toolchain at all.</p>
+  </div>
+
+  <h2 class="group">The language itself</h2>
+
+  <div class="qa">
+    <h3>Which functions do I get without loading anything?</h3>
+    <p>Everything built into the Ring VM, which is most of what you reach for day to day:</p>
+<pre class="code">? upper(<span class="s">"ab"</span>) + lower(<span class="s">"CD"</span>)      <span class="c"># ABcd</span>
+? substr(<span class="s">"hello world"</span>, <span class="s">"world"</span>)  <span class="c"># 7</span>
+? sort([<span class="n">3</span>,<span class="n">1</span>,<span class="n">2</span>])  ? find([<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>], <span class="n">2</span>)   <span class="c"># lists, as always</span>
+? number(<span class="s">"42"</span>) + <span class="n">1</span>  ? string(<span class="n">7</span>)      <span class="c"># conversions</span>
+? sqrt(<span class="n">16</span>)  ? pow(<span class="n">2</span>,<span class="n">10</span>)  ? ceil(<span class="n">1.2</span>)   <span class="c"># maths</span>
+? date()  ? clock()  ? random(<span class="n">10</span>)     <span class="c"># time, randomness</span>
+? JsonEncode([ <span class="a">:a</span> = <span class="n">1</span> ])            <span class="c"># {"a":1} — JSON is built in</span></pre>
+    <p>Classes, objects, inheritance, lists, <code>try/catch</code> and declarative blocks
+    all behave exactly as they do natively — this is Ring's own compiler and VM, not an
+    imitation of it.</p>
+    <p>What is <em>not</em> there is Ring's <code>stdlib.ring</code> layer. The most common
+    surprise is <code>split()</code>:</p>
+<pre class="said">Error (R3) : Calling Function without definition: split</pre>
+    <p>If you need those, the honest answer today is to write the handful you use, or to
+    have them embedded into the runtime. Fetching Ring's own <code>stdlib.ring</code> does
+    not work cleanly, because that file itself uses <code>load</code>.</p>
+  </div>
+
+  <div class="qa">
+    <h3>Can I read and write files?</h3>
+    <p><span class="verdict no">No — and every browser app lives by this rule</span></p>
+<pre class="said">Error (R35) : Can't create/open the file</pre>
+    <p>You get a clean, catchable Ring error rather than a dead runtime, so a program that
+    tries can recover. Where a desktop program would save a file, a web app saves to the
+    server, or to browser storage. The same applies to <code>system()</code>, threads and
+    anything else that needs an operating system.</p>
+  </div>
+
+  <div class="qa">
+    <h3>How does the user type something in? Does <code>give</code> work?</h3>
+    <p><span class="verdict yes">Yes, and it really does wait</span></p>
+    <p><code>give</code> pauses the program and asks the page for a value, the way it pauses
+    and asks the console natively. In the Playground an input field appears with a
+    <em>Continue</em> button; the program resumes where it stopped.</p>
+<pre class="code">? <span class="s">"What is your name?"</span>
+<span class="k">give</span> cName
+? <span class="s">"Ahlan, "</span> + cName</pre>
+    <p>In your own page you decide where the value comes from — a form field, a dialog, or
+    anything else — by handling it in the loader.</p>
+  </div>
+
+  <h2 class="group">Talking to the page</h2>
+
+  <div class="qa">
+    <h3>How do I run a Ring function when a button is clicked?</h3>
+    <p>Name the function in the markup. There is no listener to register:</p>
+<pre class="code"><span class="t">&lt;button</span> <span class="f">onclick</span>=<span class="s">"ring.call('Greet')"</span><span class="t">&gt;</span>Greet<span class="t">&lt;/button&gt;</span></pre>
+    <p>To read and write the page from Ring, use <code>Platform()</code>:</p>
+<pre class="code"><span class="k">func</span> Greet
+    cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
+    <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
+    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>, <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName ])</pre>
+    <p>If you only want Ring on the page and nothing more, <code>RingScript.boot()</code>
+    does the wiring for you and runs every
+    <code>&lt;script type="text/ring"&gt;</code> block on the page in order.</p>
+  </div>
+
+  <div class="qa">
+    <h3>Can Ring call JavaScript, and JavaScript call Ring?</h3>
+    <p><span class="verdict yes">Both ways, over JSON</span></p>
+<pre class="code"><span class="c"># Ring calling out</span>
+cReply = jscall(<span class="s">"savedraft"</span>, JsonEncode([ <span class="a">:id</span> = <span class="n">7</span> ]))</pre>
+<pre class="code"><span class="c">// JavaScript calling in — one JSON argument, one JSON result</span>
+<span class="k">const</span> r = ring.call(<span class="s">"Price"</span>, {qty: <span class="n">3</span>});
+console.log(r.result);</pre>
+    <p>The seam is deliberately thin, and entirely optional: plenty of pages never use it.</p>
+  </div>
+
+  <div class="qa">
+    <h3>What happens when my Ring code has an error?</h3>
+    <p>You get the message and the real line number, and the page carries on. A mistake in
+    one evaluation does not poison the VM — the next one runs normally, with everything
+    defined before it still intact. This is checked continuously, including that memory
+    stays flat after a thousand failing evaluations.</p>
+  </div>
+
+  <h2 class="group">Setting up</h2>
+
+  <div class="qa">
+    <h3>Do I need Zig, Node, or npm?</h3>
+    <p><span class="verdict no">None of them</span></p>
+    <p>You need two files next to your HTML — <code>ringscript.js</code> and
+    <code>ringscript.wasm</code>, about 360 KB together — and any web server. Copy them onto
+    GitHub Pages, nginx, a shared host, whatever you already use. There is no build step and
+    nothing to install.</p>
+    <p>Zig is needed only to rebuild the runtime itself, which is of interest if you want to
+    change RingScript or embed a library into it. Ring users can install everything with
+    RingPM:</p>
+<pre class="code">ringpm install ringscript from mayouni</pre>
+  </div>
+
+  <div class="qa">
+    <h3>Where does this leave WebLib and Bolt?</h3>
+    <p>Exactly where they are. Ring on the server keeps doing what it does well — with
+    <a href="https://ring-lang.github.io/doc1.27/web.html" target="_blank" rel="noopener">WebLib <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    or <a href="https://ysdragon.github.io/bolt/" target="_blank" rel="noopener">Bolt <span class="newtab" aria-hidden="true">&#8599;</span></a> —
+    and RingScript covers the one place Ring could not previously reach: the page itself.
+    One language on both sides, instead of two.</p>
+  </div>
+
+  <div class="qa">
+    <h3>Is it really the Ring I know?</h3>
+    <p><span class="verdict yes">Ring 1.27, compiled — not reimplemented</span></p>
+    <p>It is Ring's own compiler and virtual machine built to WebAssembly. Around 850
+    programs — the official sample set and every code block in Ring's documentation — are
+    checked to print byte-identical output to the native interpreter, with no mismatches.
+    If it behaves differently from <code>ring.exe</code> on your machine, that is a bug
+    worth reporting.</p>
+  </div>
+
+  <div class="actions" style="justify-content:flex-start; margin-top:3rem">
+    <a class="btn primary" href="playground/" target="_blank" rel="noopener">Try it in the Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="btn ghost" href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Docs on GitHub <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>
