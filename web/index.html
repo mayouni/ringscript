@@ -195,6 +195,30 @@
 
     .pick-hint { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 
+    /* ------------------------------------------- live give() answer box */
+    #ask-box {
+        flex: 0 0 auto;
+        margin: 0 .6rem .3rem .6rem;
+        padding: .55rem .7rem;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        display: flex; flex-direction: column; gap: .4rem;
+    }
+    #ask-box .label { font-size: .82rem; color: var(--accent); font-weight: 600; }
+    #ask-box .row { display: flex; gap: .5rem; flex-wrap: wrap; }
+    #ask-field {
+        flex: 1;
+        min-width: 8rem;
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--ink);
+        font: 14px/1.5 var(--mono);
+        padding: .4rem .6rem;
+    }
+    #ask-go { white-space: nowrap; }
+
     /* --------------------------------------- editor: always dark, colored */
     #editor-pane { background: #0d1420; }
     #gutter { background: #0a101a; border-right-color: #223047; color: #56677a; }
@@ -244,8 +268,15 @@
     <div id="splitter" title="Drag to resize"></div>
     <section id="right-pane">
         <div id="out-box"></div>
+        <div id="ask-box" hidden>
+            <span class="label">The program is waiting for your answer:</span>
+            <div class="row">
+                <input id="ask-field" autocomplete="off" placeholder="type your answer…">
+                <button id="ask-go">Continue &#9654;</button>
+            </div>
+        </div>
         <div id="bottom-box">
-            <span class="label">Programs that use <code>give</code> ask you <b>live</b> (a prompt opens).
+            <span class="label">Programs that use <code>give</code> pause and ask you above.
                 Optionally pre-script answers here, one line per <code>give</code>:</span>
             <textarea id="input" spellcheck="false"></textarea>
             <div class="row">
@@ -475,11 +506,13 @@
         const ex = currentExample();
         codeEl.value = ex.code;
         // Interactive by default: leave the queue empty so `give` pauses and
-        // asks live; the example's canned answers appear only as a suggestion.
+        // asks in the answer box; canned answers appear only as a suggestion.
         $("input").value = "";
         $("input").placeholder = ex.input
-            ? "answers live via prompt — or pre-script, e.g.:\n" + ex.input.trim()
+            ? "answered live above — or pre-script, e.g.:\n" + ex.input.trim()
             : "not needed by this example";
+        liveAnswers = [];
+        askHide();
         showOutput("", "");
         $("status").textContent = "ready";
         codeEl.scrollTop = 0;
@@ -490,19 +523,55 @@
     $("reset").addEventListener("click", () => { loadExample(); codeEl.focus(); });
 
     let wasmBytes = null, running = false;
-    async function run() {
+
+    // ---- interactive give(): pause-and-continue ----------------------
+    // The wasm eval is synchronous, so "waiting" is implemented by
+    // deterministic replay: when the program asks for input we have none
+    // for, the run stops, the output so far is shown, and the answer box
+    // takes focus. Each Continue re-runs the program on a fresh VM with
+    // every answer given so far in the queue — same code, same input,
+    // same path — so the program lands exactly one question further.
+    let liveAnswers = [];
+
+    function askShow() {
+        $("ask-box").hidden = false;
+        $("ask-field").value = "";
+        $("ask-field").focus();
+    }
+    function askHide() {
+        $("ask-box").hidden = true;
+    }
+
+    async function run(fromContinue) {
         if (running || !wasmBytes) return;
+        if (!fromContinue) liveAnswers = [];
+        askHide();
         running = true;
         $("run").disabled = true;
         $("status").textContent = "running…";
         try {
             // fresh VM per run — examples like ChangeRingKeyword rewire the scanner
-            const ring = await RingScript.load(wasmBytes.slice(0), { captureStdout: true, onOutput: () => {} });
+            let needsInput = false;
+            const ring = await RingScript.load(wasmBytes.slice(0), {
+                captureStdout: true,
+                onOutput: () => {},
+                onGive: () => { needsInput = true; return null; },
+            });
+            const parts = [];
+            const pre = $("input").value;
+            if (pre.trim() !== "") parts.push(pre.replace(/\n?$/, "\n"));
+            for (const a of liveAnswers) parts.push(a + "\n");
             const t0 = performance.now();
-            const r = ring.eval(codeEl.value, $("input").value);
+            const r = ring.eval(codeEl.value, parts.join(""));
             const ms = (performance.now() - t0).toFixed(1);
-            showOutput(r.output, r.error);
-            $("status").textContent = (r.ok ? "ok" : "error") + " — " + ms + " ms";
+            if (needsInput) {
+                showOutput(r.output, "");
+                $("status").textContent = "waiting for your input…";
+                askShow();
+            } else {
+                showOutput(r.output, r.error);
+                $("status").textContent = (r.ok ? "ok" : "error") + " — " + ms + " ms";
+            }
         } catch (e) {
             showOutput("", "runtime crashed: " + e.message);
             $("status").textContent = "crashed";
@@ -511,9 +580,18 @@
             $("run").disabled = false;
         }
     }
-    $("run").addEventListener("click", run);
+    $("run").addEventListener("click", () => run(false));
     document.addEventListener("keydown", e => {
-        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
+        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(false); }
+    });
+
+    function continueRun() {
+        liveAnswers.push($("ask-field").value);
+        run(true);
+    }
+    $("ask-go").addEventListener("click", continueRun);
+    $("ask-field").addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); continueRun(); }
     });
 
     (async () => {
