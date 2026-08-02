@@ -121,6 +121,11 @@ class stzZql
 			@aTok = ["arrow", "->", @nLine]
 			return
 		ok
+		if c = "-"
+			@nPos = @nPos + 1
+			@aTok = ["minus", "-", @nLine]
+			return
+		ok
 		if c = ":" and This.IsIdentStart(This.Peek(1))
 			nStart = @nPos + 1
 			@nPos = @nPos + 1
@@ -135,10 +140,10 @@ class stzZql
 			@aTok = ["ref", substr(@cSrc, nStart, @nPos - nStart), @nLine]
 			return
 		ok
-		if c = "(" or c = ")" or c = "{" or c = "}" or c = "," or c = ":" or c = "*"
+		if c = "(" or c = ")" or c = "{" or c = "}" or c = "," or c = ":" or c = "*" or c = "+" or c = "/"
 			@nPos = @nPos + 1
 			aMap = [ ["(", "lparen"], [")", "rparen"], ["{", "lbrace"], ["}", "rbrace"],
-			         [",", "comma"], [":", "colon"], ["*", "star"] ]
+			         [",", "comma"], [":", "colon"], ["*", "star"], ["+", "plus"], ["/", "slash"] ]
 			for i = 1 to len(aMap)
 				if aMap[i][1] = c
 					@aTok = [aMap[i][2], c, @nLine]
@@ -279,10 +284,66 @@ class stzZql
 				This.Advance()
 				return ["bool", bVal]
 			ok
+			if @aTok[2] = "SUM" or @aTok[2] = "COUNT" or @aTok[2] = "AVG" or
+			   @aTok[2] = "MIN" or @aTok[2] = "MAX"
+				cFn = @aTok[2]
+				This.Advance()
+				This.Expect("lparen")
+				cRefName = This.Expect("ref")
+				This.Expect("rparen")
+				return ["agg", cFn, cRefName]
+			ok
 			This.Fail("Expected a value or :reference, found '" + @aTok[2] + "'")
 		other
 			This.Fail("Expected a value or :reference, found '" + @aTok[2] + "'")
 		off
+
+	# aexpr := aterm { (+|-) aterm } ; aterm := afactor { (*|/) afactor }
+	# afactor := ( aexpr ) | ROUND(aexpr) | number | :ref | AGG(:ref)
+	def ParseAExpr()
+		nLeft = This.ParseATerm()
+		while @aTok[1] = "plus" or @aTok[1] = "minus"
+			cOp = @aTok[1]
+			This.Advance()
+			nRight = This.ParseATerm()
+			if cOp = "plus"
+				nLeft = This.PushExpr(["add", nLeft, nRight])
+			else
+				nLeft = This.PushExpr(["sub", nLeft, nRight])
+			ok
+		end
+		return nLeft
+
+	def ParseATerm()
+		nLeft = This.ParseAFactor()
+		while @aTok[1] = "star" or @aTok[1] = "slash"
+			cOp = @aTok[1]
+			This.Advance()
+			nRight = This.ParseAFactor()
+			if cOp = "star"
+				nLeft = This.PushExpr(["mul", nLeft, nRight])
+			else
+				nLeft = This.PushExpr(["div", nLeft, nRight])
+			ok
+		end
+		return nLeft
+
+	def ParseAFactor()
+		if @aTok[1] = "lparen"
+			This.Advance()
+			nInner = This.ParseAExpr()
+			This.Expect("rparen")
+			return nInner
+		ok
+		if @aTok[1] = "ident" and @aTok[2] = "ROUND"
+			This.Advance()
+			This.Expect("lparen")
+			nInner = This.ParseAExpr()
+			This.Expect("rparen")
+			return This.PushExpr(["round", nInner])
+		ok
+		aOperand = This.ParseOperand()
+		return This.PushExpr(["opnd", aOperand])
 
 	def ParseRationale()
 		if This.AtIdent("RATIONALE")
@@ -349,6 +410,8 @@ class stzZql
 			This.Expect("lbrace")
 			cActor = ""
 			nValidate = 0
+			nFormula = 0
+			cFormulaTarget = ""
 			cOnFailVerb = ""
 			cOnFailArg = ""
 			bCommits = 0
@@ -360,6 +423,13 @@ class stzZql
 					cActor = This.Expect("ref")
 				on "VALIDATE"
 					nValidate = This.ParseExpr()
+				on "FORMULA"
+					cFormulaTarget = This.Expect("ref")
+					cEq = This.Expect("op")
+					if cEq != "="
+						This.Fail("FORMULA expects ':field = expression'")
+					ok
+					nFormula = This.ParseAExpr()
 				on "ENFORCING"
 					cNorm = This.Expect("ref")
 					@aEnforcing + [cName, cStepName, cNorm]
@@ -386,7 +456,7 @@ class stzZql
 				ok
 			end
 			This.Expect("rbrace")
-			@aStepInfo + [cName, nSteps, cStepName, cActor, nValidate, cOnFailVerb, cOnFailArg, bCommits]
+			@aStepInfo + [cName, nSteps, cStepName, cActor, nValidate, cOnFailVerb, cOnFailArg, bCommits, nFormula, cFormulaTarget]
 			nSteps = nSteps + 1
 			if @aTok[1] = "comma"
 				This.Advance()
@@ -512,6 +582,8 @@ class stzZql
 			return ["num", 0]
 		on "ref"
 			return This.DataValue(aData, aOperand[2])
+		on "agg"
+			return ["num", This.AggValue(aOperand[2], aOperand[3], aData)]
 		off
 		return ["missing", ""]
 
@@ -592,6 +664,107 @@ class stzZql
 		off
 		return 0
 
+	def AggValue(cFn, cRefName, aData)
+		aRes = This.DataListValue(aData, cRefName)
+		nSum = 0
+		nCount = 0
+		nMin = 0
+		nMax = 0
+		for i = 1 to len(aRes)
+			v = aRes[i]
+			if isNumber(v)
+				if nCount = 0
+					nMin = v
+					nMax = v
+				else
+					if v < nMin
+						nMin = v
+					ok
+					if v > nMax
+						nMax = v
+					ok
+				ok
+				nSum = nSum + v
+				nCount = nCount + 1
+			ok
+		next
+		switch cFn
+		on "SUM"
+			return nSum
+		on "COUNT"
+			return nCount
+		on "AVG"
+			if nCount = 0
+				return 0
+			ok
+			return nSum / nCount
+		on "MIN"
+			return nMin
+		on "MAX"
+			return nMax
+		off
+		return 0
+
+	def DataListValue(aData, cPath)
+		# like DataValue but for list-valued fields; [] when missing
+		aCurrent = aData
+		aParts = This.PathParts(cPath)
+		for pp = 1 to len(aParts)
+			if not isList(aCurrent)
+				return []
+			ok
+			bFound = 0
+			for i = 1 to len(aCurrent)
+				if isList(aCurrent[i]) and len(aCurrent[i]) = 2 and
+				   isString(aCurrent[i][1]) and lower(aCurrent[i][1]) = lower(aParts[pp])
+					vNext = aCurrent[i][2]
+					bFound = 1
+					exit
+				ok
+			next
+			if not bFound
+				return []
+			ok
+			aCurrent = vNext
+		next
+		if isList(aCurrent)
+			return aCurrent
+		ok
+		return []
+
+	def RoundHalf(x)
+		if x >= 0
+			return floor(x + 0.5)
+		ok
+		return 0 - floor((0 - x) + 0.5)
+
+	def EvalNum(nId, aData)
+		aNode = @aExprs[nId]
+		switch aNode[1]
+		on "add"
+			return This.EvalNum(aNode[2], aData) + This.EvalNum(aNode[3], aData)
+		on "sub"
+			return This.EvalNum(aNode[2], aData) - This.EvalNum(aNode[3], aData)
+		on "mul"
+			return This.EvalNum(aNode[2], aData) * This.EvalNum(aNode[3], aData)
+		on "div"
+			nDen = This.EvalNum(aNode[3], aData)
+			if nDen = 0
+				return 0
+			ok
+			return This.EvalNum(aNode[2], aData) / nDen
+		on "round"
+			return This.RoundHalf(This.EvalNum(aNode[2], aData))
+		on "opnd"
+			aRes = This.ResolveOperand(aNode[2], aData)
+			aNum = This.AsNumber(aRes)
+			if aNum[1]
+				return aNum[2]
+			ok
+			return 0
+		off
+		return 0
+
 	def EvalExpr(nId, aData)
 		aNode = @aExprs[nId]
 		switch aNode[1]
@@ -627,22 +800,29 @@ class stzZql
 			raise("stzZql: no flow named :" + cFlowName)
 		ok
 		aOutcomes = []
+		aComputed = []
 		bCommitted = 0
+		aWork = aData
 		for i = 1 to len(@aStepInfo)
 			aStep = @aStepInfo[i]
 			if aStep[1] != cFlowName
 				loop
 			ok
+			if len(aStep) >= 9 and aStep[9] > 0
+				nFVal = This.EvalNum(aStep[9], aWork)
+				aWork = This.WithComputed(aWork, aStep[10], nFVal)
+				aComputed + [aStep[10], nFVal]
+			ok
 			bOk = 1
 			cReason = ""
-			if aStep[5] > 0 and not This.EvalExpr(aStep[5], aData)
+			if aStep[5] > 0 and not This.EvalExpr(aStep[5], aWork)
 				bOk = 0
 				cReason = "VALIDATE failed"
 			ok
 			if bOk
 				for e = 1 to len(@aEnforcing)
 					if @aEnforcing[e][1] = cFlowName and @aEnforcing[e][2] = aStep[3]
-						if not This.EvalNorm(@aEnforcing[e][3], aData)
+						if not This.EvalNorm(@aEnforcing[e][3], aWork)
 							bOk = 0
 							cReason = This.NormMessage(@aEnforcing[e][3])
 							exit
@@ -658,11 +838,20 @@ class stzZql
 				ok
 				return [ :status = "failed", :failedstep = aStep[3],
 					:actionverb = cVerb, :actionarg = aStep[7],
-					:committed = 0, :outcomes = aOutcomes ]
+					:committed = 0, :outcomes = aOutcomes, :computed = aComputed ]
 			ok
 			if aStep[8]
 				bCommitted = 1
 			ok
 		next
 		return [ :status = "complete", :failedstep = "", :actionverb = "",
-			:actionarg = "", :committed = bCommitted, :outcomes = aOutcomes ]
+			:actionarg = "", :committed = bCommitted, :outcomes = aOutcomes, :computed = aComputed ]
+
+	def WithComputed(aData, cKey, nVal)
+		# computed values shadow the payload: prepend, since lookups
+		# return the FIRST match
+		aNew = [ [cKey, nVal] ]
+		for i = 1 to len(aData)
+			aNew + aData[i]
+		next
+		return aNew
