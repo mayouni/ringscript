@@ -348,6 +348,12 @@
     ** order, and exposes the instance as window.ring so page controls can
     ** call Ring functions directly: onclick="ring.call('MyFunc')".
     **
+    ** Blocks may be inline or carry a src, the way ordinary scripts do:
+    **   <script type="text/ring" src="helpers.ring"></script>
+    **   <script type="text/ring">? Greet("Mansour")</script>
+    ** They run in the order they appear, each finishing before the next
+    ** starts, so a file may rely on whatever earlier ones defined.
+    **
     ** The DOM seam, callable from Ring via Platform(name, data):
     **   Platform("settext",  [ :id = "x", :text = v ])   set an element's text
     **   Platform("gettext",  [ :id = "x" ])              read an element's text
@@ -373,10 +379,43 @@
             const el = document.getElementById(p && p.id);
             return el ? el.value : "";
         });
+        // Every <script type="text/ring"> on the page, in document order.
+        // With a src attribute the file is fetched and evaluated in place of
+        // the tag's own text — mirroring how the browser treats <script src>,
+        // where inline content is ignored when src is present. This is the
+        // browser's stand-in for Ring's `load`: a page has no filesystem, so
+        // the file arrives over HTTP instead of off a disk.
+        //
+        // Sequential on purpose: a file defining Greet must finish before the
+        // file calling it begins, exactly as consecutive `load` lines behave.
         const tags = document.querySelectorAll('script[type="text/ring"]');
         for (let i = 0; i < tags.length; i++) {
-            const r = ring.eval(tags[i].textContent);
-            if (!r.ok) console.error("[ringscript] " + r.error);
+            const src = tags[i].getAttribute("src");
+            let code = tags[i].textContent;
+            let where = 'inline <script type="text/ring">';
+            if (src) {
+                where = src;
+                try {
+                    const resp = await fetch(src);
+                    if (!resp.ok) {
+                        // The server answered, so the address is the problem.
+                        throw new Error("HTTP " + resp.status + " " + resp.statusText +
+                            " — check the path is right and the file sits beside your page");
+                    }
+                    code = await resp.text();
+                } catch (e) {
+                    // No response at all usually means the page was opened as
+                    // file://, where fetch is blocked outright. Say so, rather
+                    // than leaving the reader with a bare "Failed to fetch".
+                    const blocked = /Failed to fetch|NetworkError|Load failed/i.test(e.message);
+                    console.error("[ringscript] could not load " + src + ": " + e.message +
+                        (blocked ? " — .ring files must be served over http:// or https://," +
+                                   " not opened from file://" : ""));
+                    continue;
+                }
+            }
+            const r = ring.eval(code);
+            if (!r.ok) console.error("[ringscript] " + where + ": " + r.error);
         }
         global.ring = ring;
         return ring;

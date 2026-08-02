@@ -23,7 +23,12 @@
 <div id="hello"></div>
 <div id="n"></div>
 
-<!-- 1. the loader, 2. boot it, 3. your Ring code -->
+<!-- 1. the loader, 2. boot it, 3. your Ring code.
+     Once this grows, move the Ring into its own file and point at it:
+     <script type="text/ring" src="app.ring"></script>
+     Blocks run in the order they appear, so later ones can use whatever
+     earlier ones defined. (Ring's own `load` cannot work here — a browser
+     tab has no filesystem for it to search.) -->
 <script src="ringscript.js"></script>
 <script>RingScript.boot()</script>
 

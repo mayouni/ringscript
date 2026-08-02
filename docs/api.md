@@ -31,7 +31,13 @@ Does four things, in order:
 2. registers the DOM seam handlers `settext` / `gettext` / `getvalue`
    (documented in [Scripting pages](scripting-pages.md#3-the-dom-seam-precisely));
 3. evaluates every `<script type="text/ring">` block, in document
-   order, in the one resident VM;
+   order, in the one resident VM — a block may carry a `src`
+   (`<script type="text/ring" src="helpers.ring"></script>`), in which
+   case the file is fetched and evaluated in place of the tag's own
+   text, the way an ordinary `<script src>` ignores its inline content.
+   Each block finishes before the next starts, so later files may use
+   what earlier ones defined. A file that fails to fetch is reported to
+   the console and skipped; the remaining blocks still run;
 4. exposes the instance as `window.ring` so inline handlers can write
    `onclick="ring.call('Fn')"`.
 

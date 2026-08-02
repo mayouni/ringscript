@@ -101,33 +101,39 @@ eval errors count : 1</pre>
 
   <div class="qa">
     <h3>So how do I split my program across several files?</h3>
-    <p><span class="verdict yes">Fetch the text, then evaluate it</span></p>
-    <p>This is exactly what <code>load</code> does natively — read a file's text and run it —
-    except the browser does the reading. Put this next to your HTML once and forget it:</p>
+    <p><span class="verdict yes">Give the script tag a <code>src</code></span></p>
+    <p>List your files the way you would list <code>load</code> lines, and RingScript
+    fetches and runs each one for you. There is no JavaScript to write:</p>
 <pre class="code"><span class="t">&lt;script</span> <span class="f">src</span>=<span class="s">"ringscript.js"</span><span class="t">&gt;&lt;/script&gt;</span>
-<span class="t">&lt;script&gt;</span>
-<span class="k">async function</span> <span class="f">start</span>() {
-    <span class="k">const</span> ring = <span class="k">await</span> RingScript.load(<span class="s">"ringscript.wasm"</span>);
 
-    <span class="c">// your .ring files, in the order you want them loaded</span>
-    <span class="k">for</span> (<span class="k">const</span> file <span class="k">of</span> [<span class="s">"helpers.ring"</span>, <span class="s">"invoice.ring"</span>, <span class="s">"main.ring"</span>]) {
-        <span class="k">const</span> source = <span class="k">await</span> (<span class="k">await</span> fetch(file)).text();
-        <span class="k">const</span> r = ring.eval(source);
-        <span class="k">if</span> (!r.ok) console.error(file + <span class="s">": "</span> + r.error);
-    }
+<span class="t">&lt;script</span> <span class="f">type</span>=<span class="s">"text/ring"</span> <span class="f">src</span>=<span class="s">"helpers.ring"</span><span class="t">&gt;&lt;/script&gt;</span>
+<span class="t">&lt;script</span> <span class="f">type</span>=<span class="s">"text/ring"</span> <span class="f">src</span>=<span class="s">"invoice.ring"</span><span class="t">&gt;&lt;/script&gt;</span>
 
-    window.ring = ring;   <span class="c">// so buttons can call ring.call('Name')</span>
-}
-start();
-<span class="t">&lt;/script&gt;</span></pre>
-    <p>That is the whole mechanism. Your <code>.ring</code> files stay ordinary Ring files
-    that you can still run with the native interpreter — nothing in them changes.</p>
+<span class="t">&lt;script</span> <span class="f">type</span>=<span class="s">"text/ring"</span><span class="t">&gt;</span>
+    oBill = <span class="k">new</span> Invoice
+    oBill.Add(<span class="n">120</span>)
+    ? Greet(<span class="s">"Mansour"</span>)
+<span class="t">&lt;/script&gt;</span>
+
+<span class="t">&lt;script&gt;</span>RingScript.boot()<span class="t">&lt;/script&gt;</span></pre>
+    <p>They run in the order they appear, each finishing before the next begins — so a file
+    may freely use functions and classes an earlier one defined, exactly as consecutive
+    <code>load</code> lines behave. Inline blocks and <code>src</code> blocks can be mixed
+    in any order.</p>
+    <p>Your <code>.ring</code> files stay ordinary Ring files, with nothing added for the
+    web: the same <code>helpers.ring</code> still runs under <code>ring.exe</code>.</p>
     <div class="note">
       <p><strong>One rule:</strong> the files must be served over <code>http://</code> or
-      <code>https://</code>, not opened as <code>file://</code>. Browsers refuse to fetch
-      from the local disk. RingScript ships a small server for exactly this — double-click
-      <code>start-playground</code> and it serves the folder for you.</p>
+      <code>https://</code>, not opened as <code>file://</code> — browsers refuse to read
+      the local disk. RingScript ships a small server for exactly this: double-click
+      <code>start-playground</code> and it serves the folder for you. If a file is missing
+      or misspelled, the browser console names it and the rest of the page carries on.</p>
     </div>
+    <p>If you would rather drive it yourself — loading a file only under some condition, say
+    — the manual equivalent is two lines, and <code>eval</code> can be called whenever you
+    like:</p>
+<pre class="code"><span class="k">const</span> ring = <span class="k">await</span> RingScript.load(<span class="s">"ringscript.wasm"</span>);
+ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span class="s">"reports.ring"</span>)).text());</pre>
   </div>
 
   <div class="qa">

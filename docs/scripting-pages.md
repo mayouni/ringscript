@@ -117,6 +117,22 @@ call.
 - **One `text/ring` block per concern** is fine — `boot()` runs all of
   them in document order, into the same resident VM, so later blocks
   see earlier definitions.
+- **Keep Ring in `.ring` files** once a page grows past a few lines.
+  A block may carry a `src`, so the tags read like a list of `load`
+  lines and the files stay plain Ring that still runs under `ring.exe`:
+
+  ```html
+  <script type="text/ring" src="helpers.ring"></script>
+  <script type="text/ring" src="invoice.ring"></script>
+  <script type="text/ring">? Greet("Mansour")</script>
+  ```
+
+  Note this is *not* Ring's `load`, which cannot work in a browser:
+  there is no filesystem for it to search, so `load "helpers.ring"`
+  reports `Error (E9) : Can't open file helpers.ring`. The `src`
+  attribute is the browser's equivalent — the file arrives over HTTP,
+  which also means the page must be served over `http(s)://` rather
+  than opened as `file://`.
 - **Interactive input works too**: a Ring program that uses `give`
   pauses on a browser prompt showing the program's own question. For
   form-like pages prefer `Platform(:getvalue, …)` — prompts suit
