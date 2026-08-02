@@ -7,24 +7,56 @@ input, embedded pure-Ring libraries, and a two-way JSON bridge to
 JavaScript. Zig-first — no Emscripten, no npm, no build steps beyond one
 command.
 
-## Quick start
+## Using it — copy two files
+
+Deployment is hosting two files from `web/` next to your HTML on any
+static server — no toolchain, no bundler, no server code:
+
+```
+your-site/
+├── index.html
+├── ringscript.js      the loader (~12 KB, classic script)
+└── ringscript.wasm    the Ring VM (~340 KB)
+```
+
+Then script your page in Ring instead of JavaScript:
+
+```html
+<script src="ringscript.js"></script>
+<script>RingScript.boot()</script>
+
+<input id="guest"><button onclick="ring.call('Greet')">Greet</button>
+<div id="hello"></div>
+
+<script type="text/ring">
+func Greet aEv
+    cName = Platform(:getvalue, [ :id = "guest" ])
+    Platform(:settext, [ :id = "hello", :text = "Ahlan, " + cName + "!" ])
+</script>
+```
+
+`RingScript.boot()` loads the wasm, wires the `Platform()` DOM seam
+(`:settext` / `:gettext` / `:getvalue` — extend with `ring.on(name, fn)`),
+runs every `text/ring` block, and exposes `window.ring`. The
+[tutorial](web/tutorial.html) covers the whole API step by step with live
+demos; the home page runs this exact mini-app.
+
+## Developing the runtime
 
 ```bash
 zig build serve
 ```
 
-That single command compiles the VM to wasm, refreshes the site artifact,
-and serves everything at <http://localhost:8377/> with its own embedded
-HTTP server:
+One command — compiles the VM to wasm, refreshes the site artifact, and
+serves everything at <http://localhost:8377/> with its own embedded HTTP
+server (requires [Zig](https://ziglang.org/) 0.15+; Node.js only for the
+test suites):
 
 | Page | What it is |
 |---|---|
-| `/` | The site — try Ring live right on the homepage |
+| `/` | The site — try Ring live, see the Ring-scripted mini-app |
 | `/examples.html` | **Playground** — IDE with 24 editable examples (syntax highlighting, line numbers, input queue) |
 | `/tutorial.html` | **Tutorial** — embedding Ring in a page, 9 steps, live runnable demos |
-
-Requires [Zig](https://ziglang.org/) 0.15+. Node.js is only needed for
-the test suites.
 
 ## Repository layout
 

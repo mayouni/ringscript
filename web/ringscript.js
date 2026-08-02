@@ -306,7 +306,48 @@
         return api;
     }
 
-    const RingScript = { load: load };
+    /*
+    ** boot([opts]) — the "script your page in Ring" mode. Loads the wasm
+    ** (default "ringscript.wasm" next to your HTML), registers a minimal
+    ** DOM seam, runs every <script type="text/ring"> block in document
+    ** order, and exposes the instance as window.ring so page controls can
+    ** call Ring functions directly: onclick="ring.call('MyFunc')".
+    **
+    ** The DOM seam, callable from Ring via Platform(name, data):
+    **   Platform("settext",  [ :id = "x", :text = v ])   set an element's text
+    **   Platform("gettext",  [ :id = "x" ])              read an element's text
+    **   Platform("getvalue", [ :id = "x" ])              read an input's value
+    ** Anything else: register your own with ring.on(name, fn).
+    **
+    ** Note: functions invoked with ring.call receive exactly one argument
+    ** (the JSON payload, NULL when omitted) — declare them as `func F aArg`.
+    */
+    async function boot(opts) {
+        opts = opts || {};
+        const ring = await load(opts.wasm || "ringscript.wasm", opts);
+        ring.on("settext", function (p) {
+            const el = document.getElementById(p && p.id);
+            if (el) el.textContent = (p && p.text != null) ? String(p.text) : "";
+            return 1;
+        });
+        ring.on("gettext", function (p) {
+            const el = document.getElementById(p && p.id);
+            return el ? el.textContent : "";
+        });
+        ring.on("getvalue", function (p) {
+            const el = document.getElementById(p && p.id);
+            return el ? el.value : "";
+        });
+        const tags = document.querySelectorAll('script[type="text/ring"]');
+        for (let i = 0; i < tags.length; i++) {
+            const r = ring.eval(tags[i].textContent);
+            if (!r.ok) console.error("[ringscript] " + r.error);
+        }
+        global.ring = ring;
+        return ring;
+    }
+
+    const RingScript = { load: load, boot: boot };
 
     if (typeof module !== "undefined" && module.exports) {
         module.exports = RingScript;

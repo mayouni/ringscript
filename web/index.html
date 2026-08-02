@@ -83,6 +83,21 @@
     .try-more { padding: .5rem .8rem .7rem; font-size: .83rem; color: var(--muted); }
     .try-more a { color: var(--accent); text-decoration: none; }
 
+    /* live mini-app */
+    .miniapp { padding: 1rem; display: flex; flex-direction: column; gap: .7rem; }
+    .miniapp input {
+        border: 1px solid var(--border); border-radius: 6px;
+        background: var(--bg); color: var(--ink);
+        padding: .45rem .6rem; font-size: .95rem; width: 100%;
+    }
+    .miniapp .row { display: flex; gap: .6rem; }
+    .miniapp button {
+        border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+        border-radius: 6px; padding: .4rem 1.1rem; font-weight: 600; cursor: pointer;
+    }
+    .miniapp .say { font-size: 1.05rem; min-height: 1.4em; }
+    .miniapp .say.muted { color: var(--muted); font-size: .9rem; }
+
     /* quick start */
     .quick {
         background: var(--panel);
@@ -184,10 +199,63 @@ next</textarea>
         </div>
     </section>
 
+    <h2>Your page logic — in Ring, not JavaScript</h2>
+    <p style="color:var(--muted); max-width:46rem">Put your logic in a
+    <code style="font-family:var(--mono); font-size:.9em">&lt;script type="text/ring"&gt;</code> block;
+    buttons call Ring functions directly, and Ring reads and writes the page through the
+    <span style="font-family:var(--mono); font-size:.9em">Platform()</span> seam.
+    The demo on the right is running <em>this exact source</em>, live:</p>
+
+    <div class="example">
+        <div class="pane">
+            <div class="head">The complete page — no JavaScript written by you</div>
+            <pre>&lt;script src="ringscript.js"&gt;&lt;/script&gt;
+&lt;script&gt;RingScript.boot()&lt;/script&gt;
+
+&lt;input id="guest" placeholder="Your name"&gt;
+&lt;button onclick="ring.call('Greet')"&gt;Greet&lt;/button&gt;
+&lt;button onclick="ring.call('AddOne')"&gt;+1&lt;/button&gt;
+&lt;div id="hello"&gt;&lt;/div&gt;
+&lt;div id="n"&gt;&lt;/div&gt;
+
+&lt;script type="text/ring"&gt;
+<span class="k">nClicks</span> = <span class="n">0</span>
+
+<span class="k">func</span> Greet aEv
+    cName = Platform(<span class="a">:getvalue</span>, [ <span class="a">:id</span> = <span class="s">"guest"</span> ])
+    <span class="k">if</span> cName = <span class="s">""</span> cName = <span class="s">"stranger"</span> <span class="k">ok</span>
+    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"hello"</span>,
+        <span class="a">:text</span> = <span class="s">"Ahlan, "</span> + cName + <span class="s">"!"</span> ])
+
+<span class="k">func</span> AddOne aEv
+    nClicks++
+    Platform(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"n"</span>,
+        <span class="a">:text</span> = <span class="s">"clicked "</span> + nClicks + <span class="s">" times"</span> ])
+&lt;/script&gt;</pre>
+        </div>
+        <div class="pane">
+            <div class="head">Live — scripted by the Ring block on this page</div>
+            <div class="miniapp">
+                <input id="guest" placeholder="Your name">
+                <div class="row">
+                    <button onclick="ring.call('Greet')">Greet</button>
+                    <button onclick="ring.call('AddOne')">+1</button>
+                </div>
+                <div id="hello" class="say"></div>
+                <div id="n" class="say muted"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="quick">
-        <div class="label">Quick start — one command</div>
-        <pre><b>zig build serve</b>     <span style="color:var(--muted)"># builds the wasm, serves this site</span></pre>
-        <div class="note">Requires Zig 0.15+. Then open <span style="font-family:var(--mono)">http://localhost:8377/</span> — that's the whole workflow.</div>
+        <div class="label">Deploying — copy two files, that's all</div>
+        <pre>your-site/
+├── index.html
+├── <b>ringscript.js</b>      ← the loader (~12 KB)
+└── <b>ringscript.wasm</b>    ← the Ring VM (~340 KB)</pre>
+        <div class="note">Any static host works — no toolchain, no bundler, no server code.
+        (The <span style="font-family:var(--mono)">zig build serve</span> workflow only concerns
+        programmers changing the runtime itself.)</div>
     </div>
 
     <div class="cards">
@@ -249,6 +317,21 @@ ways — and entirely optional.</pre>
     </footer>
 </main>
 
+<script type="text/ring">
+nClicks = 0
+
+func Greet aEv
+    cName = Platform(:getvalue, [ :id = "guest" ])
+    if cName = "" cName = "stranger" ok
+    Platform(:settext, [ :id = "hello",
+        :text = "Ahlan, " + cName + "!" ])
+
+func AddOne aEv
+    nClicks++
+    Platform(:settext, [ :id = "n",
+        :text = "clicked " + nClicks + " times" ])
+</script>
+
 <script src="ringscript.js"></script>
 <script>
 (async function () {
@@ -258,7 +341,9 @@ ways — and entirely optional.</pre>
     const code = document.getElementById("try-code");
     let ring;
     try {
-        ring = await RingScript.load("ringscript.wasm", { captureStdout: true, onOutput: () => {} });
+        // boot(): loads the wasm, wires the Platform() DOM seam, and runs
+        // the <script type="text/ring"> block above — the mini-app's logic.
+        ring = await RingScript.boot({ captureStdout: true, onOutput: () => {} });
         status.textContent = "VM ready — " + ring.eval("see version()").output;
         btn.disabled = false;
     } catch (e) {

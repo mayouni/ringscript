@@ -72,18 +72,28 @@
     business logic with JSON in and out. Every "Run" button on this page executes against a
     <em>single resident VM</em> — the same instance from top to bottom, which is the whole point.</p>
 
-    <h2><span class="no">1.</span> Load the runtime</h2>
-    <p>Two files, no build step on the JS side: the loader (<code>ringscript.js</code>,
-    a classic script — no bundler required) and the wasm module. Serve them over HTTP
-    (<code>zig build serve</code> does exactly that) and initialize once:</p>
+    <h2><span class="no">1.</span> Host two files, load the runtime</h2>
+    <p>Deployment is copying <code>ringscript.js</code> (the loader — a classic script,
+    no bundler) and <code>ringscript.wasm</code> (the VM, ~340&nbsp;KB) into your site
+    folder, next to your HTML. Any static host serves them; no toolchain is involved.
+    (Building with Zig only concerns programmers changing the runtime itself.)</p>
+    <p>The simplest wiring — script your page in Ring directly, no JavaScript written by you:</p>
     <pre class="code">&lt;script src="ringscript.js"&gt;&lt;/script&gt;
-&lt;script&gt;
-const ring = await RingScript.load("ringscript.wasm", {
-    onOutput: text =&gt; console.log(text)   // VM stdout/stderr
-});
+&lt;script&gt;RingScript.boot()&lt;/script&gt;
+
+&lt;script type="text/ring"&gt;
+see "Hello from Ring!"
 &lt;/script&gt;</pre>
-    <p>That's a complete Ring 1.27 compiler and virtual machine, resident in your tab, in
-    ~340&nbsp;KB of wasm.</p>
+    <p><code>boot()</code> loads the wasm, wires the <code>Platform()</code> DOM seam
+    (<code>:settext</code>, <code>:gettext</code>, <code>:getvalue</code>), runs every
+    <code>text/ring</code> block, and exposes <code>window.ring</code> so page controls can
+    call Ring functions — <code>onclick="ring.call('MyFunc')"</code>. The
+    <a href="index.html">home page's mini-app</a> is exactly this pattern, live.</p>
+    <p>For programmatic control, <code>load()</code> gives you the instance without
+    touching the DOM:</p>
+    <pre class="code">const ring = await RingScript.load("ringscript.wasm", {
+    onOutput: text =&gt; console.log(text)   // VM stdout/stderr
+});</pre>
 
     <h2><span class="no">2.</span> Evaluate code, read output</h2>
     <p><code>ring.eval(code)</code> compiles and runs Ring source in the resident state and
