@@ -8,19 +8,18 @@
 <link rel="stylesheet" href="site.css">
 <style>
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 system-ui, "Segoe UI", sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.7 system-ui, "Segoe UI", sans-serif; }
     main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
-    h1 { font-size: 1.6rem; margin: 1rem 0 .3rem; }
-    h2 { font-size: 1.15rem; margin: 2.4rem 0 .6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    h1 { font-size: 1.7rem; margin: 1rem 0 .3rem; }
+    h2 { font-size: 1.2rem; margin: 2.4rem 0 .6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     h2 .no { color: var(--accent); margin-right: .35rem; }
-    p.lead { color: var(--muted); margin-top: 0; }
+    p.lead { color: var(--ink); font-size: 1.08rem; margin-top: 0; }
     p code, li code { font-family: var(--mono); font-size: .88em; background: var(--gutter-bg); padding: .08em .3em; border-radius: 4px; }
     pre.code {
-        background: var(--panel);
-        border: 1px solid var(--border);
+        border: 1px solid;
         border-radius: 8px;
         padding: .8rem .95rem;
-        font: 13.5px/1.55 var(--mono);
+        font: 14px/1.6 var(--mono);
         overflow-x: auto;
         margin: .8rem 0;
     }
@@ -186,6 +185,23 @@ const r = ring.call("Price", { qty: 3, unit: 19.5 });
         <div class="bar"><button>Run</button><div class="out">→ runs an embedded 400-line library's test suite</div></div>
     </div>
 
+    <h2>The whole API on one screen</h2>
+    <pre class="code">// page-scripting mode
+RingScript.boot()                  // wasm + DOM seam + text/ring blocks + window.ring
+
+// programmatic mode
+ring = await RingScript.load("ringscript.wasm", { onOutput, captureStdout, onGive })
+ring.eval(code)                    // { ok, output, error } — state persists
+ring.eval(code, "line1\nline2")    // input queue for give (then onGive/prompt)
+ring.call("Fn", { any: "json" })   // { ok, result, output, error }
+ring.on("name", fn)                // handle Ring's Platform("name", data)
+ring.reset()                       // explicit fresh state
+
+// inside Ring
+Platform(:settext,  [ :id = "x", :text = v ])   // write the page
+Platform(:getvalue, [ :id = "x" ])              // read an input
+jscall("name", cJson)                           // raw JS call (JSON strings)</pre>
+
     <h2><span class="no">9.</span> Where to go next</h2>
     <ul>
         <li>The <a href="examples.html">Playground</a> — 24 examples from Hello World to
@@ -203,6 +219,74 @@ const r = ring.call("Price", { qty: 3, unit: 19.5 });
 
 <script src="ringscript.js"></script>
 <script>
+// Display-only syntax coloring for every pre.code block (Ring + JS + HTML).
+// Runs over textContent, so the live-demo runner (which reads textContent)
+// is unaffected.
+(function () {
+    "use strict";
+    const KW = new Set(("see give put get but ok if else elseif for to next while end func def return " +
+        "class from new try catch done switch on other off exit loop step in load private package " +
+        "true false nl null self super raise " +
+        "const let var await async function typeof import export").split(" "));
+    const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    function paint(src) {
+        let out = "", i = 0;
+        const n = src.length;
+        const ids = c => /[A-Za-z0-9_\u00A0-\uFFFF]/.test(c);
+        while (i < n) {
+            const c = src[i];
+            if (c === "<" && /[A-Za-z/!]/.test(src[i + 1] || "")) {           // html tag
+                let j = i;
+                while (j < n && src[j] !== ">") j++;
+                j = Math.min(n, j + 1);
+                const tag = src.slice(i, j);
+                out += '<span class="t">' + esc(tag).replace(/(&quot;|")([^"]*)(&quot;|")/g,
+                    (m) => '</span><span class="s">' + m + '</span><span class="t">') + "</span>";
+                i = j; continue;
+            }
+            if (c === "#" || (c === "/" && src[i + 1] === "/")) {             // comment
+                let j = i;
+                while (j < n && src[j] !== "\n") j++;
+                out += '<span class="c">' + esc(src.slice(i, j)) + "</span>";
+                i = j; continue;
+            }
+            if (c === '"' || c === "'" || c === "`") {                        // string
+                let j = i + 1;
+                while (j < n && src[j] !== c) j++;
+                j = Math.min(n, j + 1);
+                out += '<span class="s">' + esc(src.slice(i, j)) + "</span>";
+                i = j; continue;
+            }
+            if (c === ":" && /[A-Za-z_]/.test(src[i + 1] || "")) {            // :atom
+                let j = i + 1;
+                while (j < n && ids(src[j])) j++;
+                out += '<span class="a">' + esc(src.slice(i, j)) + "</span>";
+                i = j; continue;
+            }
+            if (/[0-9]/.test(c) && !ids(src[i - 1] || " ")) {                 // number
+                let j = i;
+                while (j < n && /[0-9.]/.test(src[j])) j++;
+                out += '<span class="n">' + esc(src.slice(i, j)) + "</span>";
+                i = j; continue;
+            }
+            if (/[A-Za-z_\u00A0-\uFFFF]/.test(c)) {                           // word
+                let j = i;
+                while (j < n && ids(src[j])) j++;
+                const w = src.slice(i, j);
+                out += KW.has(w.toLowerCase())
+                    ? '<span class="k">' + esc(w) + "</span>"
+                    : esc(w);
+                i = j; continue;
+            }
+            out += esc(c); i++;
+        }
+        return out;
+    }
+    document.querySelectorAll("pre.code").forEach(pre => {
+        pre.innerHTML = paint(pre.textContent);
+    });
+})();
+
 (async function () {
     const state = document.getElementById("vmstate");
     const resetBtn = document.getElementById("resetvm");

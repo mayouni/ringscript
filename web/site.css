@@ -45,6 +45,22 @@
     }
 }
 
+/* ------------------------------------------------------- code blocks */
+/* Code is always on a dark panel, in both site themes, with one fixed
+   syntax palette — readable, consistent, unmistakably "code". */
+pre.code, .pane pre, .codedark {
+    background: #0d1420 !important;
+    color: #d6e2f0;
+    border-color: #223047 !important;
+}
+pre.code .k, .pane pre .k, .codedark .k { color: #c792ea; font-weight: 600; }  /* keywords   */
+pre.code .s, .pane pre .s, .codedark .s { color: #7ee2a8; }                    /* strings    */
+pre.code .n, .pane pre .n, .codedark .n { color: #f0a45d; }                    /* numbers    */
+pre.code .c, .pane pre .c, .codedark .c { color: #7d8b9d; font-style: italic; }/* comments   */
+pre.code .a, .pane pre .a, .codedark .a { color: #6cb6ff; }                    /* :atoms     */
+pre.code .f, .pane pre .f, .codedark .f { color: #e2c08d; }                    /* functions  */
+pre.code .t, .pane pre .t, .codedark .t { color: #7aa2f7; }                    /* html tags  */
+
 /* ---------------------------------------------------------------- nav */
 nav.site {
     display: flex;

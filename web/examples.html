@@ -193,6 +193,25 @@
     }
     #bottom-box .row { display: flex; gap: .5rem; }
 
+    .pick-hint { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+
+    /* --------------------------------------- editor: always dark, colored */
+    #editor-pane { background: #0d1420; }
+    #gutter { background: #0a101a; border-right-color: #223047; color: #56677a; }
+    #gutter div.cur { color: #3fb984; background: rgba(63, 185, 132, 0.12); }
+    #highlight { color: #d6e2f0; }
+    #line-hl { background: rgba(63, 185, 132, 0.09); }
+    #code { caret-color: #ffffff; }
+    #code::selection { background: rgba(63, 185, 132, 0.35); }
+    .tok-kw { color: #c792ea; }
+    .tok-str { color: #7ee2a8; }
+    .tok-num { color: #f0a45d; }
+    .tok-com { color: #7d8b9d; }
+    .tok-atom { color: #6cb6ff; }
+    .tok-fn { color: #e2c08d; }
+    #out-box { background: #0d1420; color: #d6e2f0; border-color: #223047; }
+    #out-box .err { color: #ef6a5a; }
+
     /* ------------------------------------------------------- responsive */
     @media (max-width: 720px) {
         main { flex-direction: column; }
@@ -212,7 +231,8 @@
     <a href="tutorial.html">Tutorial</a>
 </nav>
 <header>
-    <select id="picker" title="Example"></select>
+    <span class="pick-hint">&#9662; 24 ready-made examples — pick one, tweak it, run:</span>
+    <select id="picker" title="Choose one of the 24 ready-made examples"></select>
     <button id="run" disabled>&#9654; Run</button>
     <span id="status">loading wasm&hellip;</span>
 </header>
