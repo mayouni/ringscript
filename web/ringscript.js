@@ -201,7 +201,18 @@
             if (opts.onGive) {
                 v = opts.onGive();
             } else if (typeof window !== "undefined" && typeof window.prompt === "function") {
-                v = window.prompt("The Ring program asks for input:");
+                // Show the program's own pending question: the tail of the
+                // output produced so far in this eval (e.g. "Enter your name:").
+                let msg = "";
+                try {
+                    const len = exports.rs_last_output_size();
+                    if (len) {
+                        const ptr = exports.rs_last_output();
+                        const all = decoder.decode(new Uint8Array(memory.buffer).subarray(ptr, ptr + len));
+                        msg = all.slice(-400).trim();
+                    }
+                } catch (e) { /* fall through to the generic label */ }
+                v = window.prompt(msg || "The Ring program asks for input:");
             }
             if (v === undefined || v === null) return 0;
             const bytes = encoder.encode(String(v));

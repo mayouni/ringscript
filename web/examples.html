@@ -250,7 +250,8 @@
     <section id="right-pane">
         <div id="out-box"></div>
         <div id="bottom-box">
-            <span class="label">Input — one line per <code>give</code>; when empty, the program asks you live</span>
+            <span class="label">Programs that use <code>give</code> ask you <b>live</b> (a prompt opens).
+                Optionally pre-script answers here, one line per <code>give</code>:</span>
             <textarea id="input" spellcheck="false"></textarea>
             <div class="row">
                 <button id="reset" class="secondary" title="Restore the example's original code and input">Reset example</button>
@@ -478,7 +479,12 @@
     function loadExample() {
         const ex = currentExample();
         codeEl.value = ex.code;
-        $("input").value = ex.input;
+        // Interactive by default: leave the queue empty so `give` pauses and
+        // asks live; the example's canned answers appear only as a suggestion.
+        $("input").value = "";
+        $("input").placeholder = ex.input
+            ? "answers live via prompt — or pre-script, e.g.:\n" + ex.input.trim()
+            : "not needed by this example";
         showOutput("", "");
         $("status").textContent = "ready";
         codeEl.scrollTop = 0;
