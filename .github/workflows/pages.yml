@@ -40,7 +40,7 @@ jobs:
           cp -r site/. _site/
           mkdir -p _site/playground
           cp -r playground/. _site/playground/
-          cp ringscript-logo.png playground.png _site/
+          cp ringscript-logo.png playground.png ringscript-first-announcement.png _site/
           # No Jekyll processing: this is plain static HTML.
           touch _site/.nojekyll
           ls -R _site | head -40
