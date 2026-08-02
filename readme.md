@@ -1,6 +1,8 @@
-<img src="ringscript-logo.png" alt="RingScript" width="460">
+<p align="center">
+  <img src="ringscript-logo.png" alt="RingScript" width="380">
+</p>
 
-# The Ring language, resident in your browser
+<h1 align="center">The Ring language, resident in your browser</h1>
 
 RingScript compiles the [Ring](https://ring-lang.github.io/) VM to
 WebAssembly and wraps it in a small resident bridge: persistent state
@@ -9,11 +11,12 @@ input, embedded pure-Ring libraries, and a two-way JSON bridge to
 JavaScript. Zig-first — no Emscripten, no npm, no build steps beyond one
 command.
 
-![The RingScript Playground — 24 editable Ring examples running in the browser](playground.png)
-
-*The Playground: pick an example, edit it, run it. The Ring VM is
-resident in the page; programs that ask for input pause and wait for
-your answer.*
+<p align="center">
+  <img src="playground.png" alt="The RingScript Playground — 24 editable Ring examples running in the browser" width="820">
+  <br>
+  <em>The Playground: pick an example, edit it, run it. The Ring VM is resident in
+  the page; programs that ask for input pause and wait for your answer.</em>
+</p>
 
 ## Using it — copy two files
 
