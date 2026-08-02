@@ -6,12 +6,22 @@
 <title>Why Ring? — the road from a language to Softanza and RingScript</title>
 <meta name="description" content="Why I chose Ring in 2018, wrote a book about it, built the Softanza library and engine on top of it, and ended up porting the language to WebAssembly.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.9">
+<link rel="stylesheet" href="style.css?v=0.9.10">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
     article p.first { font-size: 1.2rem; color: var(--ink); }
     article h2 { margin-top: 3rem; }
+
+    /* The language this page is about, shown before its name is read.
+       Intrinsic width/height are on the tag so nothing shifts while it
+       loads; the CSS width is what actually renders. */
+    /* The paragraph does the sizing: a percentage on the image would
+       resolve against a shrink-wrapped inline-block <a>, which is
+       circular and lands wherever the browser feels like. */
+    .ringmark { margin: 0 0 1.6rem; max-width: 265px; }
+    .ringmark a { display: block; }
+    .ringmark img { width: 100%; height: auto; display: block; }
 
     /* a year-marked narrative */
     .timeline { margin: 2rem 0; border-left: 2px solid var(--border); padding-left: 1.6rem; }
@@ -77,6 +87,13 @@
 
 <section class="wrap">
 <article>
+
+  <p class="ringmark">
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener"
+       title="The Ring programming language">
+      <img src="ring-logo.png" width="760" height="396"
+           alt="The Ring programming language"></a>
+  </p>
 
   <h1>Why Ring?</h1>
   <p class="first">Ring is a small, dynamic, general-purpose language created by
