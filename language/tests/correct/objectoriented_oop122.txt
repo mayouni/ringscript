@@ -1,3 +1,0 @@
-before
-Error (R52) : Using Return inside function parameters is not allowed
-after

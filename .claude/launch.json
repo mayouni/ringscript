@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "ringscript-demo",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["web/serve.js", "8377"],
+      "runtimeExecutable": "zig",
+      "runtimeArgs": ["build", "serve"],
       "port": 8377
     }
   ]

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingScript Tutorial — embed Ring in a web page</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="site.css">
+<style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 system-ui, "Segoe UI", sans-serif; }
+    main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    h1 { font-size: 1.6rem; margin: 1rem 0 .3rem; }
+    h2 { font-size: 1.15rem; margin: 2.4rem 0 .6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    h2 .no { color: var(--accent); margin-right: .35rem; }
+    p.lead { color: var(--muted); margin-top: 0; }
+    p code, li code { font-family: var(--mono); font-size: .88em; background: var(--gutter-bg); padding: .08em .3em; border-radius: 4px; }
+    pre.code {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: .8rem .95rem;
+        font: 13.5px/1.55 var(--mono);
+        overflow-x: auto;
+        margin: .8rem 0;
+    }
+    .demo { margin: .8rem 0 1.4rem; }
+    .demo pre.code { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .demo .bar {
+        display: flex; gap: .6rem; align-items: center;
+        background: var(--gutter-bg);
+        border: 1px solid var(--border); border-top: 0;
+        border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+        padding: .4rem .6rem;
+    }
+    .demo button {
+        border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+        border-radius: 6px; padding: .25rem .9rem; font-size: .85rem; font-weight: 600; cursor: pointer;
+    }
+    .demo button:disabled { opacity: .5; }
+    .demo .out {
+        font: 13px/1.5 var(--mono);
+        white-space: pre-wrap; word-break: break-word;
+        color: var(--muted);
+        flex: 1;
+    }
+    .demo .out.has { color: var(--ink); }
+    .demo .out .err { color: var(--error); }
+    .note {
+        background: var(--accent-soft); border: 1px solid var(--border);
+        border-radius: 8px; padding: .7rem .9rem; font-size: .92rem; margin: 1rem 0;
+    }
+    #vmstate { position: fixed; right: 1rem; bottom: 1rem; font-size: .8rem; color: var(--muted);
+        background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .7rem; }
+    #vmstate button { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: .8rem; padding: 0; margin-left: .5rem; }
+</style>
+</head>
+<body>
+
+<nav class="site">
+    <a class="logo" href="index.html">Ring<span>Script</span></a>
+    <a href="index.html">Home</a>
+    <a href="examples.html">Playground</a>
+    <a href="repl.html">REPL</a>
+    <a class="active" href="tutorial.html">Tutorial</a>
+    <span class="spacer"></span>
+    <a class="ext" href="https://ring-lang.github.io/">Ring docs ↗</a>
+</nav>
+
+<main>
+    <h1>Embedding Ring in a web page</h1>
+    <p class="lead">Seven small steps from an empty HTML file to a page that runs Ring
+    business logic with JSON in and out. Every "Run" button on this page executes against a
+    <em>single resident VM</em> — the same instance from top to bottom, which is the whole point.</p>
+
+    <h2><span class="no">1.</span> Load the runtime</h2>
+    <p>Two files, no build step on the JS side: the loader (<code>ringscript.js</code>,
+    a classic script — no bundler required) and the wasm module. Serve them over HTTP
+    (<code>zig build serve</code> does exactly that) and initialize once:</p>
+    <pre class="code">&lt;script src="ringscript.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+const ring = await RingScript.load("ringscript.wasm", {
+    onOutput: text =&gt; console.log(text)   // VM stdout/stderr
+});
+&lt;/script&gt;</pre>
+    <p>That's a complete Ring 1.27 compiler and virtual machine, resident in your tab, in
+    ~340&nbsp;KB of wasm.</p>
+
+    <h2><span class="no">2.</span> Evaluate code, read output</h2>
+    <p><code>ring.eval(code)</code> compiles and runs Ring source in the resident state and
+    returns <code>{ ok, output, error }</code>. Output is captured — <code>see</code>,
+    <code>?</code>, <code>put</code>, even C-level <code>print()</code> — in exact order:</p>
+    <div class="demo">
+        <pre class="code">see "Hello from Ring " + version() + nl
+for i = 1 to 3 ? i next</pre>
+        <div class="bar"><button>Run</button><div class="out">→ output appears here</div></div>
+    </div>
+
+    <h2><span class="no">3.</span> State persists between evals</h2>
+    <p>This is what makes it a runtime rather than a calculator: globals, functions and
+    classes survive from one eval to the next. Run these two in order:</p>
+    <div class="demo">
+        <pre class="code">aInventory = [ :apples = 12, :pears = 7 ]
+func total aList
+    n = 0
+    for item in aList n += item[2] next
+    return n</pre>
+        <div class="bar"><button>Run</button><div class="out">→ defines data + a function, prints nothing</div></div>
+    </div>
+    <div class="demo">
+        <pre class="code">? "items in stock: " + total(aInventory)</pre>
+        <div class="bar"><button>Run</button><div class="out">→ uses what the previous eval defined</div></div>
+    </div>
+
+    <h2><span class="no">4.</span> Errors are trapped, never fatal</h2>
+    <p>A compile error or runtime error returns <code>ok: false</code> with
+    <code>error</code> carrying the real line number — and the VM (with all its state)
+    survives. Run this, then re-run step 3's second demo to see the state intact:</p>
+    <div class="demo">
+        <pre class="code">? "before the storm"
+thisFunctionDoesNotExist()</pre>
+        <div class="bar"><button>Run</button><div class="out">→ note the line number, and that partial output is kept</div></div>
+    </div>
+
+    <h2><span class="no">5.</span> Interactive input — <code>give</code></h2>
+    <p>Pass an input queue as the second argument of <code>eval</code>; Ring's
+    <code>give</code> consumes it line by line, echoing like a terminal. When the queue
+    runs dry, the program gets a trappable error instead of hanging your page:</p>
+    <pre class="code">ring.eval('? "Name: " give n ? "Hello " + n', "Alice\n");</pre>
+    <div class="demo">
+        <pre class="code">? "Enter two numbers:"
+give a
+give b
+? "Sum: " + (0 + a + b)</pre>
+        <div class="bar" data-input="15&#10;27"><button>Run</button><div class="out">→ runs with the input queue "15\n27"</div></div>
+    </div>
+
+    <h2><span class="no">6.</span> Call Ring functions with JSON</h2>
+    <p><code>ring.call(name, arg)</code> is the runtime-mode door: your argument is
+    serialized to JSON, decoded into a Ring pair-list (<code>[ :key = value ]</code>),
+    and the function's return value travels back the same way, parsed and ready:</p>
+    <pre class="code">ring.eval('func Price aOrder return [ :total = aOrder[:qty] * aOrder[:unit] ]');
+const r = ring.call("Price", { qty: 3, unit: 19.5 });
+// r.result --&gt; { total: 58.5 }</pre>
+    <div class="demo" data-mode="call">
+        <pre class="code">func Price aOrder return [ :total = aOrder[:qty] * aOrder[:unit] ]</pre>
+        <div class="bar"><button>Run</button><div class="out">→ defines Price, then calls it with { qty: 3, unit: 19.5 }</div></div>
+    </div>
+
+    <h2><span class="no">7.</span> Ring calls back into JavaScript</h2>
+    <p>Inside Ring, <code>Platform(name, data)</code> (or the lower-level
+    <code>jscall</code>) reaches handlers you register with <code>ring.on(name, fn)</code>;
+    unhandled calls surface as DOM <code>CustomEvent</code>s named
+    <code>ringscript:&lt;name&gt;</code>. Handler return values travel back into Ring:</p>
+    <pre class="code">ring.on("notify", payload =&gt; {
+    console.log("Ring says:", payload);
+    return { ack: 1 };
+});</pre>
+    <div class="demo" data-mode="notify">
+        <pre class="code">aReply = Platform("notify", [ :msg = "hello page!", :n = 7 ])
+? "JS acknowledged: " + aReply[:ack]</pre>
+        <div class="bar"><button>Run</button><div class="out">→ watch the reply make the round trip</div></div>
+    </div>
+
+    <h2><span class="no">8.</span> Ship your own Ring library</h2>
+    <p>There is no filesystem — on purpose. Pure-Ring libraries are baked <em>into</em> the
+    wasm at build time: drop a <code>.ring</code> file into <code>src/ringlib/</code>, add one
+    line to the embedded-file map in <code>src/bridge.zig</code>, rebuild. Ring's
+    <code>load</code> then finds it exactly like a file:</p>
+    <pre class="code">// src/bridge.zig
+.{ .name = "ringlib/mylib.ring", .data = @embedFile("ringlib/mylib.ring") },</pre>
+    <div class="demo">
+        <pre class="code">load "ringlib/stzzql_smoke.ring"</pre>
+        <div class="bar"><button>Run</button><div class="out">→ runs an embedded 400-line library's test suite</div></div>
+    </div>
+
+    <h2><span class="no">9.</span> Where to go next</h2>
+    <ul>
+        <li>The <a href="examples.html">Playground</a> — 24 examples from Hello World to
+            operator overloading and Arabic keywords, all editable.</li>
+        <li>The <a href="repl.html">REPL</a> — a minimal page against the resident VM.</li>
+        <li><code>tests/gates.js</code> and <code>tests/samples-sweep.js</code> in the repo —
+            how every claim on this page is verified against native ring.exe.</li>
+        <li>The <a href="https://ring-lang.github.io/">Ring documentation</a> for the language itself.</li>
+    </ul>
+
+    <div class="note">Everything above ran in <b>one</b> resident VM — the inventory from step 3
+    is still in memory right now (the reset button below proves it the other way).</div>
+</main>
+
+<div id="vmstate">VM: loading…<button id="resetvm" hidden>reset</button></div>
+
+<script src="ringscript.js"></script>
+<script>
+(async function () {
+    const state = document.getElementById("vmstate");
+    const resetBtn = document.getElementById("resetvm");
+    let ring;
+    async function boot() {
+        ring = await RingScript.load("ringscript.wasm", { captureStdout: true, onOutput: () => {} });
+        ring.on("notify", p => ({ ack: 1, echo: p && p.msg }));
+    }
+    try {
+        await boot();
+        state.firstChild.textContent = "VM: resident ";
+        resetBtn.hidden = false;
+    } catch (e) {
+        state.firstChild.textContent = "VM failed: " + e.message;
+        return;
+    }
+    resetBtn.addEventListener("click", () => {
+        ring.reset();
+        ring.on("notify", p => ({ ack: 1 }));
+        document.querySelectorAll(".demo .out").forEach(o => { o.textContent = "→ VM reset — state cleared"; o.classList.remove("has"); });
+    });
+
+    document.querySelectorAll(".demo").forEach(demo => {
+        const code = demo.querySelector("pre.code").textContent;
+        const bar = demo.querySelector(".bar");
+        const out = demo.querySelector(".out");
+        const btn = demo.querySelector("button");
+        const mode = demo.dataset.mode;
+        btn.addEventListener("click", () => {
+            out.classList.add("has");
+            let r;
+            if (mode === "call") {
+                ring.eval(code);
+                r = ring.call("Price", { qty: 3, unit: 19.5 });
+                out.textContent = "r.result = " + JSON.stringify(r.result);
+                if (r.error) out.innerHTML += ' <span class="err">' + r.error + "</span>";
+                return;
+            }
+            const input = (bar.dataset.input || "").replace(/\\n/g, "\n");
+            r = ring.eval(code, input ? input + "\n" : "");
+            out.textContent = r.output || "(no output)";
+            if (r.error) {
+                const s = document.createElement("span");
+                s.className = "err";
+                s.textContent = (r.output ? "\n" : "") + r.error;
+                out.appendChild(s);
+            }
+        });
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,3 +1,0 @@
--*{I don't care about errors at all!}*-
--*{I will act as they don't exist}*-
--*{BOOM!}*-

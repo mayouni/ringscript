@@ -1,5 +1,0 @@
-Command: I want window
-Command: window title is Hello World
-Command: I want button
-Command: button text is Save
-Command: start gui

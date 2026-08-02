@@ -1,6 +1,0 @@
-see ""
-
-;
-
-
-? "End of program!"

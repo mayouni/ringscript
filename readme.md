@@ -1,127 +1,107 @@
 # RingScript — the Ring language, resident in your browser
 
 RingScript compiles the [Ring](https://ring-lang.github.io/) VM to
-WebAssembly and wraps it in a small, resident bridge, so Ring code can be
-evaluated interactively in a web page — with persistent state, trapped
-errors, embedded libraries, and a two-way JSON bridge to JavaScript.
+WebAssembly and wraps it in a small resident bridge: persistent state
+across evaluations, trapped errors with real line numbers, interactive
+input, embedded pure-Ring libraries, and a two-way JSON bridge to
+JavaScript. Zig-first — no Emscripten, no npm, no build steps beyond one
+command.
 
-It exists to give the **StzWeb** framework (`D:\GitHub\stzweb`) an
-*optional* Ring logic backend: TRAIN mode, the debugger cockpit,
-notebooks, education. Production delivery of Ring-authored logic is the
-Softanza delivery plane's job — RingScript is the interactive niche, by
-design (see [REPAIR_PLAN.md](REPAIR_PLAN.md)).
-
-## Architecture
-
-Zig-first, no Emscripten (decision record in REPAIR_PLAN.md §2.5):
-
-```
-build.zig          compiles language/src (vendored Ring 1.27 VM, 41 files)
-                   + bridge.zig with `zig cc -target wasm32-wasi`
-bridge.zig         the resident bridge: rs_init / rs_reset / rs_eval /
-                   rs_call / rs_last_output / rs_last_error, the see-hook,
-                   the try/eval/catch error shim, @embedFile payloads
-wasi_stubs.c       the only C we add: tmpfile stub, list-macro wrappers,
-                   and rs_fopen — every VM file access resolves against
-                   the embedded ringlib/ map via fmemopen (no filesystem)
-ringlib/           pure-Ring payload baked into the wasm:
-                   stzZql.ring (+ smoke test) and json.ring
-web/ringscript.js  ~250-line hand-written WASI browser shim + loader
-                   (fd_write → onOutput, jscall → JS handlers/DOM events)
-web/index.html     minimal REPL page      web/serve.js  static server
-legacy/            the 2025 Emscripten proof (bridge.c, build.bat) —
-                   preserved as the documented fallback path
-```
-
-## Build and run
-
-Requires Zig 0.15+ and Node (for the test gates). No emsdk, no npm.
+## Quick start
 
 ```bash
-zig build -Drelease=true
+zig build serve
 ```
 
-Artifacts land in `zig-out/bin/` and are copied to `web/`
-(`ringscript.wasm`, ~340 KB). Then:
+That single command compiles the VM to wasm, refreshes the site artifact,
+and serves everything at <http://localhost:8377/> with its own embedded
+HTTP server:
 
-```bash
-node web/serve.js
+| Page | What it is |
+|---|---|
+| `/` | The site — what RingScript is, how it's verified |
+| `/examples.html` | **Playground** — IDE with 24 editable examples (syntax highlighting, line numbers, input queue) |
+| `/repl.html` | **REPL** — minimal page against one resident VM |
+| `/tutorial.html` | **Tutorial** — embedding Ring in a page, 9 steps, live runnable demos |
+
+Requires [Zig](https://ziglang.org/) 0.15+. Node.js is only needed for
+the test suites.
+
+## Repository layout
+
+```
+build.zig            one build: wasm runtime + dev server + `serve` step
+src/
+  bridge.zig         the resident bridge (rs_init/rs_eval/rs_call/…),
+                     error shim, embedded-file map, see/give hooks
+  wasi_stubs.c       the only added C: fopen→embedded-map resolver,
+                     exact-mirror value printers, VM accessors
+  serve.zig          embedded dev HTTP server (`zig build serve`)
+  ringlib/           pure-Ring payload baked into the wasm:
+                     json.ring, stzZql.ring (+ smoke test)
+language/            vendored Ring 1.27 VM source (src + include only),
+                     with 4 marked patches → docs/VENDOR_PATCHES.md
+web/                 the site: pages above + ringscript.js (the ~300-line
+                     WASI shim & loader — the whole JS side)
+tests/               verification (Node):
+  gates.js           29 permanent gates (state, errors, memory, I/O, bridge)
+  examples-oracle.js all 24 playground examples vs native ring.exe
+  samples-sweep.js   bulk sweep: Ring's samples + doc snippets vs native
+  extract-doc-snippets.js  regenerates the doc corpus from D:\ring127
+docs/
+  REPAIR_PLAN.md     the 2026 design & execution record
+  VENDOR_PATCHES.md  the 4 vendor patches — re-apply on Ring upgrades
 ```
 
-and open <http://localhost:8377/> — a REPL page against the resident VM —
-or <http://localhost:8377/examples.html>, an IDE-style gallery of 24 Ring
-examples (interactive input, OOP, functional programming, operator
-overloading, private attributes, packages, reflection, Arabic keywords…)
-that all match native ring.exe output byte-for-byte
-(`node tests/examples-oracle.js` verifies this against `D:\ring127`).
-
-Beyond the gallery, the runtime is swept against Ring's own corpus:
-`tests/samples-sweep.js` runs the language-relevant samples from
-`D:\ring127\samples` (~284 programs) and ~550 code blocks extracted from
-the official documentation (`tests/extract-doc-snippets.js`, the same
-content ring-lang.github.io serves) through native ring.exe and the wasm
-side by side — currently **zero mismatches and zero failures**; programs
-excluded by design (files, OS, GUI, threads, multi-file loads) fail with
-clean trappable errors, never crashes.
-
-## Verification
-
-Every phase of the repair plan ends in a runnable gate:
-
-```bash
-node tests/gates.js
-```
-
-- **P0** `see 1+2` → `3` (toolchain)
-- **P1** globals survive across evals; 1.23 MB output arrives whole
-- **P2** errors report via `rs_last_error()` and never kill the VM;
-  memory flat across 500 ok + 500 failing evals
-- **P3** `load "ringlib/stzzql_smoke.ring"` → **10 passed, 0 failed** —
-  the stzZql grammar engine, in Ring, in the browser
-- **P4** `rs_call` runs a stzZql flow and returns its verdict as JSON;
-  Ring's `jscall("notify", …)` surfaces as a JS handler call / DOM event
-
-The end-to-end demo lives in stzweb:
-`examples/ring-runtime/` (serve with `stzw dev`) fetches the tontine
-`app.zql` and runs the same flow through zql.js and through Ring-on-wasm,
-side by side — same declaration, same verdicts.
-
-## JS API
+## The JS API (all of it)
 
 ```js
 const ring = await RingScript.load("ringscript.wasm", {
-    onOutput: text => console.log(text),      // VM stdout/stderr
-    captureStdout: true,                      // or: route print()/puts into
-});                                            // the eval output, in order
-ring.eval('see 1+2');                          // { ok, output, error }
-ring.eval('x = 5'); ring.eval('see x');        // state persists
-ring.eval('give n see n', "Mansour\n");        // input queue for `give`
-ring.call("MyFunc", { any: "json" });          // { ok, result, output, error }
-ring.on("notify", payload => ({ ack: 1 }));    // Ring: Platform("notify", …)
-ring.reset();                                  // explicit fresh state
+    onOutput: t => console.log(t),   // VM stdout/stderr
+    captureStdout: true,             // or: merge print()/puts into output
+});
+ring.eval('see 1+2');                     // { ok, output, error }
+ring.eval('x = 5'); ring.eval('see x');   // state persists
+ring.eval('give n see n', "Mansour\n");   // input queue for `give`
+ring.call("MyFunc", { any: "json" });     // { ok, result, output, error }
+ring.on("notify", p => ({ ack: 1 }));     // Ring: Platform("notify", …)
+ring.reset();                             // explicit fresh state
 ```
 
-Native-fidelity details the bridge takes care of: `? obj` prints object
-attributes like native Ring; `give` echoes its input (terminal-style) and
-raises a trappable error when the queue runs dry; a defined `func main`
-auto-runs once after top-level code; a class with only attributes at the
-end of an eval works (the bridge appends a region terminator).
+The [tutorial](web/tutorial.html) walks through every call with live demos.
 
-## Known limitations
+## Verification
 
-- No real filesystem: file reads resolve against the embedded `ringlib/`
-  map; writes fail like a missing file. That is the design.
-- Ring 1.27 VM (vendored from `D:\ring127`), carrying two small marked
-  patches for real error-line numbers — see
-  [VENDOR_PATCHES.md](VENDOR_PATCHES.md); re-apply them on any vendor
-  swap. The 1.25 and 1.26 trees are in git history.
+```bash
+zig build -Drelease=true       # build
+node tests/gates.js            # 29 gates
+node tests/examples-oracle.js  # 24 examples vs native ring.exe
+node tests/samples-sweep.js    # ~284 official samples vs native
+node tests/extract-doc-snippets.js && node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.
+                               # ~550 documentation examples vs native
+```
+
+Current state: **zero mismatches, zero failures** — every deterministic
+program produces output byte-identical to native `ring.exe` 1.27, and
+nondeterministic ones (random/clock/date) run cleanly. Programs that ask
+for what the browser deliberately excludes — files, OS calls, threads,
+GUI — get a clean, trappable Ring error, never a dead runtime.
+
+## Design boundaries
+
+RingScript is the *interactive* niche: playgrounds, notebooks, teaching,
+live business-rule evaluation (see the StzWeb integration in
+`stzweb/examples/ring-runtime/` — the same declaration evaluated by
+zql.js and by Ring-on-wasm, side by side). Production delivery of
+Ring-authored logic belongs to the Softanza delivery plane, not here.
 
 ## Origin
 
 Created by **Mansour Ayouni**, creator of the Softanza library for Ring,
-with AI assistance. The 2025 Emscripten prototype that proved the idea is
-preserved under `legacy/`; the 2026 repair (this architecture) was
-executed against [REPAIR_PLAN.md](REPAIR_PLAN.md).
+with AI assistance. The design and its execution are recorded in
+[docs/REPAIR_PLAN.md](docs/REPAIR_PLAN.md); the two upstream bugs found
+during hardening were contributed back as
+[ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639).
 
 ## License
 

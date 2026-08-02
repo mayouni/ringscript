@@ -1,5 +1,0 @@
-start
-getTo()
-getFrom()
-getIn()
-done

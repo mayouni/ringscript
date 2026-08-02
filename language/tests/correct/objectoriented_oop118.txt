@@ -1,2 +1,0 @@
-Hello from class1 operator() method
-Hello from class2 operator() method

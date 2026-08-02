@@ -1,0 +1,79 @@
+/* RingScript site — shared design tokens + navigation.
+   Calm over power: one palette, readable type, light & dark. */
+
+:root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --ink: #24292f;
+    --muted: #6a737d;
+    --accent: #1a7f5a;
+    --accent-soft: #e7f4ee;
+    --accent-ink: #ffffff;
+    --error: #b42318;
+    --border: #d8dee4;
+    --gutter-bg: #eef0f3;
+    --line-hl: rgba(26, 127, 90, 0.08);
+    --sel: rgba(26, 127, 90, 0.22);
+    --tok-kw: #9333c9;
+    --tok-str: #0a7d4b;
+    --tok-num: #b35c00;
+    --tok-com: #8b949e;
+    --tok-atom: #0b6bcb;
+    --tok-fn: #7a4f01;
+    --mono: "Cascadia Code", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #14171a;
+        --panel: #1c2126;
+        --ink: #d9dee3;
+        --muted: #8b949e;
+        --accent: #3fb984;
+        --accent-soft: #17251e;
+        --accent-ink: #0c1210;
+        --error: #ef6a5a;
+        --border: #30363d;
+        --gutter-bg: #181d21;
+        --line-hl: rgba(63, 185, 132, 0.10);
+        --sel: rgba(63, 185, 132, 0.30);
+        --tok-kw: #c792ea;
+        --tok-str: #7ee2a8;
+        --tok-num: #f0a45d;
+        --tok-com: #6a737d;
+        --tok-atom: #6cb6ff;
+        --tok-fn: #e2c08d;
+    }
+}
+
+/* ---------------------------------------------------------------- nav */
+nav.site {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: .55rem .9rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    font: 15px/1.4 system-ui, "Segoe UI", sans-serif;
+    flex-wrap: wrap;
+}
+nav.site .logo {
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: none;
+    margin-right: .4rem;
+}
+nav.site .logo span { color: var(--accent); }
+nav.site a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: .15rem 0;
+    border-bottom: 2px solid transparent;
+}
+nav.site a:hover { color: var(--ink); }
+nav.site a.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+}
+nav.site .spacer { margin-left: auto; }
+nav.site .ext { font-size: .85rem; }

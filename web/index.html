@@ -3,158 +3,198 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RingScript — Ring in the browser</title>
-<link rel="icon" href="../favicon.ico">
+<title>RingScript — the Ring language, resident in your browser</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="site.css">
 <style>
-    :root {
-        --bg: #f6f7f9;
-        --panel: #ffffff;
-        --ink: #24292f;
-        --muted: #6a737d;
-        --accent: #1a7f5a;
-        --error: #b42318;
-        --border: #d8dee4;
-        --mono: "Cascadia Code", Consolas, "Courier New", monospace;
-    }
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --bg: #14171a;
-            --panel: #1c2126;
-            --ink: #d9dee3;
-            --muted: #8b949e;
-            --accent: #3fb984;
-            --error: #ef6a5a;
-            --border: #30363d;
-        }
-    }
     * { box-sizing: border-box; }
     body {
         margin: 0;
-        padding: 2rem 1.5rem;
         background: var(--bg);
         color: var(--ink);
-        font: 16px/1.6 system-ui, "Segoe UI", sans-serif;
-        max-width: 60rem;
-        margin-inline: auto;
+        font: 16px/1.65 system-ui, "Segoe UI", sans-serif;
     }
-    h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-    h1 small { color: var(--muted); font-weight: normal; font-size: .95rem; }
-    p.tagline { color: var(--muted); margin: 0 0 1.5rem; }
-    .panel {
+    main { max-width: 62rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+    /* hero */
+    .hero { text-align: center; padding: 3.5rem 0 2.5rem; }
+    .hero h1 { font-size: 2.1rem; margin: 0 0 .6rem; line-height: 1.25; }
+    .hero h1 span { color: var(--accent); }
+    .hero p.sub { color: var(--muted); font-size: 1.1rem; max-width: 42rem; margin: 0 auto 1.6rem; }
+    .hero .actions { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+        display: inline-block;
+        padding: .55rem 1.4rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid var(--accent);
+    }
+    .btn.primary { background: var(--accent); color: var(--accent-ink); }
+    .btn.ghost { color: var(--accent); }
+
+    /* quick start */
+    .quick {
         background: var(--panel);
         border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1rem;
+        border-radius: 10px;
+        padding: 1.2rem 1.4rem;
+        margin: 1rem auto 2.5rem;
+        max-width: 34rem;
     }
-    textarea {
-        width: 100%;
-        min-height: 9rem;
+    .quick .label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+    .quick pre { margin: 0; font: 15px/1.7 var(--mono); overflow-x: auto; }
+    .quick pre b { color: var(--accent); font-weight: 600; }
+    .quick .note { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
+
+    /* cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin: 2rem 0; }
+    .card {
+        background: var(--panel);
         border: 1px solid var(--border);
-        border-radius: 6px;
-        background: var(--bg);
-        color: var(--ink);
-        font: 14px/1.5 var(--mono);
-        padding: .75rem;
-        resize: vertical;
+        border-radius: 10px;
+        padding: 1.1rem 1.2rem;
     }
-    .row { display: flex; gap: .75rem; align-items: center; margin-top: .75rem; flex-wrap: wrap; }
-    button {
-        border: 1px solid var(--accent);
-        background: var(--accent);
-        color: #fff;
-        border-radius: 6px;
-        padding: .5rem 1.25rem;
-        font-size: .95rem;
-        cursor: pointer;
-    }
-    button.secondary {
-        background: transparent;
-        color: var(--accent);
-    }
-    button:disabled { opacity: .5; cursor: default; }
-    #status { color: var(--muted); font-size: .9rem; }
-    pre {
-        margin: 0;
-        padding: .75rem;
-        background: var(--bg);
+    .card h3 { margin: 0 0 .4rem; font-size: 1.02rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .93rem; }
+    .card code { font-family: var(--mono); font-size: .85em; color: var(--accent); }
+
+    /* example strip */
+    h2 { font-size: 1.25rem; margin: 2.6rem 0 .9rem; }
+    .example { display: grid; grid-template-columns: 3fr 2fr; gap: 1rem; }
+    @media (max-width: 700px) { .example { grid-template-columns: 1fr; } }
+    .pane {
+        background: var(--panel);
         border: 1px solid var(--border);
-        border-radius: 6px;
-        font: 14px/1.5 var(--mono);
-        white-space: pre-wrap;
-        word-break: break-word;
-        min-height: 3rem;
-        max-height: 24rem;
-        overflow-y: auto;
+        border-radius: 10px;
+        overflow: hidden;
     }
-    .label { font-size: .85rem; color: var(--muted); margin: 0 0 .35rem; }
-    #errbox { color: var(--error); }
+    .pane .head { padding: .4rem .8rem; font-size: .78rem; color: var(--muted); border-bottom: 1px solid var(--border); }
+    .pane pre { margin: 0; padding: .8rem .9rem; font: 13.5px/1.55 var(--mono); overflow-x: auto; white-space: pre; }
+    .k { color: var(--tok-kw); font-weight: 600; }
+    .s { color: var(--tok-str); }
+    .n { color: var(--tok-num); }
+    .c { color: var(--tok-com); font-style: italic; }
+    .a { color: var(--tok-atom); }
+
+    /* verification strip */
+    .verify {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem;
+        background: var(--accent-soft);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.2rem;
+        text-align: center;
+    }
+    .verify .num { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+    .verify .what { color: var(--muted); font-size: .88rem; }
+
+    footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 2rem 0 2.5rem; border-top: 1px solid var(--border); margin-top: 3rem; }
+    footer a { color: var(--accent); text-decoration: none; }
 </style>
 </head>
 <body>
-<h1>RingScript <small>— the Ring VM, resident in your browser</small></h1>
-<p class="tagline">Zig-built wasm32-wasi module &middot; state persists across evals</p>
 
-<div class="panel">
-    <p class="label">Ring code</p>
-    <textarea id="code" spellcheck="false">see 1+2</textarea>
-    <div class="row">
-        <button id="run" disabled>Run (Ctrl+Enter)</button>
-        <button id="reset" class="secondary" disabled>Reset VM</button>
-        <span id="status">loading wasm&hellip;</span>
+<nav class="site">
+    <a class="logo" href="index.html">Ring<span>Script</span></a>
+    <a class="active" href="index.html">Home</a>
+    <a href="examples.html">Playground</a>
+    <a href="repl.html">REPL</a>
+    <a href="tutorial.html">Tutorial</a>
+    <span class="spacer"></span>
+    <a class="ext" href="https://github.com/ring-lang/ring">Ring language ↗</a>
+</nav>
+
+<main>
+    <section class="hero">
+        <h1>The <span>Ring</span> language,<br>resident in your browser</h1>
+        <p class="sub">RingScript compiles the Ring VM to WebAssembly and keeps it alive between
+        evaluations — persistent state, trapped errors, interactive input, and a two-way JSON
+        bridge to JavaScript. No plugins, no server round-trips, no Emscripten.</p>
+        <div class="actions">
+            <a class="btn primary" href="examples.html">Open the Playground</a>
+            <a class="btn ghost" href="tutorial.html">Read the Tutorial</a>
+        </div>
+    </section>
+
+    <div class="quick">
+        <div class="label">Quick start — one command</div>
+        <pre><b>zig build serve</b>     <span style="color:var(--muted)"># builds the wasm, serves this site</span></pre>
+        <div class="note">Requires Zig 0.15+. Then open <span style="font-family:var(--mono)">http://localhost:8377/</span> — that's the whole workflow.</div>
     </div>
-</div>
 
-<div class="panel">
-    <p class="label">Output</p>
-    <pre id="out"></pre>
-</div>
+    <div class="cards">
+        <div class="card">
+            <h3>Resident, not batch</h3>
+            <p>One <code>RingState</code> lives for the whole page. <code>x = 5</code> in one eval,
+            <code>see x</code> in the next. Errors are trapped with real line numbers and never
+            kill the VM — 1000 evals, flat memory.</p>
+        </div>
+        <div class="card">
+            <h3>Native-exact</h3>
+            <p>~850 programs — Ring's own samples, the documentation examples, and a 24-example
+            gallery — produce output <em>byte-identical</em> to native <code>ring.exe</code>,
+            verified continuously against the real thing.</p>
+        </div>
+        <div class="card">
+            <h3>Two-way JS bridge</h3>
+            <p><code>ring.call("Fn", {…})</code> sends JSON in and gets JSON out;
+            Ring's <code>jscall()</code> raises DOM events or invokes your handlers. Embed pure-Ring
+            libraries straight into the wasm.</p>
+        </div>
+    </div>
 
-<div class="panel">
-    <p class="label">Errors / VM messages</p>
-    <pre id="errbox"></pre>
-</div>
+    <h2>What it looks like</h2>
+    <div class="example">
+        <div class="pane">
+            <div class="head">Ring — runs in the Playground exactly like this</div>
+            <pre><span class="k">new</span> point { x=10 y=20 z=30 ? <span class="k">self</span> }
 
-<script src="ringscript.js"></script>
-<script>
-(async function () {
-    const $ = id => document.getElementById(id);
-    let vmMessages = "";
-    let ring;
-    try {
-        ring = await RingScript.load("ringscript.wasm", {
-            onOutput: text => { vmMessages += text; $("errbox").textContent = vmMessages; },
-        });
-        $("status").textContent = "ready — resident RingState initialized";
-        $("run").disabled = false;
-        $("reset").disabled = false;
-    } catch (e) {
-        $("status").textContent = "failed to load: " + e.message;
-        throw e;
-    }
+<span class="k">class</span> point x y z</pre>
+        </div>
+        <div class="pane">
+            <div class="head">Output — same bytes as native Ring</div>
+            <pre>x: <span class="n">10</span>
+y: <span class="n">20</span>
+z: <span class="n">30</span></pre>
+        </div>
+    </div>
 
-    function run() {
-        vmMessages = "";
-        $("errbox").textContent = "";
-        const t0 = performance.now();
-        const r = ring.eval($("code").value);
-        const ms = (performance.now() - t0).toFixed(1);
-        $("out").textContent = r.output;
-        if (r.error) $("errbox").textContent = r.error + "\n" + vmMessages;
-        $("status").textContent = (r.ok ? "ok" : "error " + r.code) + " — " + ms + " ms";
-    }
+    <div class="example" style="margin-top:1rem">
+        <div class="pane">
+            <div class="head">JavaScript — the embedding API</div>
+            <pre><span class="k">const</span> ring = <span class="k">await</span> RingScript.load(<span class="s">"ringscript.wasm"</span>);
+ring.eval(<span class="s">'func Double aData return [ :value = aData[:n] * 2 ]'</span>);
+<span class="k">const</span> r = ring.call(<span class="s">"Double"</span>, { n: <span class="n">21</span> });
+<span class="c">// r.result --&gt; { value: 42 }</span></pre>
+        </div>
+        <div class="pane">
+            <div class="head">Why</div>
+            <pre style="white-space:pre-wrap">Script business logic in Ring, keep the
+page in JavaScript. The seam is JSON both
+ways — and entirely optional.</pre>
+        </div>
+    </div>
 
-    $("run").addEventListener("click", run);
-    $("code").addEventListener("keydown", e => {
-        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); run(); }
-    });
-    $("reset").addEventListener("click", () => {
-        ring.reset();
-        $("out").textContent = "";
-        $("errbox").textContent = "";
-        $("status").textContent = "VM reset — fresh RingState";
-    });
-})();
-</script>
+    <h2>Verified against the real thing</h2>
+    <div class="verify">
+        <div><div class="num">24</div><div class="what">gallery examples, byte-identical to ring.exe</div></div>
+        <div><div class="num">~284</div><div class="what">official Ring samples swept, zero mismatches</div></div>
+        <div><div class="num">~550</div><div class="what">documentation code blocks swept, zero mismatches</div></div>
+        <div><div class="num">29</div><div class="what">permanent gates: state, errors, memory, I/O, bridge</div></div>
+    </div>
+
+    <h2>Not a delivery vehicle — by design</h2>
+    <p style="color:var(--muted); max-width:46rem">
+    RingScript is the <em>interactive</em> niche: playgrounds, notebooks, teaching, live business-rule
+    evaluation. File systems, OS calls, threads and GUI bindings are deliberately absent — programs
+    that ask for them get a clean, trappable Ring error, never a dead runtime.</p>
+
+    <footer>
+        MIT License · Mansour Ayouni ·
+        <a href="tutorial.html">Tutorial</a> ·
+        <a href="https://ring-lang.github.io/">Ring documentation ↗</a>
+    </footer>
+</main>
 </body>
 </html>

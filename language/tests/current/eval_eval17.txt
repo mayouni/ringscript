@@ -1,5 +1,0 @@
-5
-x value = 10
-
-wow
-wow

@@ -1,2 +1,0 @@
-Command: I want window
-Pass NaturalLib Error when using I want nothing

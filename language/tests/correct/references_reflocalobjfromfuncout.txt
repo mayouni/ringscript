@@ -1,4 +1,0 @@
-before
-data: test
-
-after

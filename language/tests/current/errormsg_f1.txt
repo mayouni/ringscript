@@ -1,3 +1,0 @@
-
-Line 3 Error (R35) : Can't create/open the file 
-In read() in file B:\ring\language\tests\scripts\errormsg\f3.ring 

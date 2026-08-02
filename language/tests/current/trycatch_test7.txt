@@ -1,4 +1,0 @@
-start
-beforetestfunc
-beforeloop
-end

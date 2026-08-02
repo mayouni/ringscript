@@ -1,3 +1,0 @@
-Command: I want window
-Command: I want button
-Pass NaturalLib Error

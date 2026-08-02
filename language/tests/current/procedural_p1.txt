@@ -1,2 +1,0 @@
-Using Clock()
-After the loop

@@ -3,50 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RingScript IDE — example gallery</title>
-<link rel="icon" href="../favicon.ico">
+<title>RingScript Playground — 24 Ring examples, editable</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="site.css">
 <style>
-    :root {
-        --bg: #f6f7f9;
-        --panel: #ffffff;
-        --ink: #24292f;
-        --muted: #6a737d;
-        --accent: #1a7f5a;
-        --accent-ink: #ffffff;
-        --error: #b42318;
-        --border: #d8dee4;
-        --gutter-bg: #eef0f3;
-        --line-hl: rgba(26, 127, 90, 0.08);
-        --sel: rgba(26, 127, 90, 0.22);
-        --tok-kw: #9333c9;
-        --tok-str: #0a7d4b;
-        --tok-num: #b35c00;
-        --tok-com: #8b949e;
-        --tok-atom: #0b6bcb;
-        --tok-fn: #7a4f01;
-        --mono: "Cascadia Code", Consolas, "Courier New", monospace;
-    }
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --bg: #14171a;
-            --panel: #1c2126;
-            --ink: #d9dee3;
-            --muted: #8b949e;
-            --accent: #3fb984;
-            --accent-ink: #0c1210;
-            --error: #ef6a5a;
-            --border: #30363d;
-            --gutter-bg: #181d21;
-            --line-hl: rgba(63, 185, 132, 0.10);
-            --sel: rgba(63, 185, 132, 0.30);
-            --tok-kw: #c792ea;
-            --tok-str: #7ee2a8;
-            --tok-num: #f0a45d;
-            --tok-com: #6a737d;
-            --tok-atom: #6cb6ff;
-            --tok-fn: #e2c08d;
-        }
-    }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
@@ -245,8 +205,14 @@
 </head>
 <body>
 
+<nav class="site">
+    <a class="logo" href="index.html">Ring<span>Script</span></a>
+    <a href="index.html">Home</a>
+    <a class="active" href="examples.html">Playground</a>
+    <a href="repl.html">REPL</a>
+    <a href="tutorial.html">Tutorial</a>
+</nav>
 <header>
-    <span class="brand">RingScript <small>IDE</small></span>
     <select id="picker" title="Example"></select>
     <button id="run" disabled>&#9654; Run</button>
     <span id="status">loading wasm&hellip;</span>

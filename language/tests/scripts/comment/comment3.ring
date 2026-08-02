@@ -1,3 +1,0 @@
-// comment
-
-? "End of test!"

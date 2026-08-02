@@ -87,7 +87,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const mod = b.createModule(.{
-        .root_source_file = b.path("bridge.zig"),
+        .root_source_file = b.path("src/bridge.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -98,7 +98,7 @@ pub fn build(b: *std.Build) void {
         .flags = &vm_cflags,
     });
     mod.addCSourceFiles(.{
-        .files = &.{"wasi_stubs.c"},
+        .files = &.{"src/wasi_stubs.c"},
         .flags = &stub_cflags,
     });
 
@@ -118,7 +118,26 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
 
     // `zig build` drops the artifact in zig-out/bin/ringscript.wasm; also copy
-    // it next to the web page so the demo folder is self-contained.
+    // it next to the web pages so the site folder is self-contained.
     const copy = b.addInstallFile(exe.getEmittedBin(), "../web/ringscript.wasm");
     b.getInstallStep().dependOn(&copy.step);
+
+    // `zig build serve` — build everything, then serve web/ on localhost.
+    // The one command a programmer needs: compile the VM to wasm, refresh
+    // the site artifact, start the dev server, print the URLs.
+    const serve_exe = b.addExecutable(.{
+        .name = "ringscript-serve",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/serve.zig"),
+            .target = b.graph.host,
+            .optimize = .ReleaseSafe,
+            .link_libc = true,
+        }),
+    });
+    const run_serve = b.addRunArtifact(serve_exe);
+    run_serve.setCwd(b.path("."));
+    if (b.args) |args| run_serve.addArgs(args);
+    run_serve.step.dependOn(b.getInstallStep());
+    const serve_step = b.step("serve", "Build the wasm runtime and serve the site on http://localhost:8377/");
+    serve_step.dependOn(&run_serve.step);
 }

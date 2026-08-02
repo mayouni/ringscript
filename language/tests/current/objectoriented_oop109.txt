@@ -1,6 +1,0 @@
-hello from A
-hello from A
-hello from B
-hello from A
-hello from B
-hello from C

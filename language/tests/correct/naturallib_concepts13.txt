@@ -1,4 +1,0 @@
-Command: I want window
-Command: I want window now
-Command: I want window now
-Command: I want window

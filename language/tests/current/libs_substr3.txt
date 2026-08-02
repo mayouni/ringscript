@@ -1,2 +1,0 @@
-Using ? substr(cStr,"", "nice")
-Bad parameter value!

@@ -1,4 +1,0 @@
-NULL
-OBJECT
-SELF
-1

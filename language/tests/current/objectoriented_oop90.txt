@@ -1,8 +1,0 @@
-Before adding getX()
-Counter: 0
-After adding getX()
-getter
-getter
-getter
-getter
-Counter: 4
