@@ -134,6 +134,10 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
+    // Install the server exe too, so launchers (Start-Playground.bat) can
+    // run it directly from zig-out/bin without going through `zig build`.
+    b.installArtifact(serve_exe);
+
     const run_serve = b.addRunArtifact(serve_exe);
     run_serve.setCwd(b.path("."));
     if (b.args) |args| run_serve.addArgs(args);

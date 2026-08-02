@@ -41,6 +41,12 @@ runs every `text/ring` block, and exposes `window.ring`. The
 [tutorial](web/tutorial.html) covers the whole API step by step with live
 demos; the home page runs this exact mini-app.
 
+## Running the site locally
+
+On Windows, just **double-click `Start-Playground.bat`** — it builds the
+runtime if needed (first run only), starts the embedded web server, and
+opens the Playground in your browser. Close the server window to stop.
+
 ## Developing the runtime
 
 ```bash
