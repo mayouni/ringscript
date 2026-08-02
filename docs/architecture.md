@@ -112,10 +112,11 @@ ringscript/
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
-│   ├── examples-data.js         its 24 examples (id / title / code / input)
+│   ├── examples/                the 24 examples, one plain .ring file each
+│   ├── examples-data.js         their manifest (id / title / give answers)
 │   ├── site.css                 shared design tokens
 │   ├── ringscript.js            the loader + WASI shim (the whole JS side)
-│   └── ringscript.wasm          built runtime (gitignored; zig build refreshes)
+│   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
 ├── tests/                       verification — see §6
 │   ├── gates.js                 29 permanent gates
@@ -181,7 +182,7 @@ Every claim in these docs is executable:
 ```bash
 node tests/gates.js             # 29 permanent gates: residency, errors,
                                 #   memory, io, bridge, line numbers
-node tests/examples-oracle.js   # all 24 Playground examples vs native ring.exe
+node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \
 node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.
@@ -192,3 +193,10 @@ The oracle suites run each program through **both** the wasm runtime
 and a native `ring.exe`, then compare byte-for-byte (nondeterministic
 programs — clock, random, date — are required to run cleanly rather
 than match). Current status: **zero mismatches, zero failures**.
+
+`examples-oracle.js` reads its programs straight out of
+`playground/examples/` — the very files the Playground fetches — so what
+is verified is what a reader is shown, not a copy of it. Adding an
+example means adding the `.ring` file and one manifest line in
+`playground/examples-data.js`; the oracle then covers it automatically,
+and the file stays runnable with `ring.exe` on its own.

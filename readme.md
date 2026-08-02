@@ -189,10 +189,11 @@ ringscript/
 │
 ├── playground/                  the site — and the two files you deploy
 │   ├── index.html               the Playground — the project's single page
-│   ├── examples-data.js         its 24 examples (id / title / code / input)
+│   ├── examples/                the 24 examples, one plain .ring file each
+│   ├── examples-data.js         their manifest (id / title / give answers)
 │   ├── site.css                 shared design tokens
 │   ├── ringscript.js            the loader + WASI shim — the whole JS side
-│   └── ringscript.wasm          the built runtime (gitignored; zig build makes it)
+│   └── ringscript.wasm          the built runtime — committed, so no build step
 │
 ├── tests/                       verification, all runnable with Node
 │   ├── gates.js                 29 permanent gates: state, errors, memory, I/O, bridge
