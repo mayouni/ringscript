@@ -66,7 +66,10 @@ nav .cta {
 nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 
 /* --------------------------------------------------------------- hero */
-.hero { text-align: center; padding: 4rem 0 2.5rem; }
+/* Vertical only — the header is also a .wrap, and the shorthand would tie
+   on specificity and win by order, wiping out its horizontal padding.
+   (Same trap as `section`; there it is the element selector that loses.) */
+.hero { text-align: center; padding-top: 4rem; padding-bottom: 2.5rem; }
 .hero img.logo { width: 200px; height: auto; margin-bottom: .6rem; }
 .hero h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.15; margin: .3rem 0 .8rem; letter-spacing: -.02em; }
 .hero h1 em { font-style: normal; color: var(--accent); }
