@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="ringscript-logo.png" alt="RingScript" width="620">
+  <img src="ringscript-logo.png" alt="RingScript" width="200">
 </p>
 
 <h1 align="center">The Ring language, resident in your browser</h1>
