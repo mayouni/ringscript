@@ -1,3 +1,5 @@
+<img src="ringscript-logo.png" alt="RingScript" width="180">
+
 # RingScript — the Ring language, resident in your browser
 
 RingScript compiles the [Ring](https://ring-lang.github.io/) VM to
