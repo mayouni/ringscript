@@ -542,16 +542,19 @@
     // every answer given so far in the queue — same code, same input,
     // same path — so the program lands exactly one question further.
     let liveAnswers = [];
+    let awaitingInput = false;
 
     // The "waiting" wording is written only here — i.e. only after a run
     // actually paused on a give. Never on load or when switching examples.
     function askShow() {
+        awaitingInput = true;
         $("ask-label").textContent = "The program is waiting for your input:";
         $("ask-box").hidden = false;
         $("ask-field").value = "";
         $("ask-field").focus();
     }
     function askHide() {
+        awaitingInput = false;
         $("ask-box").hidden = true;
         $("ask-label").textContent = "";
     }
@@ -600,6 +603,7 @@
     });
 
     function continueRun() {
+        if (!awaitingInput) return;   // only meaningful while a run is paused
         liveAnswers.push($("ask-field").value);
         run(true);
     }
