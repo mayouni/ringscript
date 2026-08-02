@@ -1,13 +1,13 @@
-# Vendor patches to language/
+# Vendor patches to ringvm/
 
-`language/` is the vendored Ring VM source (currently **1.27**, from
+`ringvm/` is the vendored Ring VM source (currently **1.27**, from
 the official 1.27 distribution). It carries two deliberate RingScript patches, both marked
 with `RINGSCRIPT PATCH` comments at the site. **Any future vendor swap
 must re-apply them** — then run `zig build -Drelease=true` and
 `node tests/gates.js` (the P2 line-number gates fail if either patch is
 missing).
 
-## 1. `language/src/vmeval.c` — keep line numbers in eval'd bytecode
+## 1. `ringvm/src/vmeval.c` — keep line numbers in eval'd bytecode
 
 Upstream wraps the eval parser call in `lNoLineNumber = 1 … = 0`, which
 strips `ICO_NEWLINE` instructions from eval'd code. The bridge runs all
@@ -15,7 +15,7 @@ user code through `eval()` (the try/catch shim in `bridge.zig`), so that
 would freeze `pVM->nLineNumber` at the try-entry line. The patch removes
 the forcing so the state's flag (default 0) is respected.
 
-## 2. `language/src/vmerror.c` — capture the failing line at error time
+## 2. `ringvm/src/vmerror.c` — capture the failing line at error time
 
 Adds a global `unsigned int rs_error_line` set from `pVM->nLineNumber`
 at the top of `ring_vm_error()` (after the active-error guard). Needed
@@ -27,7 +27,7 @@ number to its try-time value *before* the catch block runs — by the time
 Together these make `rs_last_error()` report the real failing line for
 multi-line evals (e.g. an error on line 3 reports `line 3: …`).
 
-## 3. `language/src/stmt.c` — fix `private` inside eval (upstream crash)
+## 3. `ringvm/src/stmt.c` — fix `private` inside eval (upstream crash)
 
 In the `K_PRIVATE` handler, `pParser->nClassMark` (from `newlabel2`) is a
 GLOBAL instruction number (`pGenCode size + nInstructionsCount`), but
@@ -39,7 +39,7 @@ eval, every class with a `private` section crashed the wasm instance.
 The patch subtracts `nInstructionsCount` at the lookup. Worth reporting
 upstream (a real crash bug, unlike the global/attribute scope rule).
 
-## 4. `language/src/vmexpr.c` — strtod errno portability (musl vs MSVC)
+## 4. `ringvm/src/vmexpr.c` — strtod errno portability (musl vs MSVC)
 
 In `ring_vm_stringtonum`, the error branch fires when `strtod` returned 0
 with `errno` set. On no-conversion input, musl (wasi-libc) sets `errno`

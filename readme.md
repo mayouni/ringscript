@@ -107,7 +107,7 @@ ringscript/
 │       ├── stzZql.ring          the StzWeb grammar engine (sample payload)
 │       └── stzzql_smoke.ring    its test suite — runs inside the browser
 │
-├── language/                    vendored Ring 1.27 VM (src + include only),
+├── ringvm/                      vendored Ring 1.27 VM (src + include only),
 │                                with 4 marked patches → docs/VENDOR_PATCHES.md
 │
 ├── playground/                  the site — and the two files you deploy

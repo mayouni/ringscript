@@ -39,7 +39,7 @@ extern fn ring_vm_api_getpointer(p: ?*anyopaque, n: c_int) ?*anyopaque;
 extern fn ring_vm_api_retstring2(p: ?*anyopaque, s: [*]const u8, n: c_uint) void;
 
 /// Line number captured at error time by the RINGSCRIPT PATCH in
-/// language/src/vmerror.c (catch-time state restore rewinds pVM->nLineNumber,
+/// ringvm/src/vmerror.c (catch-time state restore rewinds pVM->nLineNumber,
 /// so it cannot be read from the VM once the catch block runs).
 extern var rs_error_line: c_uint;
 extern fn rs_vm_decimals(p: ?*anyopaque) c_uint;

@@ -20,7 +20,7 @@ way around the repository, and change the runtime with confidence.*
 
 Three layers, three languages, each doing the one thing it is best at:
 
-- **The vendored Ring VM** (`language/`) — Ring's own C source,
+- **The vendored Ring VM** (`ringvm/`) — Ring's own C source,
   compiled to `wasm32-wasi` by Zig. Not a port, not a rewrite: the same
   compiler and VM that power `ring.exe`, which is why output is
   byte-identical to native.
@@ -101,7 +101,7 @@ ringscript/
 │       ├── stzZql.ring          sample embedded library
 │       └── stzzql_smoke.ring    its test suite
 │
-├── language/                    vendored Ring 1.27 (src + include) + 4 patches
+├── ringvm/                      vendored Ring 1.27 (src + include) + 4 patches
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
@@ -145,8 +145,8 @@ contract that makes them portable into the browser unchanged.
 
 ### Upgrading the vendored Ring
 
-Replace `language/` with the new version's `language/src` +
-`language/include`, re-apply the four patches from
+Replace `ringvm/` with the new version's `ringvm/src` +
+`ringvm/include`, re-apply the four patches from
 [VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and run the full test
 battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 1.26 → 1.27 upgrades in this repository's history each took minutes.
