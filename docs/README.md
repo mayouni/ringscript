@@ -10,6 +10,18 @@ WebAssembly, kept **resident** so state survives from one evaluation to
 the next. These documents take you from "what is this?" to scripting
 whole pages in Ring and extending the runtime itself.
 
+**Have Ring installed? Two commands and you are running:**
+
+```bash
+ringpm install ringscript from mayouni
+ringpm run ringscript          # the Playground opens in your browser
+```
+
+Nothing else is required — the package carries the runtime, the
+Playground, these documents and a prebuilt web server for your platform.
+[Getting started §2](getting-started.md#2-getting-those-two-files) covers
+the package CLI (`new`, `preview`, `where`, `version`).
+
 Read them in order — each builds on the previous one:
 
 | # | Document | What you'll learn |

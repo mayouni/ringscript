@@ -151,9 +151,16 @@ documentation in [docs/](docs/README.md).
 
 ```
 ringscript/
-├── build.zig                    one build: wasm runtime + dev server + serve step
+├── build.zig                    one build: wasm runtime + dev server + serve/dist
 ├── start-playground.bat         double-click launcher (Windows)
 ├── start-playground.sh          double-click launcher (macOS / Linux / BSD)
+│
+├── package.ring                 RingPM manifest — defines what a user downloads
+├── main.ring                    `ringpm run ringscript` — the self-locating CLI
+├── lib.ring                     the same operations, callable from your Ring code
+├── cli/starter.html             the page template used by `new`
+├── bin/                         prebuilt static servers, ~40 KB each (committed):
+│                                RingPM ships one per platform, so no Zig needed
 │
 ├── src/                         everything that becomes the runtime
 │   ├── bridge.zig               the resident bridge: rs_init / rs_eval / rs_call,
