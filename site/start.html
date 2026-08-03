@@ -6,7 +6,7 @@
 <title>Start here — RingScript</title>
 <meta name="description" content="Download one folder, double-click one file, and a web page written in Ring is running. No installation, no web experience needed.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.18">
+<link rel="stylesheet" href="style.css?v=0.9.19">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
@@ -33,6 +33,21 @@
         font-weight: 700; font-size: 1.05rem; display: grid; place-items: center;
     }
     .walk li b { color: var(--ink); }
+
+    /* A picture of the thing the step just described, so there is no doubt
+       about what should appear. Capped rather than full width: these are
+       small windows, and blowing them up would only soften them. */
+    .walk figure { margin: 1rem 0 .2rem; }
+    .walk figure img {
+        width: 100%; height: auto; display: block;
+        border: 1px solid var(--border); border-radius: 10px;
+    }
+    .walk figure.term img { max-width: 460px; }
+    .walk figure.page img { max-width: 340px; }
+    .walk figcaption {
+        font-size: .98rem; color: var(--muted);
+        text-align: left; margin-top: .5rem;
+    }
 
     /* what it is / is not */
     .isnot { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
@@ -93,9 +108,21 @@
       <b>Run anyway</b>. To avoid it altogether, right-click the zip →
       <b>Properties</b> → tick <b>Unblock</b> <em>before</em> unzipping.</span></li>
     <li><b>A small black window opens.</b> That is a web server, running on your own
-      machine. It is not an error. Leave it open while you work; close it to stop.</li>
+      machine. It is not an error. Leave it open while you work; close it to stop.
+      <figure class="term">
+        <img src="kit-screen-1.png" width="582" height="348"
+             alt="A black console window titled RingScript server, reading: RingScript dev server, Serving ./, Open http://localhost:8377/, Ctrl+C to stop">
+        <figcaption>This window is the server. Nothing to read or type — just leave
+          it be.</figcaption>
+      </figure></li>
     <li><b>Your browser opens</b> at <code>localhost:8377</code> and the page is
-      running. Type a name, press the button — that greeting comes from Ring.</li>
+      running. Type a name, press the button — that greeting comes from Ring.
+      <figure class="page">
+        <img src="kit-screen-2.png" width="712" height="999"
+             alt="A browser at localhost:8377 showing the page: a heading My first Ring page, a line reading Running Ring 1.27 in your browser, a name box with a Greet button, and two number boxes with an Add button">
+        <figcaption>Both buttons run Ring functions from
+          <code>app.ring</code>.</figcaption>
+      </figure></li>
     <li><b>Open <code>app.ring</code></b> in any text editor, change the greeting,
       save, and press Refresh in the browser. That is the whole edit cycle: no build
       step, no compiler, no tools.</li>
