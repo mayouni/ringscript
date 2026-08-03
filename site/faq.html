@@ -158,6 +158,11 @@ ring.eval(<span class="k">await</span> (<span class="k">await</span> fetch(<span
     for those files <code>load</code> works normally. That is how the JSON codec RingScript
     uses internally gets there. It is the right route for a library you always want present
     and never want to fetch — but it means rebuilding the runtime, which needs Zig.</p>
+    <p>A second library ships that way purely as proof it works: <strong>stzZql</strong>, a
+    grammar engine of several hundred lines — tokenizer, parser, evaluator — written in pure
+    core Ring for a filesystem, running unchanged where there is none.
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/zql-payload.md" target="_blank" rel="noopener">The ZQL payload <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    documents it, and is worth a look if you are considering embedding a library of your own.</p>
     <p>For your own application code, fetching and evaluating is simpler and needs no
     toolchain at all.</p>
   </div>
