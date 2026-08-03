@@ -6,7 +6,7 @@
 <title>Start here — RingScript</title>
 <meta name="description" content="Download one folder, double-click one file, and a web page written in Ring is running. No installation, no web experience needed.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.16">
+<link rel="stylesheet" href="style.css?v=0.9.17">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
@@ -83,7 +83,12 @@
   <ol class="walk">
     <li><b>Unzip it</b> anywhere — your Desktop is fine. Keep the folder together.</li>
     <li><b>Double-click the launcher</b> for your system:
-      <code>start-windows.bat</code>, or <code>start-mac-linux.sh</code>.</li>
+      <code>start-windows.bat</code>, or <code>start-mac-linux.sh</code>.
+      <br><span style="color:var(--muted)">On Windows you may first see
+      <em>“Windows protected your PC”</em> — that is SmartScreen, because the
+      little web server is an unsigned program. Click <b>More info</b>, then
+      <b>Run anyway</b>. To avoid it altogether, right-click the zip →
+      <b>Properties</b> → tick <b>Unblock</b> <em>before</em> unzipping.</span></li>
     <li><b>A small black window opens.</b> That is a web server, running on your own
       machine. It is not an error. Leave it open while you work; close it to stop.</li>
     <li><b>Your browser opens</b> at <code>localhost:8377</code> and the page is

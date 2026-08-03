@@ -31,6 +31,24 @@ The browser opens the first one. To see the clock, click the link on the
 page, or go to  http://localhost:8377/clock.html
 
 
+IF WINDOWS BLOCKS IT
+-------------------
+Windows marks everything downloaded from the internet, and the little web
+server in this folder is an unsigned program, so you may see:
+
+  "Windows protected your PC"      -> click "More info", then "Run anyway"
+
+To avoid it entirely, clear the mark BEFORE unzipping:
+
+  right-click ringscript-starter.zip -> Properties
+  -> tick "Unblock" at the bottom -> OK -> then unzip
+
+If the black window appears and closes at once, something else is most
+likely already using port 8377. Close the other program, or open
+start-windows.bat in a text editor and change 8377 to 8378 (it appears
+three times).
+
+
 WHAT YOU ARE LOOKING AT
 -----------------------
 Two files matter, and you can open both in any text editor:
