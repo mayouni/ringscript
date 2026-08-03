@@ -54,7 +54,7 @@ class stzZql
 		@nLine = 1
 		This.Advance()
 		while @aTok[1] != "eof"
-			if @aTok[1] != "ident" or @aTok[2] != "DEFINE"
+			if @aTok[1] != "ident" or not (strcmp(@aTok[2], "DEFINE") = 0)
 				This.Fail("Unknown verb '" + @aTok[2] + "'. The ZQL verb set is closed -- " +
 					"destructive or unrecognized operations are not part of the grammar.")
 			ok
@@ -129,20 +129,6 @@ class stzZql
 			@aTok = ["minus", "-", @nLine]
 			return
 		ok
-		if c = ":" and This.IsIdentStart(This.Peek(1))
-			nStart = @nPos + 1
-			@nPos = @nPos + 1
-			while @nPos <= len(@cSrc)
-				ch = substr(@cSrc, @nPos, 1)
-				if This.IsIdentChar(ch) or ch = "."
-					@nPos = @nPos + 1
-				else
-					exit
-				ok
-			end
-			@aTok = ["ref", substr(@cSrc, nStart, @nPos - nStart), @nLine]
-			return
-		ok
 		if c = "(" or c = ")" or c = "{" or c = "}" or c = "," or c = ":" or c = "*" or c = "+" or c = "/"
 			@nPos = @nPos + 1
 			aMap = [ ["(", "lparen"], [")", "rparen"], ["{", "lbrace"], ["}", "rbrace"],
@@ -197,8 +183,13 @@ class stzZql
 		ok
 		if This.IsIdentStart(c)
 			nStart = @nPos
-			while @nPos <= len(@cSrc) and This.IsIdentChar(substr(@cSrc, @nPos, 1))
-				@nPos = @nPos + 1
+			while @nPos <= len(@cSrc)
+				ch = substr(@cSrc, @nPos, 1)
+				if This.IsIdentChar(ch) or (ch = "." and This.IsIdentChar(substr(@cSrc, @nPos + 1, 1)))
+					@nPos = @nPos + 1
+				else
+					exit
+				ok
 			end
 			@aTok = ["ident", substr(@cSrc, nStart, @nPos - nStart), @nLine]
 			return
@@ -214,13 +205,13 @@ class stzZql
 		return cValue
 
 	def ExpectIdent(cValue)
-		if @aTok[1] != "ident" or @aTok[2] != cValue
+		if @aTok[1] != "ident" or not (strcmp(@aTok[2], cValue) = 0)
 			This.Fail("Expected '" + cValue + "' but found '" + @aTok[2] + "'")
 		ok
 		This.Advance()
 
 	def AtIdent(cValue)
-		return @aTok[1] = "ident" and @aTok[2] = cValue
+		return @aTok[1] = "ident" and strcmp(@aTok[2], cValue) = 0
 
 	# ------------------------------------------------------------- parser
 
@@ -269,10 +260,6 @@ class stzZql
 
 	def ParseOperand()
 		switch @aTok[1]
-		on "ref"
-			v = @aTok[2]
-			This.Advance()
-			return ["ref", v]
 		on "string"
 			v = @aTok[2]
 			This.Advance()
@@ -282,27 +269,30 @@ class stzZql
 			This.Advance()
 			return ["num", v]
 		on "ident"
-			if @aTok[2] = "true" or @aTok[2] = "false"
-				bVal = (@aTok[2] = "true")
+			if strcmp(@aTok[2], "true") = 0 or strcmp(@aTok[2], "false") = 0
+				bVal = (strcmp(@aTok[2], "true") = 0)
 				This.Advance()
 				return ["bool", bVal]
 			ok
-			if @aTok[2] = "SUM" or @aTok[2] = "COUNT" or @aTok[2] = "AVG" or
-			   @aTok[2] = "MIN" or @aTok[2] = "MAX"
+			if strcmp(@aTok[2], "SUM") = 0 or strcmp(@aTok[2], "COUNT") = 0 or
+			   strcmp(@aTok[2], "AVG") = 0 or strcmp(@aTok[2], "MIN") = 0 or
+			   strcmp(@aTok[2], "MAX") = 0
 				cFn = @aTok[2]
 				This.Advance()
 				This.Expect("lparen")
-				cRefName = This.Expect("ref")
+				cRefName = This.Expect("ident")
 				This.Expect("rparen")
 				return ["agg", cFn, cRefName]
 			ok
-			This.Fail("Expected a value or :reference, found '" + @aTok[2] + "'")
+			v = @aTok[2]
+			This.Advance()
+			return ["ref", v]
 		other
-			This.Fail("Expected a value or :reference, found '" + @aTok[2] + "'")
+			This.Fail("Expected a value or field reference, found '" + @aTok[2] + "'")
 		off
 
 	# aexpr := aterm { (+|-) aterm } ; aterm := afactor { (*|/) afactor }
-	# afactor := ( aexpr ) | ROUND(aexpr) | number | :ref | AGG(:ref)
+	# afactor := ( aexpr ) | ROUND(aexpr) | number | ref | AGG(ref)
 	def ParseAExpr()
 		nLeft = This.ParseATerm()
 		while @aTok[1] = "plus" or @aTok[1] = "minus"
@@ -338,7 +328,7 @@ class stzZql
 			This.Expect("rparen")
 			return nInner
 		ok
-		if @aTok[1] = "ident" and @aTok[2] = "ROUND"
+		if @aTok[1] = "ident" and strcmp(@aTok[2], "ROUND") = 0
 			This.Advance()
 			This.Expect("lparen")
 			nInner = This.ParseAExpr()
@@ -356,7 +346,7 @@ class stzZql
 		return ""
 
 	def ParseEntity()
-		cName = This.Expect("ref")
+		cName = This.Expect("ident")
 		This.Expect("lparen")
 		nFields = 0
 		while @aTok[1] != "rparen"
@@ -387,17 +377,17 @@ class stzZql
 		@aEntities + [cName, nFields, cRationale]
 
 	def ParseZone()
-		cName = This.Expect("ref")
+		cName = This.Expect("ident")
 		This.ExpectIdent("AS")
 		cFormat = This.Expect("ident")
 		if cFormat != "JSON"
 			This.Fail("Landing zone format '" + cFormat + "' is not in the grammar -- v0 accepts JSON only")
 		ok
 		if not This.AtIdent("INTO")
-			This.Fail("A landing zone must declare INTO :flow -- imports have no side door")
+			This.Fail("A landing zone must declare INTO flow -- imports have no side door")
 		ok
 		This.Advance()
-		cInto = This.Expect("ref")
+		cInto = This.Expect("ident")
 		cRationale = This.ParseRationale()
 		@aZones + [cName, cFormat, cInto, cRationale]
 
@@ -405,7 +395,7 @@ class stzZql
 		return len(@aZones)
 
 	def ParseNorm()
-		cName = This.Expect("ref")
+		cName = This.Expect("ident")
 		This.ExpectIdent("AS")
 		This.Expect("lparen")
 		This.ExpectIdent("RULE")
@@ -419,7 +409,7 @@ class stzZql
 		@aNorms + [cName, cMessage, nRule]
 
 	def ParseFlow()
-		cName = This.Expect("ref")
+		cName = This.Expect("ident")
 		This.Expect("lparen")
 		nSteps = 0
 		while @aTok[1] != "rparen"
@@ -441,18 +431,18 @@ class stzZql
 				This.Expect("colon")
 				switch cKey
 				on "ACTOR"
-					cActor = This.Expect("ref")
+					cActor = This.Expect("ident")
 				on "VALIDATE"
 					nValidate = This.ParseExpr()
 				on "FORMULA"
-					cFormulaTarget = This.Expect("ref")
+					cFormulaTarget = This.Expect("ident")
 					cEq = This.Expect("op")
 					if cEq != "="
 						This.Fail("FORMULA expects ':field = expression'")
 					ok
 					nFormula = This.ParseAExpr()
 				on "ENFORCING"
-					cNorm = This.Expect("ref")
+					cNorm = This.Expect("ident")
 					@aEnforcing + [cName, cStepName, cNorm]
 				on "ON_FAIL"
 					cOnFailVerb = This.Expect("ident")
