@@ -115,13 +115,14 @@ func Greet aEv
 (`:settext` / `:gettext` / `:getvalue` — extend with `ring.on(name, fn)`),
 runs every `text/ring` block, and exposes `window.ring`.
 
-**The documentation lives in [docs/](docs/README.md)** — five didactic
+**The documentation lives in [docs/](docs/README.md)** — six didactic
 markdown guides, from first page to runtime internals:
 [Getting started](docs/getting-started.md) ·
 [Scripting pages in Ring](docs/scripting-pages.md) ·
 [The JavaScript API](docs/api.md) ·
 [Architecture](docs/architecture.md) ·
-[Compatibility & scope](docs/compatibility.md).
+[Compatibility & scope](docs/compatibility.md) ·
+[The ZQL payload](docs/zql-payload.md).
 
 ## Running the Playground locally
 
@@ -182,7 +183,7 @@ ringscript/
 │   └── ringlib/                 pure Ring, baked into the wasm
 │       ├── json.ring            the pure-Ring JSON codec
 │       ├── seam.ring            Page() and Platform(), the outward seam
-│       ├── stzZql.ring          the StzWeb grammar engine (sample payload)
+│       ├── stzZql.ring          the ZQL engine — docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite — runs inside the browser
 │
 ├── ringvm/                      vendored Ring 1.27 VM (src + include only),

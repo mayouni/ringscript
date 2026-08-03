@@ -79,7 +79,7 @@ const phases = {
         check("smoke test loads via embedded map", r.ok, r.error);
         check("10 passed, 0 failed", r.output.includes("10 passed, 0 failed"), r.output.slice(-80));
         // load resolved a nested relative load too (smoke loads stzZql.ring)
-        const q = ring.eval('o2 = StzZqlQ("DEFINE ENTITY :m (id: uuid)") see o2.CountEntities()');
+        const q = ring.eval('o2 = StzZqlQ("DEFINE ENTITY m (id: uuid)") see o2.CountEntities()');
         check("stzZql stays resident after load", q.ok && q.output === "1", JSON.stringify(q));
     },
 
@@ -97,7 +97,7 @@ const phases = {
         ring.eval('load "ringlib/stzzql_smoke.ring"');
         ring.eval('func RunCollect aData\n' +
             '  cQ = char(34)\n' +
-            '  o = StzZqlQ("DEFINE FLOW :collect (STEP 1: RECORD -> { ACTOR: :collector, VALIDATE: :member != " + cQ + cQ + ", ON_FAIL: REJECT " + cQ + "NO_MEMBER" + cQ + " })")\n' +
+            '  o = StzZqlQ("DEFINE FLOW collect (STEP 1: RECORD -> { ACTOR: collector, VALIDATE: member != " + cQ + cQ + ", ON_FAIL: REJECT " + cQ + "NO_MEMBER" + cQ + " })")\n' +
             '  return o.RunFlow("collect", aData)');
         const flow = ring.call("RunCollect", { member: "Aminata", amount: 5000 });
         check("stzZql flow result returns as JSON", flow.ok && flow.result.status === "complete", JSON.stringify(flow.result));

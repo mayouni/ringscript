@@ -75,7 +75,8 @@ aPackageInfo = [
 		"docs/scripting-pages.md",
 		"docs/api.md",
 		"docs/architecture.md",
-		"docs/compatibility.md"
+		"docs/compatibility.md",
+		"docs/zql-payload.md"
 	],
 	:ringfolderfiles = 	[
 

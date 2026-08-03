@@ -106,7 +106,7 @@ ringscript/
 │   └── ringlib/                 pure Ring baked into the wasm
 │       ├── json.ring            the pure-Ring JSON codec
 │       ├── seam.ring            Page() and Platform(), the outward seam
-│       ├── stzZql.ring          sample embedded library
+│       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
 │
 ├── ringvm/                      vendored Ring 1.27 (src + include) + 4 patches

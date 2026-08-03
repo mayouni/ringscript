@@ -31,6 +31,7 @@ Read them in order — each builds on the previous one:
 | 3 | [The JavaScript API](api.md) | Every call and option: `boot`, `load`, `eval`, `call`, `on`, input, errors |
 | 4 | [Architecture](architecture.md) | How it works inside, the repository layout, building and extending the runtime |
 | 5 | [Compatibility & scope](compatibility.md) | What works (verified against native Ring), what's excluded and why, the full-stack picture |
+| 6 | [The ZQL payload](zql-payload.md) | The library baked into the wasm: why it is there, and the grammar it accepts |
 
 Reference material:
 

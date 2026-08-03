@@ -3,7 +3,7 @@
 load "stzZql.ring"
 
 cSrc = '
-DEFINE ENTITY :deposit (
+DEFINE ENTITY deposit (
   id: uuid,
   member: text,
   amount: currency,
@@ -11,20 +11,20 @@ DEFINE ENTITY :deposit (
   status: enum("STAGED", "AUDITED", "ACTIVE")
 ) RATIONALE "One member contribution to one round of the circle"
 
-DEFINE NORM :positive_deposit AS (
-  RULE: :amount > 0,
+DEFINE NORM positive_deposit AS (
+  RULE: amount > 0,
   MESSAGE: "A deposit must bring something to the circle"
 )
 
-DEFINE FLOW :collect (
+DEFINE FLOW collect (
   STEP 1: RECORD -> {
-    ACTOR: :collector,
-    VALIDATE: :member != "",
+    ACTOR: collector,
+    VALIDATE: member != "",
     ON_FAIL: REJECT "NO_MEMBER"
   },
   STEP 2: AUDIT -> {
-    ACTOR: :treasurer,
-    ENFORCING: :positive_deposit,
+    ACTOR: treasurer,
+    ENFORCING: positive_deposit,
     ON_SUCCESS: COMMIT_TO_BEDROCK
   }
 ) RATIONALE "The collector records; the treasurer audits"
