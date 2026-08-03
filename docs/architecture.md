@@ -120,7 +120,7 @@ ringscript/
 │   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
 ├── tests/                       verification — see §6
-│   ├── gates.js                 29 permanent gates
+│   ├── gates.js                 32 permanent gates
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
 │   ├── extract-doc-snippets.js  builds the doc corpus from your Ring install
@@ -181,7 +181,7 @@ battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 Every claim in these docs is executable:
 
 ```bash
-node tests/gates.js             # 29 permanent gates: residency, errors,
+node tests/gates.js             # 32 permanent gates: residency, errors,
                                 #   memory, io, bridge, line numbers
 node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/samples-sweep.js     # ~284 official Ring samples vs native

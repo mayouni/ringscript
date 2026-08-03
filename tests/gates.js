@@ -81,6 +81,19 @@ const phases = {
         // load resolved a nested relative load too (smoke loads stzZql.ring)
         const q = ring.eval('o2 = StzZqlQ("DEFINE ENTITY m (id: uuid)") see o2.CountEntities()');
         check("stzZql stays resident after load", q.ok && q.output === "1", JSON.stringify(q));
+
+        // Describe() must read back in the grammar's own vocabulary — bare
+        // names, and every declaration kind including landing zones.
+        const d = ring.eval(
+            'o3 = StzZqlQ("DEFINE FLOW collect (STEP 1: R -> { ACTOR: a })' +
+            ' DEFINE LANDING_ZONE imp AS JSON INTO collect")\n' +
+            'see o3.Describe()');
+        check("Describe lists flows and zones",
+            d.ok && d.output.includes("flow collect") && d.output.includes("zone imp (JSON into collect)"),
+            JSON.stringify(d));
+        // A sigil is a colon that opens a name. `link:` keeps its colon —
+        // that one is a label, so match ":" + letter rather than any colon.
+        check("Describe emits no sigils", d.ok && !/:[A-Za-z_]/.test(d.output), JSON.stringify(d.output));
     },
 
     async p4() {

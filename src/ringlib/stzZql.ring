@@ -525,6 +525,10 @@ class stzZql
 			cOut = cOut + "flow " + @aFlows[i][1] + " (" + @aFlows[i][2] +
 				" steps) -- " + @aFlows[i][3] + nl
 		next
+		for i = 1 to len(@aZones)
+			cOut = cOut + "zone " + @aZones[i][1] + " (" + @aZones[i][2] +
+				" into " + @aZones[i][3] + ") -- " + @aZones[i][4] + nl
+		next
 		for i = 1 to len(@aEnforcing)
 			cOut = cOut + "link: flow " + @aEnforcing[i][1] + " step " + @aEnforcing[i][2] +
 				" ENFORCING norm " + @aEnforcing[i][3] + nl

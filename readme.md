@@ -198,7 +198,7 @@ ringscript/
 │   └── ringscript.wasm          the built runtime — committed, so no build step
 │
 ├── tests/                       verification, all runnable with Node
-│   ├── gates.js                 29 permanent gates: state, errors, memory, I/O, bridge
+│   ├── gates.js                 32 permanent gates: state, errors, memory, I/O, bridge
 │   ├── examples-oracle.js       the 24 Playground examples vs native ring
 │   ├── samples-sweep.js         bulk sweep: Ring's own samples + doc snippets
 │   ├── extract-doc-snippets.js  regenerates the doc corpus from your Ring install
@@ -236,7 +236,7 @@ ring.reset();                             // explicit fresh state
 
 ```bash
 zig build -Drelease=true       # build
-node tests/gates.js            # 29 gates
+node tests/gates.js            # 32 gates
 node tests/examples-oracle.js  # 24 examples vs native ring.exe
 node tests/samples-sweep.js    # ~284 official samples vs native
 node tests/extract-doc-snippets.js && node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.

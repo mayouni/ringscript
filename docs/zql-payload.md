@@ -3,7 +3,7 @@
 *Goal of this page: what `stzZql.ring` is, why it ships inside the wasm, and
 the grammar it accepts — as the Ring implementation actually parses it.*
 
-This is the fifth document. It assumes [Architecture](architecture.md).
+This is the sixth document. It assumes [Architecture](architecture.md).
 
 ## 1. Why a grammar engine is in here at all
 
@@ -165,7 +165,7 @@ o = StzZqlQ(cSource)          # parses, or raises "stzZql (line N): ..."
 
 o.CountEntities()  o.CountNorms()  o.CountFlows()  o.CountZones()
 o.EntityRationale(cName)   o.NormMessage(cName)   o.FlowRationale(cName)
-o.Describe()                  # entities, norms, flows and their norm links
+o.Describe()                  # every declaration, plus the norm links
 
 o.EvalNorm(cName, aData)      # aData is a Ring pair-list -> 1 or 0
 o.RunFlow(cName, aData)       # -> pair-list, keys below
@@ -178,6 +178,7 @@ sigils, so what it prints can be pasted back into a declaration:
 entity deposit (3 fields) -- one contribution
 norm positive_deposit -- "A deposit must bring something to the circle"
 flow collect (2 steps) -- The collector records; the treasurer audits
+zone monthly_import (JSON into collect) -- Bulk contributions still pass every step
 link: flow collect step AUDIT ENFORCING norm positive_deposit
 ```
 
@@ -217,7 +218,9 @@ the property that makes running it inside a browser reasonable at all.
 beside the engine and runs **inside the wasm** as gate P3 — it parses the
 declarations above, evaluates a norm both ways, runs a flow to completion, has
 one rejected at `RECORD` and one stopped at `AUDIT` by its norm, and confirms
-`DROP` is unparseable. Gate P4 then calls a flow through `ring.call()` and
+`DROP` is unparseable. Two further P3 gates check that `Describe()` lists every
+declaration kind, zones included, and emits no sigils. Gate P4 then calls a
+flow through `ring.call()` and
 checks the result arrives as JSON.
 
 ```bash
