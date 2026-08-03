@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start here — RingScript</title>
+<meta name="description" content="Download one folder, double-click one file, and a web page written in Ring is running. No installation, no web experience needed.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.16">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+
+    /* the one thing this page exists to make obvious */
+    .get {
+        background: var(--accent-soft); border-radius: 14px;
+        padding: 1.8rem 1.6rem; margin: 2rem 0; text-align: center;
+    }
+    .get .btn { font-size: 1.08rem; padding: .8rem 2rem; }
+    .get .meta { color: var(--ink-soft); font-size: 1rem; margin: .9rem 0 0; }
+
+    /* numbered walkthrough */
+    .walk { counter-reset: w; list-style: none; padding: 0; margin: 1.6rem 0; }
+    .walk li {
+        counter-increment: w; position: relative;
+        padding-left: 3.2rem; margin-bottom: 1.6rem; color: var(--ink-soft);
+    }
+    .walk li::before {
+        content: counter(w); position: absolute; left: 0; top: -.1rem;
+        width: 2.2rem; height: 2.2rem; border-radius: 50%;
+        background: var(--accent); color: #fff;
+        font-weight: 700; font-size: 1.05rem; display: grid; place-items: center;
+    }
+    .walk li b { color: var(--ink); }
+
+    /* what it is / is not */
+    .isnot { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
+    .isnot div { border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem; }
+    .isnot h3 { margin: 0 0 .5rem; font-size: 1.1rem; }
+    .isnot p { margin: 0 0 .5rem; font-size: 1.03rem; }
+    .isnot p:last-child { margin-bottom: 0; }
+    .isnot .yes h3 { color: var(--accent); }
+    .isnot .no  h3 { color: #a2231a; }
+
+    .tree {
+        background: var(--code-bg); border: 1px solid var(--code-border);
+        border-radius: 10px; padding: 1.1rem 1.2rem; margin: 1.4rem 0;
+        font-family: var(--mono); font-size: 15px; line-height: 1.8;
+        overflow-x: auto; color: var(--code-ink);
+    }
+    .tree .c { color: var(--c); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a class="active" href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+  <h1>Start here</h1>
+  <p class="first">You do not need to know anything about web development. Download one
+  folder, double-click one file, and a web page written in Ring is running on your
+  machine. Nothing is installed.</p>
+
+  <div class="get">
+    <a class="btn primary" href="ringscript-starter.zip" download>Download the starter kit</a>
+    <p class="meta">One zip, about 240&nbsp;KB · Windows, macOS and Linux ·
+    nothing to install, no Ring required</p>
+  </div>
+
+  <h2>What happens, step by step</h2>
+  <ol class="walk">
+    <li><b>Unzip it</b> anywhere — your Desktop is fine. Keep the folder together.</li>
+    <li><b>Double-click the launcher</b> for your system:
+      <code>start-windows.bat</code>, or <code>start-mac-linux.sh</code>.</li>
+    <li><b>A small black window opens.</b> That is a web server, running on your own
+      machine. It is not an error. Leave it open while you work; close it to stop.</li>
+    <li><b>Your browser opens</b> at <code>localhost:8377</code> and the page is
+      running. Type a name, press the button — that greeting comes from Ring.</li>
+    <li><b>Open <code>app.ring</code></b> in any text editor, change the greeting,
+      save, and press Refresh in the browser. That is the whole edit cycle: no build
+      step, no compiler, no tools.</li>
+  </ol>
+
+  <h2>What is in the folder</h2>
+  <div class="tree">ringscript-starter/
+├── start-windows.bat     <span class="c">double-click this (Windows)</span>
+├── start-mac-linux.sh    <span class="c">or this (macOS / Linux)</span>
+├── README.txt            <span class="c">the same instructions, offline</span>
+│
+├── index.html            <span class="c">the page: boxes, buttons, text</span>
+├── app.ring              <span class="c">your Ring code — edit this one</span>
+│
+├── ringscript.js         <span class="c">loads the Ring engine  ~20 KB</span>
+├── ringscript.wasm       <span class="c">the Ring language     ~360 KB</span>
+└── server/               <span class="c">the little web server</span></div>
+
+  <p>Only two of those are RingScript itself: <code>ringscript.js</code> and
+  <code>ringscript.wasm</code>. To put Ring in a page of your own, copy those two
+  next to your HTML. That is the entire deployment story — any web host will serve
+  them, and there is no server-side component.</p>
+
+  <h2>What RingScript is — and what it is not</h2>
+  <div class="isnot">
+    <div class="yes">
+      <h3>It is</h3>
+      <p>The Ring language running <strong>inside a web page</strong>, so the logic
+      of a page can be written in Ring instead of JavaScript.</p>
+      <p>Your rules, calculations and decisions — the part you already know how to
+      write — running where a browser can reach them.</p>
+    </div>
+    <div class="no">
+      <h3>It is not</h3>
+      <p>A way to run Ring programs you already have. A <strong>desktop</strong>
+      program will not run here: anything using RingQt, GUILib, windows or forms
+      draws through Qt, which does not exist in a browser.</p>
+      <p>There is also no disk access, no <code>system()</code>, and no database
+      opened from a file — a browser tab has none of those.</p>
+    </div>
+  </div>
+
+  <p>So a program like <code>applications/analogclock/AnalogClock.ring</code> cannot
+  be loaded and run. The same <em>idea</em> works on the web, but the page is built
+  differently: the clock face is HTML, and Ring updates it. What carries over is your
+  Ring — the logic. What changes is the screen it draws on, and how the data arrives
+  (from a server, rather than from disk).</p>
+
+  <h2>If you would rather not download anything</h2>
+  <p>The <a href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  runs Ring in your browser right now, with 24 ready examples to edit and run. It is
+  the fastest way to confirm this is really Ring before you install a thing.</p>
+
+  <h2>When you want more</h2>
+  <p>The written guides go from this page to the internals, in order:
+  <a href="https://github.com/mayouni/ringscript/blob/main/docs/getting-started.md" target="_blank" rel="noopener">Getting started <span class="newtab" aria-hidden="true">&#8599;</span></a>,
+  then <a href="https://github.com/mayouni/ringscript/blob/main/docs/scripting-pages.md" target="_blank" rel="noopener">Scripting pages in Ring <span class="newtab" aria-hidden="true">&#8599;</span></a>.
+  The <a href="faq.html">Q&amp;A</a> answers the questions that come up first — including
+  how to split your program across several <code>.ring</code> files.</p>
+
+  <div class="actions" style="justify-content:flex-start; margin-top:2.4rem">
+    <a class="btn primary" href="ringscript-starter.zip" download>Download the starter kit</a>
+    <a class="btn ghost" href="playground/" target="_blank" rel="noopener">Or try it online <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

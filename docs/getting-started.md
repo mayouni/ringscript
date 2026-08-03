@@ -2,6 +2,30 @@
 
 *Goal of this page: in five minutes, a web page of yours runs Ring code.*
 
+## 0. The shortest path: download a folder that already works
+
+If you have never built a web page, start here and skip the rest of this
+section. The **starter kit** is a folder containing a small working page,
+the runtime, and a web server — nothing to install:
+
+**<https://mayouni.github.io/ringscript/start.html>**
+
+Unzip it, double-click `start-windows.bat` (or `start-mac-linux.sh`), and
+your browser opens on a page whose logic is Ring. Edit `app.ring`, save,
+press Refresh. That is the entire cycle.
+
+> **First, the thing that surprises everyone.** RingScript runs Ring
+> *inside a web page*. It is **not** a way to run Ring programs you already
+> have. A desktop program will not work here — anything using RingQt,
+> GUILib, windows or forms draws through Qt, which does not exist in a
+> browser. `applications/analogclock/AnalogClock.ring` cannot be loaded and
+> run. The same *idea* ports fine: the clock face becomes HTML and Ring
+> updates it. Your Ring logic carries over; the screen it draws on does
+> not. See [Compatibility](compatibility.md) for the full boundary.
+
+The rest of this page explains what the kit is made of, so you can do the
+same thing in a project of your own.
+
 ## 1. What you are deploying — and what you are not
 
 RingScript is **two static files**. There is no toolchain, no bundler,

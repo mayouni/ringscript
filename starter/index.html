@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+    index.html — the page. The parts you would change are marked.
+
+    Everything between <body> and </body> is what you see on screen.
+    The three lines at the very bottom are what put Ring in the page.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My first Ring page</title>
+<style>
+    /* Appearance only — nothing here affects how Ring works. */
+    body   { font: 17px/1.6 system-ui, "Segoe UI", sans-serif; max-width: 34rem;
+             margin: 2.5rem auto; padding: 0 1.2rem; color: #1c2126; }
+    h1     { font-size: 1.6rem; margin-bottom: .2rem; }
+    .card  { border: 1px solid #e2e8ee; border-radius: 12px; padding: 1.1rem 1.3rem;
+             margin: 1.2rem 0; }
+    input  { font: inherit; padding: .4rem .6rem; border: 1px solid #cfd8e3;
+             border-radius: 7px; width: 8rem; }
+    button { font: 600 inherit; padding: .45rem 1.2rem; border: 0; border-radius: 7px;
+             background: #1a7f5a; color: #fff; cursor: pointer; }
+    .out   { margin-top: .8rem; font-weight: 600; color: #1a7f5a; min-height: 1.6em; }
+    .muted { color: #6a737d; font-size: .95rem; }
+</style>
+</head>
+<body>
+
+<h1>My first Ring page</h1>
+<p class="muted" id="version">…</p>
+
+<!-- ------------------------------------------------------------------
+     Each button calls a Ring function by name, from app.ring.
+     Each id="..." below is how Ring finds that spot on the page.
+------------------------------------------------------------------- -->
+
+<div class="card">
+    <p>Type a name, then press the button:</p>
+    <input id="name" placeholder="your name">
+    <button onclick="ring.call('Greet')">Greet</button>
+
+    <div class="out" id="message"></div>
+    <div class="muted" id="count"></div>
+</div>
+
+<div class="card">
+    <p>Two numbers, added by Ring:</p>
+    <input id="first" value="20" style="width:5rem">
+    +
+    <input id="second" value="22" style="width:5rem">
+    <button onclick="ring.call('AddThem')">Add</button>
+
+    <div class="out" id="sum"></div>
+</div>
+
+<p class="muted">
+    Open <b>app.ring</b> in a text editor, change something, save, and press
+    Refresh. No build step, nothing to install.
+</p>
+
+<!-- ------------------------------------------------------------------
+     THE ONLY THREE LINES THAT PUT RING IN A PAGE.
+     Copy these into any page of your own, next to ringscript.js
+     and ringscript.wasm, and you can write Ring in it.
+------------------------------------------------------------------- -->
+<script src="ringscript.js"></script>
+<script type="text/ring" src="app.ring"></script>
+<script>RingScript.boot().then(function () { ring.call("SayVersion"); });</script>
+
+</body>
+</html>
