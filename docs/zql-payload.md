@@ -165,10 +165,20 @@ o = StzZqlQ(cSource)          # parses, or raises "stzZql (line N): ..."
 
 o.CountEntities()  o.CountNorms()  o.CountFlows()  o.CountZones()
 o.EntityRationale(cName)   o.NormMessage(cName)   o.FlowRationale(cName)
-o.Describe()                  # the declaration surface as text
+o.Describe()                  # entities, norms, flows and their norm links
 
 o.EvalNorm(cName, aData)      # aData is a Ring pair-list -> 1 or 0
 o.RunFlow(cName, aData)       # -> pair-list, keys below
+```
+
+`Describe()` reads back in the same vocabulary you wrote — bare names, no
+sigils, so what it prints can be pasted back into a declaration:
+
+```
+entity deposit (3 fields) -- one contribution
+norm positive_deposit -- "A deposit must bring something to the circle"
+flow collect (2 steps) -- The collector records; the treasurer audits
+link: flow collect step AUDIT ENFORCING norm positive_deposit
 ```
 
 `RunFlow` returns `status` (`"complete"` or `"failed"`), `failedstep`,

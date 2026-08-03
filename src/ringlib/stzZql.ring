@@ -515,19 +515,19 @@ class stzZql
 	def Describe()
 		cOut = ""
 		for i = 1 to len(@aEntities)
-			cOut = cOut + "entity :" + @aEntities[i][1] + " (" + @aEntities[i][2] +
+			cOut = cOut + "entity " + @aEntities[i][1] + " (" + @aEntities[i][2] +
 				" fields) -- " + @aEntities[i][3] + nl
 		next
 		for i = 1 to len(@aNorms)
-			cOut = cOut + "norm :" + @aNorms[i][1] + ' -- "' + @aNorms[i][2] + '"' + nl
+			cOut = cOut + "norm " + @aNorms[i][1] + ' -- "' + @aNorms[i][2] + '"' + nl
 		next
 		for i = 1 to len(@aFlows)
-			cOut = cOut + "flow :" + @aFlows[i][1] + " (" + @aFlows[i][2] +
+			cOut = cOut + "flow " + @aFlows[i][1] + " (" + @aFlows[i][2] +
 				" steps) -- " + @aFlows[i][3] + nl
 		next
 		for i = 1 to len(@aEnforcing)
-			cOut = cOut + "link: flow :" + @aEnforcing[i][1] + " step " + @aEnforcing[i][2] +
-				" ENFORCING norm :" + @aEnforcing[i][3] + nl
+			cOut = cOut + "link: flow " + @aEnforcing[i][1] + " step " + @aEnforcing[i][2] +
+				" ENFORCING norm " + @aEnforcing[i][3] + nl
 		next
 		return cOut
 
@@ -796,7 +796,7 @@ class stzZql
 				return This.EvalExpr(@aNorms[i][3], aData)
 			ok
 		next
-		raise("stzZql: no norm named :" + cName)
+		raise("stzZql: no norm named " + cName)
 
 	# --------------------------------------------------------- flow runner
 
@@ -808,7 +808,7 @@ class stzZql
 			ok
 		next
 		if not bFound
-			raise("stzZql: no flow named :" + cFlowName)
+			raise("stzZql: no flow named " + cFlowName)
 		ok
 		aOutcomes = []
 		aComputed = []
