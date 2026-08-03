@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build an analog clock in Ring — a step-by-step tutorial</title>
+<meta name="description" content="A working analog clock for the web, with the logic written in Ring. Built from nothing in six steps, assuming no web experience.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.16">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+
+    .step {
+        margin: 2.8rem 0; padding-top: 1.6rem;
+        border-top: 1px solid var(--border);
+    }
+    .step:first-of-type { border-top: 0; padding-top: 0; }
+    .step h2 { display: flex; align-items: baseline; gap: .7rem; margin-top: 0; }
+    .step h2 .n {
+        flex: 0 0 auto;
+        width: 2rem; height: 2rem; border-radius: 50%;
+        background: var(--accent); color: #fff;
+        font-size: 1rem; font-weight: 700;
+        display: inline-grid; place-items: center;
+        transform: translateY(-.1em);
+    }
+
+    /* the clock, shown at rest */
+    figure.shot { margin: 1.6rem 0; text-align: center; }
+    figure.shot svg { width: 100%; max-width: 260px; height: auto; }
+    figure.shot .digital {
+        font: 700 1.5rem/1.2 var(--mono); color: var(--accent); margin-top: .3rem;
+    }
+    figure.shot .day { color: var(--muted); font-size: .98rem; }
+    .face   { fill: #fff; stroke: var(--ink); stroke-width: 3; }
+    .tick   { stroke: var(--ink); stroke-width: 2.5; }
+    .pin    { fill: var(--accent); }
+    .hand   { stroke-linecap: round; }
+    .hand.h { stroke: var(--ink); stroke-width: 6; }
+    .hand.m { stroke: var(--ink); stroke-width: 4; }
+    .hand.s { stroke: var(--accent); stroke-width: 2; }
+
+    .note {
+        background: var(--accent-soft); border-radius: 10px;
+        padding: 1rem 1.2rem; margin: 1.3rem 0;
+    }
+    .note p { color: var(--ink); margin: 0; }
+    .note p + p { margin-top: .6rem; }
+
+    table.angles { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: 1.02rem; }
+    table.angles th, table.angles td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border); }
+    table.angles th { color: var(--ink); }
+    table.angles td { color: var(--ink-soft); }
+    table.angles code { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+  <h1>Build an analog clock in Ring</h1>
+  <p class="first">A real clock — round face, three hands, ticking once a second — with
+  every decision made by Ring. It assumes you have never built a web page. About ten
+  minutes.</p>
+
+  <figure class="shot">
+    <svg viewBox="0 0 200 200" aria-label="the finished clock, showing ten past eleven">
+      <circle class="face" cx="100" cy="100" r="96"/>
+      <g class="tick">
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(0 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(30 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(60 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(90 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(120 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(150 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(180 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(210 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(240 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(270 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(300 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(330 100 100)"/>
+      </g>
+      <line class="hand h" x1="100" y1="100" x2="100" y2="58" transform="rotate(335 100 100)"/>
+      <line class="hand m" x1="100" y1="100" x2="100" y2="40" transform="rotate(61 100 100)"/>
+      <line class="hand s" x1="100" y1="100" x2="100" y2="32" transform="rotate(72 100 100)"/>
+      <circle class="pin" cx="100" cy="100" r="5"/>
+    </svg>
+    <div class="digital">23:10:12</div>
+    <div class="day">03/08/2026</div>
+    <figcaption>What you will have at the end. It is in the
+      <a href="start.html">starter kit</a> too, as <code>clock.html</code>.</figcaption>
+  </figure>
+
+  <div class="note">
+    <p><strong>Why not just run the desktop clock?</strong> A desktop clock program
+    opens a window and draws into it through Qt. A browser tab has no Qt and no window
+    to draw into, so that program cannot run here — see the
+    <a href="faq.html">Q&amp;A</a>.</p>
+    <p>But almost none of that program is <em>about</em> Qt. Working out where an hour
+    hand points at 23:10 is arithmetic, and arithmetic is what Ring is for. That part
+    carries over untouched. Only the drawing changes.</p>
+  </div>
+
+  <div class="step">
+  <h2><span class="n">1</span> Get a folder that already runs</h2>
+  <p>Download the <a href="start.html">starter kit</a>, unzip it, and double-click
+  <code>start-windows.bat</code> or <code>start-mac-linux.sh</code>. A small server
+  window opens and your browser lands on a working page.</p>
+  <p>Everything below happens in that folder. Create two new files there —
+  <code>myclock.html</code> and <code>myclock.ring</code> — and visit
+  <code>localhost:8377/myclock.html</code> as you go.</p>
+  </div>
+
+  <div class="step">
+  <h2><span class="n">2</span> Draw a face that never changes</h2>
+  <p>The face is just a picture: a circle, twelve marks, three lines. It is written in
+  <b>SVG</b> — shapes described as text, so nothing needs to be drawn by hand or loaded
+  as an image. Ring never touches any of it.</p>
+  <p>The coordinates run 0 to 200 across and down, so the middle is
+  <code>100,100</code>. A line from <code>100,100</code> up to <code>100,58</code>
+  points at twelve o'clock.</p>
+<pre class="code"><span class="t">&lt;svg</span> <span class="f">viewBox</span>=<span class="s">"0 0 200 200"</span><span class="t">&gt;</span>
+  <span class="t">&lt;circle</span> <span class="f">cx</span>=<span class="s">"100"</span> <span class="f">cy</span>=<span class="s">"100"</span> <span class="f">r</span>=<span class="s">"96"</span> <span class="f">fill</span>=<span class="s">"white"</span> <span class="f">stroke</span>=<span class="s">"black"</span><span class="t">/&gt;</span>
+
+  <span class="c">&lt;!-- one mark, then the same line turned 30 degrees at a time --&gt;</span>
+  <span class="t">&lt;line</span> <span class="f">x1</span>=<span class="s">"100"</span> <span class="f">y1</span>=<span class="s">"10"</span> <span class="f">x2</span>=<span class="s">"100"</span> <span class="f">y2</span>=<span class="s">"22"</span> <span class="f">transform</span>=<span class="s">"rotate(0 100 100)"</span><span class="t">/&gt;</span>
+  <span class="t">&lt;line</span> <span class="f">x1</span>=<span class="s">"100"</span> <span class="f">y1</span>=<span class="s">"10"</span> <span class="f">x2</span>=<span class="s">"100"</span> <span class="f">y2</span>=<span class="s">"22"</span> <span class="f">transform</span>=<span class="s">"rotate(30 100 100)"</span><span class="t">/&gt;</span>
+  <span class="c">&lt;!-- ...ten more, up to rotate(330 100 100) --&gt;</span>
+
+  <span class="c">&lt;!-- the three hands. Each has an id so Ring can find it. --&gt;</span>
+  <span class="t">&lt;line</span> <span class="f">id</span>=<span class="s">"hour-hand"</span>   <span class="f">x1</span>=<span class="s">"100"</span> <span class="f">y1</span>=<span class="s">"100"</span> <span class="f">x2</span>=<span class="s">"100"</span> <span class="f">y2</span>=<span class="s">"58"</span><span class="t">/&gt;</span>
+  <span class="t">&lt;line</span> <span class="f">id</span>=<span class="s">"minute-hand"</span> <span class="f">x1</span>=<span class="s">"100"</span> <span class="f">y1</span>=<span class="s">"100"</span> <span class="f">x2</span>=<span class="s">"100"</span> <span class="f">y2</span>=<span class="s">"40"</span><span class="t">/&gt;</span>
+  <span class="t">&lt;line</span> <span class="f">id</span>=<span class="s">"second-hand"</span> <span class="f">x1</span>=<span class="s">"100"</span> <span class="f">y1</span>=<span class="s">"100"</span> <span class="f">x2</span>=<span class="s">"100"</span> <span class="f">y2</span>=<span class="s">"32"</span><span class="t">/&gt;</span>
+<span class="t">&lt;/svg&gt;</span></pre>
+  <p>An <code>id</code> is a name you give one spot on the page. It is the only thing
+  Ring needs in order to reach it — exactly like naming a control on a desktop form.</p>
+  </div>
+
+  <div class="step">
+  <h2><span class="n">3</span> Turn about the middle, not the end</h2>
+  <p>One line of styling, and it matters: by default a shape turns about its own centre,
+  which would swing the hands around their midpoints. Both lines below say <em>turn
+  about the middle of the face</em>.</p>
+<pre class="code"><span class="t">&lt;style&gt;</span>
+  line { transform-box: view-box; transform-origin: 100px 100px; }
+<span class="t">&lt;/style&gt;</span></pre>
+  </div>
+
+  <div class="step">
+  <h2><span class="n">4</span> Work out the angles — this part is pure Ring</h2>
+  <p>A full turn is 360 degrees, and this is the whole idea of the clock:</p>
+  <table class="angles">
+    <tr><th>Hand</th><th>Because</th><th>Degrees</th></tr>
+    <tr><td>Second</td><td>60 seconds in a turn</td><td><code>seconds &times; 6</code></td></tr>
+    <tr><td>Minute</td><td>60 minutes in a turn</td><td><code>minutes &times; 6</code></td></tr>
+    <tr><td>Hour</td><td>12 hours in a turn</td><td><code>hours &times; 30</code></td></tr>
+  </table>
+  <p>One refinement makes it look real: at half past, a proper hour hand sits
+  <em>between</em> six and seven. So the minutes nudge the hour hand along
+  (<code>+ minutes &times; 0.5</code>), and the seconds nudge the minute hand
+  (<code>+ seconds &times; 0.1</code>).</p>
+  <p>In <code>myclock.ring</code>:</p>
+<pre class="code"><span class="k">func</span> Tick aData
+
+    cNow = time()          <span class="c"># "23:10:12"</span>
+
+    nHour   = number(substr(cNow, <span class="n">1</span>, <span class="n">2</span>))
+    nMinute = number(substr(cNow, <span class="n">4</span>, <span class="n">2</span>))
+    nSecond = number(substr(cNow, <span class="n">7</span>, <span class="n">2</span>))
+
+    nSecondAngle = nSecond * <span class="n">6</span>
+    nMinuteAngle = nMinute * <span class="n">6</span> + nSecond * <span class="n">0.1</span>
+    nHourAngle   = (nHour % <span class="n">12</span>) * <span class="n">30</span> + nMinute * <span class="n">0.5</span>
+
+    Page(<span class="a">:rotate</span>, [ <span class="a">:id</span> = <span class="s">"hour-hand"</span>,   <span class="a">:deg</span> = nHourAngle   ])
+    Page(<span class="a">:rotate</span>, [ <span class="a">:id</span> = <span class="s">"minute-hand"</span>, <span class="a">:deg</span> = nMinuteAngle ])
+    Page(<span class="a">:rotate</span>, [ <span class="a">:id</span> = <span class="s">"second-hand"</span>, <span class="a">:deg</span> = nSecondAngle ])
+
+    Page(<span class="a">:settext</span>, [ <span class="a">:id</span> = <span class="s">"digital"</span>, <span class="a">:text</span> = cNow ])</pre>
+  <p>That is ordinary Ring: <code>time()</code>, <code>substr()</code>,
+  <code>number()</code>, arithmetic. Nothing about it is web-specific except the two
+  <code>Page(...)</code> lines that hand the answer to the screen.</p>
+  <div class="note">
+    <p><strong>Why <code>aData</code>?</strong> Every Ring function called from the page
+    receives one value — whatever was sent with the call. This one sends nothing, so it
+    arrives empty. Declare it and ignore it; leaving it out is an error.</p>
+  </div>
+  </div>
+
+  <div class="step">
+  <h2><span class="n">5</span> Teach the page one new word</h2>
+  <p>A page understands three requests from Ring out of the box:
+  <code>settext</code>, <code>gettext</code> and <code>getvalue</code>. Turning a shape
+  is a fourth, so you add it — four lines, once:</p>
+<pre class="code"><span class="t">&lt;script</span> <span class="f">src</span>=<span class="s">"ringscript.js"</span><span class="t">&gt;&lt;/script&gt;</span>
+<span class="t">&lt;script</span> <span class="f">type</span>=<span class="s">"text/ring"</span> <span class="f">src</span>=<span class="s">"myclock.ring"</span><span class="t">&gt;&lt;/script&gt;</span>
+<span class="t">&lt;script&gt;</span>
+RingScript.boot().<span class="f">then</span>(<span class="k">function</span> (ring) {
+
+    ring.on(<span class="s">"rotate"</span>, <span class="k">function</span> (data) {
+        <span class="f">document</span>.getElementById(data.id).style.transform =
+            <span class="s">"rotate("</span> + data.deg + <span class="s">"deg)"</span>;
+        <span class="k">return</span> <span class="n">1</span>;
+    });
+
+    ring.call(<span class="s">"Tick"</span>);                                     <span class="c">// draw it now</span>
+    setInterval(<span class="k">function</span> () { ring.call(<span class="s">"Tick"</span>); }, <span class="n">1000</span>); <span class="c">// and every second</span>
+});
+<span class="t">&lt;/script&gt;</span></pre>
+  <p>This is the only JavaScript in the whole clock, and it is the general pattern:
+  when the page cannot yet do something you need, you teach it that one word, and from
+  then on Ring asks for it by name like any other.</p>
+  </div>
+
+  <div class="step">
+  <h2><span class="n">6</span> Open it, then change it</h2>
+  <p>Go to <code>localhost:8377/myclock.html</code>. The hands should be showing the
+  right time.</p>
+  <p>Now make it yours — edit <code>myclock.ring</code>, save, press Refresh:</p>
+  <ul class="steps" style="list-style:disc; padding-left:1.4rem">
+    <li style="padding-left:0">Make the second hand move in fives: replace
+      <code>nSecond * 6</code> with <code>floor(nSecond / 5) * 30</code>.</li>
+    <li style="padding-left:0">Show the date as well, with <code>date()</code>.</li>
+    <li style="padding-left:0">Turn it into a countdown: keep a number in a variable,
+      subtract one each tick, and write it out with <code>Page(:settext, ...)</code>.</li>
+  </ul>
+  <p>None of that needs a build step, a compiler, or anything installed. Edit, save,
+  refresh.</p>
+  </div>
+
+  <h2>What this showed</h2>
+  <p>The clock is about sixty lines, and the part that decides anything is Ring. The
+  page holds the shapes; Ring holds the reasoning. That division is the whole method,
+  and it scales: a form, an invoice, a rules engine — the page shows, Ring decides.</p>
+
+  <div class="actions" style="justify-content:flex-start; margin-top:2rem">
+    <a class="btn primary" href="start.html">Get the starter kit</a>
+    <a class="btn ghost" href="faq.html">Questions and answers</a>
+  </div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

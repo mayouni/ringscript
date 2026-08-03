@@ -89,7 +89,15 @@
                 // CLOCK_MONOTONIC(1)/PROCESS_CPUTIME(2)/THREAD_CPUTIME(3):
                 // performance.now() keeps clock() advancing sub-ms; REALTIME(0)
                 // uses the wall clock for time()/date().
-                const ms = clockId === 0 ? Date.now()
+                //
+                // REALTIME is shifted by the local timezone offset on purpose.
+                // wasi-libc ships no timezone database, so the VM's localtime()
+                // leaves UTC untouched — time() would read an hour or more off
+                // the clock on the user's wall, which is not what `time()`
+                // means to anyone writing Ring. Recomputed per call so a
+                // daylight-saving change mid-session is picked up.
+                const ms = clockId === 0
+                    ? Date.now() - new Date().getTimezoneOffset() * 60000
                     : (typeof performance !== "undefined" ? performance.now() : Date.now());
                 view().setBigUint64(timePtr, BigInt(Math.round(ms * 1e6)), true);
                 return WASI_ESUCCESS;

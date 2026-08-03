@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--
+    clock.html — the clock face. All the thinking is in clock.ring.
+
+    The face below is SVG: a circle, twelve marks, three lines for the
+    hands. It never changes. Ring only turns the three hands.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An analog clock, written in Ring</title>
+<style>
+    body   { font: 17px/1.6 system-ui, "Segoe UI", sans-serif; max-width: 30rem;
+             margin: 2.5rem auto; padding: 0 1.2rem; color: #1c2126; text-align: center; }
+    h1     { font-size: 1.5rem; margin-bottom: .2rem; }
+    .muted { color: #6a737d; font-size: .95rem; }
+    svg    { width: 100%; max-width: 320px; height: auto; margin: 1.4rem 0 .6rem; }
+
+    .face   { fill: #fff; stroke: #1c2126; stroke-width: 3; }
+    .tick   { stroke: #1c2126; stroke-width: 2.5; }
+    .pin    { fill: #1a7f5a; }
+    .hand   { stroke-linecap: round;
+              /* Turn about the middle of the face, not the middle of the line. */
+              transform-box: view-box; transform-origin: 100px 100px; }
+    #hour-hand   { stroke: #1c2126; stroke-width: 6; }
+    #minute-hand { stroke: #1c2126; stroke-width: 4; }
+    #second-hand { stroke: #1a7f5a; stroke-width: 2; }
+
+    #digital { font: 700 2rem/1.2 "Cascadia Code", Consolas, monospace; color: #1a7f5a; }
+</style>
+</head>
+<body>
+
+<h1>An analog clock, written in Ring</h1>
+<p class="muted">The face is drawn once. Ring turns the hands, once a second.</p>
+
+<svg viewBox="0 0 200 200" aria-label="analog clock">
+    <circle class="face" cx="100" cy="100" r="96"/>
+
+    <!-- twelve hour marks, each the same line turned a bit further -->
+    <g class="tick">
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(0 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(30 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(60 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(90 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(120 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(150 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(180 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(210 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(240 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(270 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(300 100 100)"/>
+        <line x1="100" y1="10" x2="100" y2="22" transform="rotate(330 100 100)"/>
+    </g>
+
+    <!-- the three hands Ring turns; each points straight up to begin with -->
+    <line class="hand" id="hour-hand"   x1="100" y1="100" x2="100" y2="58"/>
+    <line class="hand" id="minute-hand" x1="100" y1="100" x2="100" y2="40"/>
+    <line class="hand" id="second-hand" x1="100" y1="100" x2="100" y2="32"/>
+
+    <circle class="pin" cx="100" cy="100" r="5"/>
+</svg>
+
+<div id="digital">--:--:--</div>
+<p class="muted" id="today"></p>
+
+<p class="muted">
+    Open <b>clock.ring</b> and change something — make the second hand jump in
+    fives, or the digital clock show only hours and minutes. Save, then Refresh.
+</p>
+
+<script src="ringscript.js"></script>
+<script type="text/ring" src="clock.ring"></script>
+<script>
+RingScript.boot().then(function (ring) {
+
+    // A page can do three things straight away: settext, gettext, getvalue.
+    // Turning a clock hand is a fourth, so we teach it here — once. After
+    // this, Ring says Page(:rotate, ...) exactly like the built-in three.
+    ring.on("rotate", function (data) {
+        document.getElementById(data.id).style.transform =
+            "rotate(" + data.deg + "deg)";
+        return 1;
+    });
+
+    ring.call("Tick");                                        // draw it now
+    setInterval(function () { ring.call("Tick"); }, 1000);    // and every second
+});
+</script>
+
+</body>
+</html>

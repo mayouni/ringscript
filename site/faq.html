@@ -87,8 +87,9 @@
     <p>Anything that draws a window will not work — <code>RingQt</code>,
     <code>GUILib</code>, forms, dialogs, 2D drawing. Those paint on a desktop window
     through Qt, and a browser tab has no Qt and no window to paint on. So
-    <code>applications/analogclock/AnalogClock.ring</code> cannot be loaded and run
-    here, and neither can anything else built on those libraries.</p>
+    a desktop clock program — the kind that opens a window with a ticking clock
+    face — cannot be loaded and run here, and neither can anything else built on
+    those libraries.</p>
     <p>The same <em>idea</em> works on the web, but the page is put together
     differently: the clock face is HTML, and Ring updates it. <strong>What carries over
     is your Ring</strong> — the logic, the rules, the arithmetic, the classes. What

@@ -18,10 +18,11 @@ press Refresh. That is the entire cycle.
 > *inside a web page*. It is **not** a way to run Ring programs you already
 > have. A desktop program will not work here — anything using RingQt,
 > GUILib, windows or forms draws through Qt, which does not exist in a
-> browser. `applications/analogclock/AnalogClock.ring` cannot be loaded and
-> run. The same *idea* ports fine: the clock face becomes HTML and Ring
-> updates it. Your Ring logic carries over; the screen it draws on does
-> not. See [Compatibility](compatibility.md) for the full boundary.
+> browser — so a desktop clock program, the kind that opens a window with
+> a ticking face, cannot be loaded and run. The same *idea* ports fine, and
+> the starter kit ships it: `clock.html` is an analog clock whose hands are
+> positioned by Ring. Your Ring logic carries over; the screen it draws on
+> does not. See [Compatibility](compatibility.md) for the full boundary.
 
 The rest of this page explains what the kit is made of, so you can do the
 same thing in a project of your own.
