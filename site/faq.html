@@ -6,7 +6,7 @@
 <title>Questions and answers — RingScript</title>
 <meta name="description" content="Does load &quot;myfile.ring&quot; work in the browser? How do I split a program across files, read input, call Ring from a button? Plain answers for Ring developers.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.20">
+<link rel="stylesheet" href="style.css?v=0.9.21">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
@@ -52,6 +52,16 @@
         padding: 1rem 1.2rem; margin: 1.2rem 0;
     }
     .note p { color: var(--ink); margin: 0; }
+
+    /* Two runtimes side by side. Scrolls inside itself on a phone rather
+       than widening the page. */
+    .vs { overflow-x: auto; margin: 1.3rem 0; }
+    .vs table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: 1.02rem; }
+    .vs th, .vs td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .vs thead th { color: var(--ink); font-size: 1.05rem; }
+    .vs tbody th { color: var(--ink-soft); font-weight: 400; white-space: nowrap; }
+    .vs td { color: var(--ink-soft); }
+    .vs .big { font-weight: 700; color: var(--ink); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -86,11 +96,14 @@
     runs Ring <em>inside a web page</em>. It is not a way to open an existing program
     and run it.</p>
     <p>Anything that draws a window will not work — <code>RingQt</code>,
-    <code>GUILib</code>, forms, dialogs, 2D drawing. Those paint on a desktop window
-    through Qt, and a browser tab has no Qt and no window to paint on. So
-    a desktop clock program — the kind that opens a window with a ticking clock
-    face — cannot be loaded and run here, and neither can anything else built on
-    those libraries.</p>
+    <code>GUILib</code>, forms, dialogs, 2D drawing. Those reach Qt by loading a native
+    library from disk, and <strong>RingScript carries no Qt at all</strong>; a browser
+    tab cannot load such a library either. So a desktop clock program — the kind that
+    opens a window with a ticking clock face — cannot be loaded and run here, and
+    neither can anything else built on those libraries.</p>
+    <p>There <em>is</em> a way to put RingQt programs on the web, and it is Mahmoud
+    Fayed's — <a href="#two-roads">the next question</a> compares the two, and the size
+    difference is the whole story.</p>
     <p>The same <em>idea</em> works on the web, but the page is put together
     differently: the clock face is HTML, and Ring updates it. <strong>What carries over
     is your Ring</strong> — the logic, the rules, the arithmetic, the classes. What
@@ -101,6 +114,36 @@
     and see. If you are just starting, the
     <a href="start.html">starter kit</a> is a folder that already works: double-click
     the launcher and edit one Ring file.</p>
+  </div>
+
+  <div class="qa">
+    <h3 id="two-roads">But Ring already runs in a browser — how is this different?</h3>
+    <p><span class="verdict yes">Two roads, and both are real</span></p>
+    <p>It does, and that one is Mahmoud Fayed's:
+    <a href="https://github.com/ring-lang/ring/tree/master/tools/tryringonline" target="_blank" rel="noopener">Try Ring Online <span class="newtab" aria-hidden="true">&#8599;</span></a>,
+    built with <strong>RingQt for WebAssembly</strong>. Qt itself — the whole GUI layer —
+    is compiled to WebAssembly and paints onto a canvas in the page. One source runs as a
+    desktop, mobile or web application, and existing RingQt programs are exactly what it
+    is for.</p>
+    <p>RingScript is not that. It compiles <em>only the language</em>: no Qt, no widgets,
+    no forms. The page is ordinary HTML, and Ring supplies the logic behind it. The
+    difference shows up in what a visitor downloads before anything appears:</p>
+    <div class="vs">
+      <table>
+        <thead><tr><th></th><th>RingQt for WebAssembly</th><th>RingScript</th></tr></thead>
+        <tbody>
+          <tr><th>What is compiled</th><td>Ring + Qt, GUI included</td><td>the Ring language alone</td></tr>
+          <tr><th>Downloaded first</th><td class="big">22.7 MB</td><td class="big">0.35 MB</td></tr>
+          <tr><th>The screen is</th><td>a Qt canvas</td><td>the page's own HTML</td></tr>
+          <tr><th>Good for</th><td>existing desktop apps, on the web</td><td>web pages scripted in Ring</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Sixty-five times smaller</strong> — because a web page is not a desktop
+    application. Neither road is the better one; they answer different questions. If you
+    want a RingQt program you already have to appear on the web, that is the first road.
+    If you want a page that opens instantly on a phone with your Ring logic behind it,
+    this is the second.</p>
   </div>
 
   <div class="qa">
