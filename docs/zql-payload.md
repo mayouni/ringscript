@@ -22,6 +22,38 @@ implementations — a Zig CLI, a JavaScript runtime, and this Ring one. *One
 grammar, three runtimes.* This page documents the Ring one, which is what
 RingScript ships.
 
+### Why not use StzWeb's Zig implementation here?
+
+A fair question, since `cli/src/zql.zig` already exists, is self-contained, and
+would compile straight into this wasm. It was measured rather than argued —
+both were built into the runtime and the artifact weighed:
+
+| In `ringscript.wasm` | Cost |
+|---|---|
+| `stzZql.ring` — Ring source, embedded | **24,253 bytes** |
+| `zql.zig` — compiled from StzWeb's CLI | **43,262 bytes** |
+
+**The Zig version is 19 KB *larger*.** That surprises people, and the reason is
+structural rather than a quirk of either implementation. The Ring version is
+21.7 KB of *source text*, and the machine that runs it — tokenizer, parser,
+evaluator, lists, strings, garbage collector — **is already in the binary**,
+because RingScript *is* the Ring VM. It rides for free. The Zig version must
+bring its own tokenizer, parser, AST and evaluator, plus the `std` machinery it
+touches. Inside a binary that already contains a complete language
+implementation, writing a parser in Ring is the *cheap* option.
+
+Zig would parse far faster — but a page pays the wasm size on **every load**,
+and the parse cost once, if ever. For the web that trade runs the wrong way.
+
+And it would cost the point of the exercise. This payload exists to prove the
+embedded-library seam carries real Ring; replacing it with Zig would prove only
+that Zig compiles to WebAssembly, which nobody doubts. It would also give
+RingScript a source dependency on StzWeb that it does not have today.
+
+Where the Zig implementation earns its place is where it already lives — the
+StzWeb CLI and the Softanza Engine, running natively, at volume, with no Ring VM
+nearby to borrow. Three runtimes, three homes.
+
 ```ring
 load "ringlib/stzZql.ring"          # resolves against the embedded map
 o = StzZqlQ('DEFINE ENTITY deposit (id: uuid) RATIONALE "one contribution"')
