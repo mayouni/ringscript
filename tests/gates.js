@@ -70,6 +70,29 @@ const phases = {
         check("wasm memory bounded", heapAfter <= heapBefore + 16 * 1024 * 1024, heapBefore + " -> " + heapAfter);
         const fin = ring.eval("see y");
         check("state still intact after 1000 evals", fin.output === "42");
+
+        // The resident VM must not accumulate definitions per evaluation.
+        // Every eval used to append a uniquely-named terminator class, so the
+        // class list grew by one each time — invisible at 1,000 evals, fatal
+        // at 20,000 (the heap reached 936 MB on ordinary page-style code).
+        // A declaration-free eval must now add nothing at all.
+        const classCount = () =>
+            parseInt(ring.eval("see len(classes())").output, 10);
+        const clsBefore = classCount();
+        for (let i = 0; i < 3000; i++) ring.eval("q = 1 + 2");
+        const clsAfter = classCount();
+        check("no class leaked per eval (3000 evals)", clsAfter - clsBefore <= 2,
+            clsBefore + " -> " + clsAfter + " classes");
+
+        // ...but code that opens a region still gets its terminator, or a
+        // trailing class/func would be closed at the wrong place. Attribute
+        // names are deliberately odd: this VM already holds globals a, b, c
+        // from the error tests above, and a global of the same name shadows
+        // an attribute (Ring's documented scope rule, not a bug).
+        const withClass = ring.eval("class LeakGate gkOne gkTwo");
+        const madeOne = ring.eval("oGate = new LeakGate  oGate.gkOne = 5  see oGate.gkOne");
+        check("a trailing class still works", withClass.ok && madeOne.output === "5",
+            JSON.stringify(madeOne));
     },
 
     async p3() {

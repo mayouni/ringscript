@@ -38,10 +38,17 @@ Three layers, three languages, each doing the one thing it is best at:
 `ring.eval(code)` travels this path:
 
 1. The loader copies the source into wasm memory and calls `rs_eval`.
-2. The bridge appends a **region terminator** (a uniquely-named, never
-   instantiated class) — closing any class region that would otherwise
-   be terminated incorrectly at end-of-eval — and runs the code through
-   a Ring-level shim: `try eval(rs_getcode()) catch rs_reporterror(cCatchError) done`.
+2. If the source could open a region — it mentions `class`, `func`, `def`
+   or `package`, or keywords have been renamed — the bridge appends a
+   **region terminator**: a uniquely-named, never instantiated class,
+   closing a region that would otherwise be terminated incorrectly at
+   end-of-eval. The name must be unique (Ring rejects a repeated class
+   definition) and is therefore permanent, so it is emitted **only when
+   needed**: every eval used to add one, and the class list grew by one
+   per eval — unbounded, in exactly the long-lived page this runtime is
+   for. Declaration-free evals now add nothing.
+   The code then runs through a Ring-level shim:
+   `try eval(rs_getcode()) catch rs_reporterror(cCatchError) done`.
    The `rs_getcode` hook hands the source over *by reference*, so no
    string escaping exists anywhere in the pipeline.
 3. Output flows into a growable buffer: `see`/`?`/`put` through the
@@ -120,7 +127,7 @@ ringscript/
 │   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
 ├── tests/                       verification — see §6
-│   ├── gates.js                 32 permanent gates
+│   ├── gates.js                 34 permanent gates
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
 │   ├── extract-doc-snippets.js  builds the doc corpus from your Ring install
@@ -181,7 +188,7 @@ battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 Every claim in these docs is executable:
 
 ```bash
-node tests/gates.js             # 32 permanent gates: residency, errors,
+node tests/gates.js             # 34 permanent gates: residency, errors,
                                 #   memory, io, bridge, line numbers
 node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/samples-sweep.js     # ~284 official Ring samples vs native

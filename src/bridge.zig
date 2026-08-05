@@ -72,6 +72,9 @@ var g_input: std.ArrayList(u8) = .empty;
 var g_input_pos: usize = 0;
 var g_evalcode: std.ArrayList(u8) = .empty;
 var g_eval_counter: u64 = 0;
+/// Sticky: once any eval renames keywords, `class` may no longer be spelled
+/// "class", so every later eval gets a terminator regardless of its text.
+var g_keywords_changed: bool = false;
 var g_main_called: bool = false;
 
 fn appendOut(bytes: []const u8) void {
@@ -350,12 +353,39 @@ export fn rs_eval(code: [*:0]const u8) i32 {
     // inherited-method resolution after mergemethods() — reproduced on
     // native); the terminator class's own region is never executed because
     // nothing instantiates it.
-    g_eval_counter += 1;
+    //
+    // The name must be unique: Ring rejects a repeated class definition, so a
+    // fixed name would fail every eval after the first. But a unique name is
+    // also permanent — the VM's class list never shrinks — so emitting one
+    // per eval leaks a class per eval, without bound, in exactly the
+    // long-lived page this runtime exists for. Hence: emit it only when the
+    // source could actually open a class region.
+    //
+    // Any declaration opens a region, not just `class`: a source ending in a
+    // `func` needs the terminator too (samples/General/RosettaCode/
+    // SierpinskiTriangle.ring ends that way, and prints nothing without it).
+    // So the test covers every region-opening keyword.
+    //
+    // Conservative by construction. A plain substring test, not a word
+    // boundary, so `classes()` or `undefined` also trigger it — harmless, one
+    // spare class. And because ChangeRingKeyword can rename these words, any
+    // eval that renames keywords makes every later eval emit one too.
+    const src = std.mem.span(code);
+    if (std.ascii.indexOfIgnoreCase(src, "changeringkeyword") != null) g_keywords_changed = true;
+    const needs_terminator = g_keywords_changed or
+        std.ascii.indexOfIgnoreCase(src, "class") != null or
+        std.ascii.indexOfIgnoreCase(src, "func") != null or
+        std.ascii.indexOfIgnoreCase(src, "def") != null or
+        std.ascii.indexOfIgnoreCase(src, "package") != null;
+
     g_evalcode.clearRetainingCapacity();
-    g_evalcode.appendSlice(alloc, std.mem.span(code)) catch return -1;
-    var buf: [48]u8 = undefined;
-    const term = std.fmt.bufPrint(&buf, "\nclass __rs_end_{d}", .{g_eval_counter}) catch return -1;
-    g_evalcode.appendSlice(alloc, term) catch return -1;
+    g_evalcode.appendSlice(alloc, src) catch return -1;
+    if (needs_terminator) {
+        g_eval_counter += 1;
+        var buf: [48]u8 = undefined;
+        const term = std.fmt.bufPrint(&buf, "\nclass __rs_end_{d}", .{g_eval_counter}) catch return -1;
+        g_evalcode.appendSlice(alloc, term) catch return -1;
+    }
 
     g_code = g_evalcode.items;
     defer g_code = "";
