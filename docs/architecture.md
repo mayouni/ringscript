@@ -128,6 +128,8 @@ ringscript/
 │
 ├── tests/                       verification — see §6
 │   ├── gates.js                 36 permanent gates
+│   ├── soak.js                  long-session endurance (what accumulates?)
+│   ├── fuzz.js                  hostile input (can the loader be made to throw?)
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
 │   ├── extract-doc-snippets.js  builds the doc corpus from your Ring install
@@ -191,6 +193,8 @@ Every claim in these docs is executable:
 node tests/gates.js             # 36 permanent gates: residency, errors,
                                 #   memory, io, bridge, line numbers
 node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
+node tests/soak.js              # 40,000 evaluations: nothing may accumulate
+node tests/fuzz.js              # 4,000 hostile inputs: eval must never throw
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \
 node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.

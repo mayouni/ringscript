@@ -351,9 +351,14 @@
         /// Raised when wasm memory cannot take the value. Typed so eval/call
         /// can turn it into an ordinary failed result instead of an exception.
         function OutOfMemory(bytes) {
+            // Wasm linear memory never shrinks, so a genuinely exhausted
+            // instance cannot be rescued from inside — not even by reset(),
+            // which needs to allocate a new state. Say so, rather than
+            // sending the caller round a loop that cannot succeed.
             const e = new Error("RingScript: out of memory writing " + bytes +
-                " bytes into the VM. The page is intact; call ring.reset() to " +
-                "recover the VM.");
+                " bytes into the VM. The page is intact. Try ring.reset(); if " +
+                "that also fails, this VM instance is exhausted and a fresh " +
+                "one must be loaded (reload the page).");
             e.name = "RingScriptOutOfMemory";
             return e;
         }
@@ -374,7 +379,18 @@
             /// RingScript's version, read from the wasm actually loaded.
             version: ex.rs_version ? readCString(ex.rs_version()) : "unknown",
             init() { return ex.rs_init(); },
-            reset() { return ex.rs_reset(); },
+            /// Recreate the VM. Never throws: this is the recovery path, so
+            /// it must survive the very conditions people reach for it in —
+            /// an exhausted heap can make rs_reset itself trap. Returns 0 on
+            /// success, nonzero if the runtime is beyond saving and the page
+            /// should be reloaded.
+            reset() {
+                try {
+                    return ex.rs_reset();
+                } catch (e) {
+                    return -1;
+                }
+            },
             /// eval(code[, input]) — `input` is the text queue served to
             /// Ring's `give`, line by line. Each eval starts with a fresh
             /// queue (empty when the argument is omitted). CRLF is
@@ -390,14 +406,31 @@
                         error: readCString(ex.rs_last_error()),
                     };
                 } catch (e) {
-                    // Running out of wasm memory is a condition, not a crash:
-                    // it comes back as an ordinary failed result, so the page
-                    // survives — the same contract as any Ring error. Anything
-                    // else is a genuine fault and is left to propagate.
-                    if (e && e.name === "RingScriptOutOfMemory") {
-                        return { ok: false, code: -2, output: "", error: e.message };
-                    }
-                    throw e;
+                    // eval() returns a result. Always. In a page an escaping
+                    // exception is a dead page, and "your Ring was bad" must
+                    // never mean that — so every way the VM can fail comes
+                    // back in the same shape as a Ring error:
+                    //
+                    //   out of memory        — the heap ceiling
+                    //   RangeError          — wasm stack exhausted, e.g. by
+                    //                         deeply nested brackets, which
+                    //                         the parser recurses through
+                    //   RuntimeError        — a wasm trap
+                    //
+                    // The original name and message are kept so the cause is
+                    // still diagnosable from the returned error.
+                    return {
+                        ok: false,
+                        code: -2,
+                        output: "",
+                        error: e && e.name === "RingScriptOutOfMemory"
+                            ? e.message
+                            : "RingScript: the VM could not complete this evaluation (" +
+                              ((e && e.name) || "Error") + ": " +
+                              ((e && e.message) || String(e)) +
+                              "). The page is intact; call ring.reset() if the VM " +
+                              "misbehaves afterwards.",
+                    };
                 }
             },
             lastOutput() { return readOutput(); },
@@ -414,12 +447,18 @@
                         });
                     });
                 } catch (e) {
-                    // Same contract as eval(): out of memory is a result, not
+                    // Same contract as eval(): every failure is a result, not
                     // an exception that takes the page with it.
-                    if (e && e.name === "RingScriptOutOfMemory") {
-                        return { ok: false, result: null, output: "", error: e.message };
-                    }
-                    throw e;
+                    return {
+                        ok: false,
+                        result: null,
+                        output: "",
+                        error: e && e.name === "RingScriptOutOfMemory"
+                            ? e.message
+                            : "RingScript: the VM could not complete this call (" +
+                              ((e && e.name) || "Error") + ": " +
+                              ((e && e.message) || String(e)) + ").",
+                    };
                 }
                 const raw = readCString(resPtr);
                 const error = readCString(ex.rs_last_error());

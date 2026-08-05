@@ -338,6 +338,28 @@ export fn rs_reset() i32 {
 /// top-level statements (vmfuncs.c end-of-program path, unreachable in eval).
 const call_main_shim = "if isfunction(\"main\") and rs_notemain() = 0 main() ok";
 
+/// True when `kw` appears in `src` as a whole word — not as part of a longer
+/// identifier. A plain substring test is too coarse: `NoSuchFunction()`
+/// contains "func", `default` contains "def", `classify` contains "class", so
+/// ordinary code would keep triggering the region terminator and the class
+/// list would grow after all. Ring keywords are whole tokens, so this is the
+/// test that matches the language.
+fn isIdentChar(c: u8) bool {
+    return std.ascii.isAlphanumeric(c) or c == '_';
+}
+
+fn hasKeyword(src: []const u8, kw: []const u8) bool {
+    var from: usize = 0;
+    while (std.ascii.indexOfIgnoreCasePos(src, from, kw)) |pos| {
+        const before_ok = pos == 0 or !isIdentChar(src[pos - 1]);
+        const end = pos + kw.len;
+        const after_ok = end >= src.len or !isIdentChar(src[end]);
+        if (before_ok and after_ok) return true;
+        from = pos + 1;
+    }
+    return false;
+}
+
 export fn rs_eval(code: [*:0]const u8) i32 {
     if (g_state == null and rs_init() != 0) return -1;
     g_out.clearRetainingCapacity();
@@ -366,17 +388,16 @@ export fn rs_eval(code: [*:0]const u8) i32 {
     // SierpinskiTriangle.ring ends that way, and prints nothing without it).
     // So the test covers every region-opening keyword.
     //
-    // Conservative by construction. A plain substring test, not a word
-    // boundary, so `classes()` or `undefined` also trigger it — harmless, one
-    // spare class. And because ChangeRingKeyword can rename these words, any
-    // eval that renames keywords makes every later eval emit one too.
+    // Whole words only — see hasKeyword. And because ChangeRingKeyword can
+    // rename these very words, any eval that renames keywords makes every
+    // later eval emit a terminator regardless of its text.
     const src = std.mem.span(code);
-    if (std.ascii.indexOfIgnoreCase(src, "changeringkeyword") != null) g_keywords_changed = true;
+    if (hasKeyword(src, "changeringkeyword")) g_keywords_changed = true;
     const needs_terminator = g_keywords_changed or
-        std.ascii.indexOfIgnoreCase(src, "class") != null or
-        std.ascii.indexOfIgnoreCase(src, "func") != null or
-        std.ascii.indexOfIgnoreCase(src, "def") != null or
-        std.ascii.indexOfIgnoreCase(src, "package") != null;
+        hasKeyword(src, "class") or
+        hasKeyword(src, "func") or
+        hasKeyword(src, "def") or
+        hasKeyword(src, "package");
 
     g_evalcode.clearRetainingCapacity();
     g_evalcode.appendSlice(alloc, src) catch return -1;
