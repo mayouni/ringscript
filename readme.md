@@ -6,7 +6,9 @@
 
 <p align="center">
   <strong><a href="https://mayouni.github.io/ringscript/">mayouni.github.io/ringscript</a></strong> ·
+  <a href="https://mayouni.github.io/ringscript/start.html">Start here</a> ·
   <a href="https://mayouni.github.io/ringscript/playground/">Playground</a> ·
+  <a href="https://mayouni.github.io/ringscript/tutorial-clock.html">Tutorial</a> ·
   <a href="https://mayouni.github.io/ringscript/story.html">The story</a>
 </p>
 
@@ -27,6 +29,41 @@ command.
   <em>The Playground: pick an example, edit it, run it. The Ring VM is resident in
   the page; programs that ask for input pause and wait for your answer.</em>
 </p>
+
+## Start here — a folder that already runs
+
+If you have never built a web page, this is the shortest path. The **starter
+kit** is one zip with a working page, the runtime and a small web server —
+nothing to install, and Ring itself is not required.
+
+**[Download the starter kit](https://mayouni.github.io/ringscript/ringscript-starter.zip)**
+· 240 KB · Windows, macOS, Linux
+
+1. Unzip it anywhere.
+2. Double-click `start-windows.bat`, or `start-mac-linux.sh`.
+3. A small console window opens — that is the server — and your browser lands
+   on a working page.
+4. Edit `app.ring`, save, press Refresh. No build step, no compiler, no tools.
+
+Two examples are included:
+
+| | |
+|---|---|
+| `index.html` + `app.ring` | a greeting and a sum — start here |
+| `clock.html` + `clock.ring` | a working analog clock, hands and all |
+
+The clock is built line by line in
+**[the tutorial](https://mayouni.github.io/ringscript/tutorial-clock.html)**,
+assuming no web experience. Full walkthrough with screenshots:
+**[Start here](https://mayouni.github.io/ringscript/start.html)**.
+
+> **What it is not.** RingScript runs Ring *inside a web page*. It is not a way
+> to run Ring programs you already have: a desktop program using RingQt or
+> GUILib reaches Qt by loading a native library, and RingScript carries no Qt at
+> all. There *is* a road for those — Mahmoud Fayed's *Try Ring Online*, which is
+> RingQt compiled for WebAssembly — and the
+> [Q&A](https://mayouni.github.io/ringscript/faq.html) compares the two: 22.7 MB
+> against RingScript's 0.35 MB, because a web page is not a desktop application.
 
 ## Status — 0.9, and why not 1.0 yet
 
@@ -164,8 +201,17 @@ ringscript/
 │
 ├── site/                        the published website (GitHub Pages)
 │   ├── index.html               landing page, with a live editor
+│   ├── start.html               the starter kit, step by step
+│   ├── tutorial-clock.html      building the analog clock, step by step
+│   ├── faq.html                 questions and answers
 │   ├── story.html               Softanza, StzWeb, and why RingScript exists
 │   └── style.css                its design tokens
+│
+├── starter/                     the starter kit's own files; the Pages workflow
+│                                zips these with the runtime and bin/ servers
+│   ├── index.html + app.ring    the greeting example
+│   ├── clock.html + clock.ring  the analog clock example
+│   └── README.txt               offline instructions, plain text
 │
 ├── package.ring                 RingPM manifest — defines what a user downloads
 ├── main.ring                    `ringpm run ringscript` — the self-locating CLI
