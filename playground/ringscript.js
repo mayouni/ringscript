@@ -172,6 +172,30 @@
         const encoder = new TextEncoder();
         const decoder = new TextDecoder("utf-8");
 
+        /// Same guards as allocBytes, for the two callbacks wasm invokes
+        /// before the `ex` alias exists. Never throws: wasm is on the stack.
+        function allocReply(bytes) {
+            const need = bytes.length + 1;
+            if (need > 0xffffffff) return null;
+            let raw;
+            try { raw = exports.rs_alloc(need); } catch (e) { return null; }  // the allocator trapped
+            // A wasm pointer is an i32, so anything above 2 GB arrives here as
+            // a NEGATIVE number. Read it unsigned before doing any arithmetic
+            // with it, or the bounds test below passes trivially and set()
+            // throws RangeError — which is exactly how this used to kill the
+            // page.
+            const ptr = raw >>> 0;
+            if (ptr === 0) return null;
+            const mem = new Uint8Array(memory.buffer);    // may have just grown
+            if (ptr + need > mem.length) {                // no room, or wrapped
+                try { exports.rs_free(ptr, need); } catch (e) { /* nothing left to do */ }
+                return null;
+            }
+            mem.set(bytes, ptr);
+            mem[ptr + bytes.length] = 0;
+            return ptr;
+        }
+
         // Ring -> JS seam: Ring's jscall(name, json) lands here. Handlers are
         // registered with api.on(name, fn); unhandled calls fall through to a
         // DOM CustomEvent "ringscript:<name>" in browsers. A handler's return
@@ -179,8 +203,12 @@
         const handlers = Object.create(null);
         function js_dispatch(namePtr, nameLen, jsonPtr, jsonLen) {
             const mem = new Uint8Array(memory.buffer);
-            const name = decoder.decode(mem.subarray(namePtr, namePtr + nameLen));
-            const raw = decoder.decode(mem.subarray(jsonPtr, jsonPtr + jsonLen));
+            // Unsigned: past 2 GB these i32 pointers arrive negative, and
+            // subarray would silently read from the wrong place.
+            const np = namePtr >>> 0, nl = nameLen >>> 0;
+            const jp = jsonPtr >>> 0, jl = jsonLen >>> 0;
+            const name = decoder.decode(mem.subarray(np, np + nl));
+            const raw = decoder.decode(mem.subarray(jp, jp + jl));
             let payload = null;
             try { payload = raw.length ? JSON.parse(raw) : null; } catch (e) { payload = raw; }
             let result;
@@ -191,12 +219,10 @@
             }
             if (result === undefined || result === null) return 0;
             const bytes = encoder.encode(JSON.stringify(result));
-            const ptr = exports.rs_alloc(bytes.length + 1);
-            if (!ptr) return 0;
-            const out = new Uint8Array(memory.buffer); // buffer may have grown
-            out.set(bytes, ptr);
-            out[ptr + bytes.length] = 0;
-            return ptr;
+            // Called from inside wasm: returning 0 means "no reply", which
+            // Ring handles. Throwing here would unwind through the VM.
+            const ptr = allocReply(bytes);
+            return ptr === null ? 0 : ptr;
         }
 
         // Ring's `give` when the eval's input queue is empty: ask the page,
@@ -224,12 +250,8 @@
             }
             if (v === undefined || v === null) return 0;
             const bytes = encoder.encode(String(v));
-            const ptr = exports.rs_alloc(bytes.length + 1);
-            if (!ptr) return 0;
-            const mem = new Uint8Array(memory.buffer);
-            mem.set(bytes, ptr);
-            mem[ptr + bytes.length] = 0;
-            return ptr;
+            const ptr = allocReply(bytes);
+            return ptr === null ? 0 : ptr;
         }
 
         const imports = {
@@ -265,30 +287,81 @@
         // WASI reactor model: run C runtime constructors once.
         if (typeof ex._initialize === "function") ex._initialize();
 
-        function readCString(ptr) {
-            if (!ptr) return "";
+        function readCString(rawPtr) {
+            // Unsigned: a wasm i32 pointer past 2 GB arrives negative, and
+            // reading from a negative index silently yields undefined — which
+            // ends the scan instantly and returns garbage.
+            const ptr = rawPtr >>> 0;
+            if (ptr === 0) return "";
             const mem = new Uint8Array(memory.buffer);
             let end = ptr;
-            while (mem[end] !== 0) end++;
+            while (end < mem.length && mem[end] !== 0) end++;
             return decoder.decode(mem.subarray(ptr, end));
         }
 
         // Binary-safe: Ring output may contain NUL bytes (e.g. int2bytes),
         // so read the exact byte length instead of stopping at NUL.
         function readOutput() {
-            const len = ex.rs_last_output_size();
+            const len = ex.rs_last_output_size() >>> 0;
             if (!len) return "";
-            const ptr = ex.rs_last_output();
-            return decoder.decode(new Uint8Array(memory.buffer).subarray(ptr, ptr + len));
+            const ptr = ex.rs_last_output() >>> 0;      // unsigned, see readCString
+            const mem = new Uint8Array(memory.buffer);
+            if (ptr === 0 || ptr + len > mem.length) return "";
+            return decoder.decode(mem.subarray(ptr, ptr + len));
+        }
+
+        /*
+        ** Allocating into wasm memory has three ways to fail, and all of them
+        ** used to end as a raw RangeError from set() — which kills the page,
+        ** the one thing this runtime promises never to do.
+        **
+        **   1. rs_alloc returns 0            — the allocator refused.
+        **   2. rs_alloc traps                — Zig's allocator hit an
+        **      unreachable; the call throws RuntimeError.
+        **   3. rs_alloc "succeeds" out of bounds — the length crosses the
+        **      wasm32 pointer width and wraps, so the returned block is far
+        **      smaller than asked for. Writing the full length then runs off
+        **      the end of memory.
+        **
+        ** allocBytes handles all three and reports failure as null, so the
+        ** caller decides what to do rather than the page dying.
+        */
+        function allocBytes(bytes) {
+            const need = bytes.length + 1;
+            if (need > 0xffffffff) return null;          // cannot survive the ABI
+            let raw;
+            try { raw = ex.rs_alloc(need); } catch (e) { return null; }  // the allocator trapped
+            // A wasm pointer is an i32, so anything above 2 GB arrives here as
+            // a NEGATIVE number. Read it unsigned before doing any arithmetic
+            // with it, or the bounds test below passes trivially and set()
+            // throws RangeError — which is exactly how this used to kill the
+            // page.
+            const ptr = raw >>> 0;
+            if (ptr === 0) return null;
+            const mem = new Uint8Array(memory.buffer);    // may have just grown
+            if (ptr + need > mem.length) {                // no room, or wrapped
+                try { ex.rs_free(ptr, need); } catch (e) { /* nothing left to do */ }
+                return null;
+            }
+            mem.set(bytes, ptr);
+            mem[ptr + bytes.length] = 0;
+            return ptr;
+        }
+
+        /// Raised when wasm memory cannot take the value. Typed so eval/call
+        /// can turn it into an ordinary failed result instead of an exception.
+        function OutOfMemory(bytes) {
+            const e = new Error("RingScript: out of memory writing " + bytes +
+                " bytes into the VM. The page is intact; call ring.reset() to " +
+                "recover the VM.");
+            e.name = "RingScriptOutOfMemory";
+            return e;
         }
 
         function withCString(str, fn) {
             const data = encoder.encode(str);
-            const ptr = ex.rs_alloc(data.length + 1);
-            if (!ptr) throw new Error("RingScript: rs_alloc failed");
-            const mem = new Uint8Array(memory.buffer);
-            mem.set(data, ptr);
-            mem[ptr + data.length] = 0;
+            const ptr = allocBytes(data);
+            if (ptr === null) throw OutOfMemory(data.length + 1);
             try {
                 return fn(ptr);
             } finally {
@@ -307,14 +380,25 @@
             /// queue (empty when the argument is omitted). CRLF is
             /// normalized to LF, matching native Ring's text-mode reads.
             eval(code, input) {
-                withCString((input || "").replace(/\r\n/g, "\n"), function (ptr) { ex.rs_set_input(ptr); });
-                const rc = withCString(String(code).replace(/\r\n/g, "\n"), function (ptr) { return ex.rs_eval(ptr); });
-                return {
-                    ok: rc === 0,
-                    code: rc,
-                    output: readOutput(),
-                    error: readCString(ex.rs_last_error()),
-                };
+                try {
+                    withCString((input || "").replace(/\r\n/g, "\n"), function (ptr) { ex.rs_set_input(ptr); });
+                    const rc = withCString(String(code).replace(/\r\n/g, "\n"), function (ptr) { return ex.rs_eval(ptr); });
+                    return {
+                        ok: rc === 0,
+                        code: rc,
+                        output: readOutput(),
+                        error: readCString(ex.rs_last_error()),
+                    };
+                } catch (e) {
+                    // Running out of wasm memory is a condition, not a crash:
+                    // it comes back as an ordinary failed result, so the page
+                    // survives — the same contract as any Ring error. Anything
+                    // else is a genuine fault and is left to propagate.
+                    if (e && e.name === "RingScriptOutOfMemory") {
+                        return { ok: false, code: -2, output: "", error: e.message };
+                    }
+                    throw e;
+                }
             },
             lastOutput() { return readOutput(); },
             lastError() { return readCString(ex.rs_last_error()); },
@@ -322,11 +406,21 @@
             /// returns { ok, result (parsed), output, error }.
             call(fname, arg) {
                 const json = JSON.stringify(arg === undefined ? null : arg);
-                const resPtr = withCString(fname, function (fp) {
-                    return withCString(json, function (jp) {
-                        return ex.rs_call(fp, jp);
+                let resPtr;
+                try {
+                    resPtr = withCString(fname, function (fp) {
+                        return withCString(json, function (jp) {
+                            return ex.rs_call(fp, jp);
+                        });
                     });
-                });
+                } catch (e) {
+                    // Same contract as eval(): out of memory is a result, not
+                    // an exception that takes the page with it.
+                    if (e && e.name === "RingScriptOutOfMemory") {
+                        return { ok: false, result: null, output: "", error: e.message };
+                    }
+                    throw e;
+                }
                 const raw = readCString(resPtr);
                 const error = readCString(ex.rs_last_error());
                 let result = null;

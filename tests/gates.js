@@ -93,6 +93,18 @@ const phases = {
         const madeOne = ring.eval("oGate = new LeakGate  oGate.gkOne = 5  see oGate.gkOne");
         check("a trailing class still works", withClass.ok && madeOne.output === "5",
             JSON.stringify(madeOne));
+
+        // Every pointer the loader receives is a wasm i32, so past 2 GB it
+        // arrives NEGATIVE. Unsigned handling is what keeps eval() readable
+        // and the page alive once the heap crosses that line; the loader used
+        // to throw RangeError there and take the page with it.
+        const big = 0x8000000B | 0;                    // a >2 GB pointer as i32
+        check("a >2GB pointer reads as unsigned", (big >>> 0) === 2147483659,
+            String(big >>> 0));
+        const stillResult = ring.eval("$$$ not ring $$$");
+        check("a failed eval still returns a result",
+            !stillResult.ok && typeof stillResult.error === "string",
+            JSON.stringify(stillResult).slice(0, 80));
     },
 
     async p3() {
