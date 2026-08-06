@@ -17,7 +17,7 @@ excludes. The measurement (re-runnable, see
 | Playground examples | 24 | byte-identical to `ring.exe` |
 | Official samples (`samples/` of the Ring 1.27 distribution) | ~284 runnable | zero mismatches |
 | Code blocks from the official documentation | ~550 runnable | zero mismatches |
-| Permanent gates (residency, errors, memory, I/O, bridge) | 36 | all pass |
+| Permanent gates (residency, errors, memory, I/O, bridge) | 42 | all pass |
 | Soak — one VM, 40,000 evaluations | 2 phases | nothing accumulates |
 | Fuzz — hostile input | 4,000 cases | `eval()` never throws |
 | WASI shim — clocks, encoding, ordering | 20 checks | all pass |
@@ -39,6 +39,8 @@ each:
 |---|---|
 | file writes, `remove`, `rename`, `tempfile` | fail like a missing/unwritable file → trappable Ring error (R35 family) |
 | file reads / `load` | resolve against the **embedded library map** ([details](architecture.md#3-design-decisions-worth-knowing)); unknown paths → trappable error |
+| `fexists`, `getfilesize`, `getpathtype` | answer from the same map, so `if fexists(f) ... read(f)` behaves as written |
+| `direxists`, directory listing | always false/empty — there are no directories to have |
 | `system()`, `chdir`, `currentdir` | compiled out (`RING_LIMITEDSYS`) |
 | threads, sockets, GUI bindings (RingQt…) | not present — they are separate C extensions, never part of the core VM |
 | `syssleep` | returns immediately (no blocking sleeps in a page) |

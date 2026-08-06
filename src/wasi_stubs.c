@@ -6,6 +6,9 @@
 ** and reports RING_VM_ERROR_TEMPFILENAME at runtime.
 */
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include "ring.h"
 
 FILE *tmpfile(void) {
@@ -16,7 +19,7 @@ FILE *tmpfile(void) {
 ** Browser runtime has no filesystem: every fopen resolves against the
 ** embedded ringlib/ map baked into the wasm by the bridge (@embedFile).
 ** fmemopen gives the VM a real read-only FILE* over the embedded bytes,
-** so the scanner (`load`), fexists and read() all work unmodified.
+** so the scanner (`load`) and read() work unmodified.
 ** Anything not embedded — and any write mode — fails like a missing file.
 ** The VM sources are compiled with -Dfopen=rs_fopen (build.zig), so every
 ** fopen in the vendored tree lands here without touching wasi-libc.
@@ -35,6 +38,43 @@ FILE *rs_fopen(const char *cPath, const char *cMode) {
 		return NULL;
 	}
 	return fmemopen((void *)pData, nLen, "r");
+}
+
+/*
+** ...and the same map for the calls that ask ABOUT a file instead of
+** opening it. Ring's fexists(), getpathtype() and getfilesize() do not go
+** through fopen at all — file_e.c reaches for stat() directly — so before
+** this they answered "no such file" for embedded files that read() reads
+** happily, and the idiomatic
+**
+**     if fexists(cFile)  cText = read(cFile)  ok
+**
+** skipped files that were present. Redirected the same way as fopen
+** (-D"stat(a,b)=rs_stat(a,b)" in build.zig; a function-like macro so that
+** `struct stat` — the identifier not followed by `(` — is left alone).
+**
+** Embedded entries are reported as ordinary read-only regular files, which
+** is what they behave like. Everything else keeps failing exactly as it did:
+** there is no filesystem, so directories genuinely do not exist and
+** direxists() stays false.
+*/
+int rs_stat(const char *cPath, struct stat *pBuf) {
+	size_t nLen;
+	const unsigned char *pData;
+	if (pBuf == NULL) {
+		errno = EFAULT;
+		return -1;
+	}
+	pData = rs_find_embedded(cPath, &nLen);
+	if (pData == NULL) {
+		errno = ENOENT;
+		return -1;
+	}
+	memset(pBuf, 0, sizeof(*pBuf));
+	pBuf->st_mode = S_IFREG | 0444;
+	pBuf->st_size = (off_t)nLen;
+	pBuf->st_nlink = 1;
+	return 0;
 }
 
 /* 1 if the VM already auto-called main() (lCallMainFunction is a bitfield).

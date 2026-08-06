@@ -65,8 +65,13 @@ const vm_cflags = [_][]const u8{
     "-Wno-deprecated-declarations",
     "-Dmkstemp(x)=(-1)",
     // Route every VM file access to the embedded-map resolver in wasi_stubs.c
-    // (which is compiled WITHOUT this flag — see below).
+    // (which is compiled WITHOUT these flags — see below).
     "-Dfopen=rs_fopen",
+    // fexists(), getpathtype() and getfilesize() ask stat() rather than
+    // opening the file, so they need the same redirect or they report that
+    // embedded files do not exist. Function-like on purpose: it expands only
+    // where `stat` is followed by `(`, leaving every `struct stat` intact.
+    "-Dstat(a,b)=rs_stat(a,b)",
     "-fno-sanitize=undefined",
 };
 

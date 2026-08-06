@@ -79,6 +79,11 @@ Three layers, three languages, each doing the one thing it is best at:
   the embedded file map; `fmemopen` gives the VM a real read-only
   `FILE*` over embedded bytes. `load` works; writes fail like a missing
   file; there is nothing to sandbox because there is nothing there.
+  `stat` is redirected to the same map (`rs_stat`), because Ring's
+  `fexists`, `getfilesize` and `getpathtype` ask *about* a file instead
+  of opening one — without it they report that embedded files do not
+  exist, and the idiomatic `if fexists(f) ... read(f)` guard skips
+  files that are there. Directories still do not exist, truthfully.
 - **`give` is a hook, not stdin.** Ring routes `give` through a
   replaceable `ringvm_give` function; the bridge's implementation reads
   the eval's input queue, then asks the host live (`js_give` →
@@ -131,7 +136,7 @@ ringscript/
 │   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
 ├── tests/                       verification — see §6
-│   ├── gates.js                 36 permanent gates
+│   ├── gates.js                 42 permanent gates
 │   ├── soak.js                  long-session endurance (what accumulates?)
 │   ├── fuzz.js                  hostile input (can the loader be made to throw?)
 │   ├── wasi.js                  the hand-written WASI shim, against the host itself
@@ -197,7 +202,7 @@ battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 Every claim in these docs is executable:
 
 ```bash
-node tests/gates.js             # 36 permanent gates: residency, errors,
+node tests/gates.js             # 42 permanent gates: residency, errors,
                                 #   memory, io, bridge, line numbers
 node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/soak.js              # 40,000 evaluations: nothing may accumulate
@@ -226,26 +231,26 @@ and the file stays runnable with `ring.exe` on its own.
 
 Recorded baselines, not aspirations: `tests/bench.js` measures these on
 every run and fails if one regresses beyond 40%. Taken on an Intel Core
-5 210H, Node 22, `ringscript.wasm` at 364,061 bytes.
+5 210H, Node 22, `ringscript.wasm` at 364,043 bytes.
 
 | | min | what it exercises |
 |---|---|---|
-| instantiate + `rs_init` | **5.6 ms** | cold start — the number a page pays |
-| `? 1+1` | 0.096 ms | one full eval round trip |
-| 10,000-iteration loop | 0.739 ms | VM dispatch |
-| build a 2,000-char string | 0.276 ms | string growth |
-| sort a 2,000-element list | 0.300 ms | library call |
-| create 2,000 objects | 6.02 ms | allocation |
-| 1,000 lines of output | 0.903 ms | the `see` hook |
+| instantiate + `rs_init` | **5.7 ms** | cold start — the number a page pays |
+| `? 1+1` | 0.097 ms | one full eval round trip |
+| 10,000-iteration loop | 0.744 ms | VM dispatch |
+| build a 2,000-char string | 0.282 ms | string growth |
+| sort a 2,000-element list | 0.293 ms | library call |
+| create 2,000 objects | 6.56 ms | allocation |
+| 1,000 lines of output | 0.908 ms | the `see` hook |
 | `ring.call` from JS | 0.104 ms | the bridge, JSON both ways |
-| parse a ZQL declaration | 1.55 ms | the shipped payload |
-| JSON encode 8.7 KB | 12.4 ms | the pure-Ring codec |
-| JSON decode 8.7 KB | **28.3 ms** | ...and its slower half |
+| parse a ZQL declaration | 1.54 ms | the shipped payload |
+| JSON encode 8.7 KB | 13.1 ms | the pure-Ring codec |
+| JSON decode 8.7 KB | **27.0 ms** | ...and its slower half |
 
-Two things are worth reading off that table. **Startup at 5.6 ms** is the
+Two things are worth reading off that table. **Startup at 5.7 ms** is the
 figure that matters most for a page, and it is comfortable. **JSON
 decoding is the slowest thing here** — a character-at-a-time parser
-written in Ring, at roughly 300 KB/s. It is fast enough for the bridge's
+written in Ring, at roughly 320 KB/s. It is fast enough for the bridge's
 own traffic (arguments and results), and it is the first place to look
 if a page ever moves bulk data across the seam.
 

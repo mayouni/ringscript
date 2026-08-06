@@ -191,6 +191,27 @@ const phases = {
         check("func main auto-runs after top-level code", main.ok && main.output === "Count = 10\nID = 1", JSON.stringify(main.output));
         const again = ring2.eval("see 1");
         check("main does not re-run on later evals", again.ok && again.output === "1", JSON.stringify(again.output));
+
+        // The stat() family must agree with fopen about what exists. Ring's
+        // fexists/getfilesize/getpathtype never call fopen — file_e.c reaches
+        // for stat() directly — so before the rs_stat redirect they answered
+        // "no such file" for embedded files read() reads happily, and the
+        // idiomatic `if fexists(f) ... read(f)` guard skipped them.
+        const ring3 = await newVM();
+        const ask = (c) => { const r = ring3.eval(c); return r.ok ? r.output.trim() : "ERR " + r.error; };
+        check("fexists() sees an embedded file",
+            ask('? fexists("ringlib/json.ring")') === "1", ask('? fexists("ringlib/json.ring")'));
+        const sizeOf = ask('? getfilesize("ringlib/json.ring")');
+        check("getfilesize() agrees with read()",
+            sizeOf === ask('? len(read("ringlib/json.ring"))') && +sizeOf > 0, sizeOf);
+        check("getpathtype() calls it a file", ask('? getpathtype("ringlib/json.ring")') === "1",
+            ask('? getpathtype("ringlib/json.ring")'));
+        check("the fexists-then-read guard runs its body",
+            ask('if fexists("ringlib/json.ring") see len(read("ringlib/json.ring")) ok') === sizeOf);
+        // ...and still tells the truth about what is NOT there. There is no
+        // filesystem, so directories genuinely do not exist.
+        check("fexists() is false for a missing file", ask('? fexists("no-such-file.ring")') === "0");
+        check("direxists() stays false", ask('? direxists("ringlib")') === "0");
     },
 };
 
