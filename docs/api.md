@@ -135,6 +135,30 @@ a Ring value before the call, and the result is encoded on the way out.
 one argument** — declare it `func F aArg` even if you ignore it.
 `ring.call("F")` passes `NULL`.
 
+### Payload size, and untrusted data
+
+`ring.call`'s argument and result cross the seam as JSON, encoded and
+decoded by a pure-Ring codec (`src/ringlib/json.ring`). Both directions
+are linear in the payload, and a 1 MB value round-trips in well under a
+second — but it is *pure Ring*, roughly 30 MB/s, not the browser's
+native `JSON.parse`. Two practical consequences:
+
+- **Send what the function needs, not the whole response.** Filtering a
+  server payload in JavaScript before handing it to Ring is cheaper than
+  decoding it twice.
+- **A large payload blocks the page while it decodes**, because the VM
+  is synchronous. This is the ordinary cost of any synchronous work, but
+  it scales with the data, so it is worth knowing before a page hands
+  Ring a megabyte on every keystroke.
+
+Untrusted data is safe to pass: malformed JSON raises a catchable Ring
+error rather than being accepted, deeply nested input raises a catchable
+stack-overflow rather than crashing, and the VM keeps running in both
+cases. A permanent gate covers each. The one thing that is *not* safe is
+interpolating untrusted text into code you then `eval` — that is true of
+every language, and the bridge never does it: the payload reaches Ring
+by reference, never through the source.
+
 ### JSON mapping
 
 Implemented by a pure-Ring codec (`src/ringlib/json.ring`) embedded in

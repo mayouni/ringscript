@@ -268,6 +268,80 @@ const phases = {
             JSON.stringify(deferred));
     },
 
+    // The JSON codec is the only thing that touches data a page did not
+    // write — a server response handed to ring.call. It is therefore the
+    // one place where "slow" is a security property, not a comfort.
+    async json() {
+        console.log("\nJSON — the bridge's only untrusted input");
+        const ring = await newVM();
+        const out = (c) => { const r = ring.eval(c); return r.ok ? r.output.trim() : "ERR " + r.error; };
+        ring.eval("func JsonEcho p\n  return p");
+
+        // Reading a big string one byte at a time is O(n^2) in Ring, because
+        // substr(cBig, i, 1) costs len(cBig). A 1 MB payload used to take
+        // 260 SECONDS — a page frozen by the size of a server response. The
+        // budget is deliberately loose (measured ~1s); it is here to catch a
+        // return to quadratic, which would blow past it by orders of magnitude.
+        const big = "A".repeat(1024 * 1024);
+        const t0 = Date.now();
+        const round = ring.call("JsonEcho", { s: big });
+        const ms = Date.now() - t0;
+        check("1 MB round trip completes in seconds, not minutes", ms < 15000, ms + " ms");
+        check("1 MB round trip is byte-exact",
+            round.ok && round.result && round.result.s === big,
+            round.ok ? String(round.result && round.result.s && round.result.s.length) : round.error);
+
+        // decimals() is global VM state. Encoding a number used to reset it
+        // to a hardcoded 2 — and JsonEncode runs on the return of every call.
+        check("JsonEncode leaves decimals() alone",
+            out("decimals(6)  cJ = JsonEncode([1.5])  ? 1/3") === "0.333333",
+            out("decimals(6)  cJ = JsonEncode([1.5])  ? 1/3"));
+        ring.eval("decimals(2)");
+        check("numbers still encode as before", out("? JsonEncode([1.5, 2, 0.125])") === "[1.5,2,0.125]",
+            out("? JsonEncode([1.5, 2, 0.125])"));
+
+        // Round trips that exercise every branch of the escaper.
+        const shapes = {
+            utf8: { a: "café ✓ 日本 🎵" },
+            escapes: { a: '"' + "\\" + "\n\r\t\b\f" },
+            controls: { a: " " },
+            empty: { a: "" },
+            nested: { a: { b: { c: [1, 2, { d: "x" }] } } },
+            numbers: { a: [0, -1, 1.5, 1e10, 1e-7, 0.1] },
+            escapeHeavy: { a: ('"' + "\\" + "\n").repeat(20000) },
+            unicodeHeavy: { a: "日本語".repeat(20000) },
+        };
+        let allMatch = true, firstBad = "";
+        for (const [name, val] of Object.entries(shapes)) {
+            const r = ring.call("JsonEcho", val);
+            if (!r.ok || JSON.stringify(r.result) !== JSON.stringify(val)) {
+                allMatch = false; if (!firstBad) firstBad = name;
+            }
+        }
+        check("hostile shapes round trip byte-exact", allMatch, firstBad);
+
+        // Malformed input reaches the codec through a raw jscall reply, which
+        // no JSON.stringify has vetted. Every case must raise, never accept.
+        const malformed = ['{', '[1,', '{"a"}', '{"a":}', '[1 2]', 'tru', '{"a":1,}', ''];
+        let allRaised = true, accepted = "";
+        for (const j of malformed) {
+            const r = ring.eval("try  vX = JsonDecode('" + j.split("'").join("''") +
+                                "')  ? \"ACCEPTED\"  catch  ? \"raised\"  done");
+            if (!r.ok || r.output.trim() !== "raised") { allRaised = false; accepted = accepted || j; }
+        }
+        check("malformed JSON always raises, never accepts", allRaised, JSON.stringify(accepted));
+
+        // Deep nesting recurses, and recursion is bounded by Ring's own stack
+        // check. The requirement is not that it succeeds — it is that it
+        // fails as a catchable Ring error and the VM lives.
+        const deep = ring.eval('cJ = ""\nfor i = 1 to 5000 cJ += "[" next\n' +
+            'for i = 1 to 5000 cJ += "]" next\n' +
+            'try  aX = JsonDecode(cJ)  ? "decoded"  catch  ? "raised"  done');
+        check("hostile nesting raises cleanly instead of crashing",
+            deep.ok && deep.output.trim() === "raised", JSON.stringify(deep.output));
+        check("VM survives the whole JSON gauntlet", out("? 6*7") === "42");
+    },
+
     async io() {
         console.log("IO — give input, object printing, auto-main (examples challenge)");
         const ring = await newVM();

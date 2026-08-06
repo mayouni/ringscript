@@ -149,7 +149,7 @@ ringscript/
 │   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
 ├── tests/                       verification — see §6
-│   ├── gates.js                 58 permanent gates
+│   ├── gates.js                 66 permanent gates
 │   ├── soak.js                  long-session endurance (what accumulates?)
 │   ├── fuzz.js                  hostile input (can the loader be made to throw?)
 │   ├── wasi.js                  the hand-written WASI shim, against the host itself
@@ -215,8 +215,8 @@ battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 Every claim in these docs is executable:
 
 ```bash
-node tests/gates.js             # 58 permanent gates: residency, errors,
-                                #   memory, io, bridge, reentrancy, lines
+node tests/gates.js             # 66 permanent gates: residency, errors,
+                                #   memory, io, bridge, reentrancy, json
 node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/soak.js              # 40,000 evaluations: nothing may accumulate
 node tests/fuzz.js              # 4,000 hostile inputs: eval must never throw
@@ -244,28 +244,32 @@ and the file stays runnable with `ring.exe` on its own.
 
 Recorded baselines, not aspirations: `tests/bench.js` measures these on
 every run and fails if one regresses beyond 40%. Taken on an Intel Core
-5 210H, Node 22, `ringscript.wasm` at 364,272 bytes.
+5 210H, Node 22, `ringscript.wasm` at 370,752 bytes.
 
 | | min | what it exercises |
 |---|---|---|
-| instantiate + `rs_init` | **5.7 ms** | cold start — the number a page pays |
+| instantiate + `rs_init` | **6.6 ms** | cold start — the number a page pays |
 | `? 1+1` | 0.098 ms | one full eval round trip |
-| 10,000-iteration loop | 0.731 ms | VM dispatch |
-| build a 2,000-char string | 0.290 ms | string growth |
+| 10,000-iteration loop | 0.754 ms | VM dispatch |
+| build a 2,000-char string | 0.289 ms | string growth |
 | sort a 2,000-element list | 0.296 ms | library call |
-| create 2,000 objects | 6.40 ms | allocation |
-| 1,000 lines of output | 0.901 ms | the `see` hook |
-| `ring.call` from JS | 0.104 ms | the bridge, JSON both ways |
-| parse a ZQL declaration | 1.55 ms | the shipped payload |
-| JSON encode 8.7 KB | 12.5 ms | the pure-Ring codec |
-| JSON decode 8.7 KB | **26.3 ms** | ...and its slower half |
+| create 2,000 objects | 6.25 ms | allocation |
+| 1,000 lines of output | 0.881 ms | the `see` hook |
+| `ring.call` from JS | 0.125 ms | the bridge, JSON both ways |
+| parse a ZQL declaration | 1.52 ms | the shipped payload |
+| JSON encode 8.7 KB | 10.2 ms | the pure-Ring codec |
+| JSON decode 8.7 KB | **33.1 ms** | ...and its slower half |
 
-Two things are worth reading off that table. **Startup at 5.7 ms** is the
+Two things are worth reading off that table. **Startup at 6.6 ms** is the
 figure that matters most for a page, and it is comfortable. **JSON
-decoding is the slowest thing here** — a character-at-a-time parser
-written in Ring, at roughly 330 KB/s. It is fast enough for the bridge's
-own traffic (arguments and results), and it is the first place to look
-if a page ever moves bulk data across the seam.
+decoding is still the slowest thing here**, but it no longer falls off a
+cliff: both directions are now linear in the payload, where they used to
+be quadratic. A 1 MB value through `ring.call` took **260 seconds**
+before and takes **under one**. The cost of that is a slower small-payload
+decode (8.7 KB went from 26 to 33 ms) and ~1 ms of startup, because the
+codec's source is larger and `rs_init` parses it. Encoding got faster at
+every size. See [the codec's own notes](../src/ringlib/json.ring) for why
+`substr(cBig, i, 1)` is the villain.
 
 Four details make the baseline honest rather than decorative:
 
