@@ -1,0 +1,67 @@
+{
+  "recorded": "2026-08-06",
+  "machine": "Intel(R) Core(TM) 5 210H",
+  "node": "22.20.0",
+  "platform": "win32",
+  "wasmBytes": 364061,
+  "calibration": {
+    "min": 0.7157
+  },
+  "results": {
+    "startup": {
+      "min": 5.5847,
+      "median": 6.5058,
+      "n": 108
+    },
+    "eval-min": {
+      "min": 0.0959,
+      "median": 0.103,
+      "n": 2704
+    },
+    "loop-10k": {
+      "min": 0.7392,
+      "median": 0.8616,
+      "n": 334
+    },
+    "string-2k": {
+      "min": 0.2755,
+      "median": 0.3034,
+      "n": 923
+    },
+    "sort-2k": {
+      "min": 0.3003,
+      "median": 0.3204,
+      "n": 840
+    },
+    "objects-2k": {
+      "min": 6.0215,
+      "median": 6.8243,
+      "n": 60
+    },
+    "output-1k": {
+      "min": 0.9034,
+      "median": 0.9478,
+      "n": 289
+    },
+    "json-encode": {
+      "min": 12.3936,
+      "median": 13.418,
+      "n": 25
+    },
+    "json-decode": {
+      "min": 28.2919,
+      "median": 29.2779,
+      "n": 25
+    },
+    "call-bridge": {
+      "min": 0.1041,
+      "median": 0.1123,
+      "n": 2431
+    },
+    "zql-parse": {
+      "min": 1.5454,
+      "median": 1.6725,
+      "n": 226
+    }
+  }
+}

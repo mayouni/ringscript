@@ -248,6 +248,8 @@ ringscript/
 │   ├── soak.js                  long-session endurance — what accumulates over 40,000 evals
 │   ├── fuzz.js                  hostile input — eval() must always return, never throw
 │   ├── wasi.js                  the hand-written host surface: clocks, encoding, ordering
+│   ├── bench.js                 speed and size, against a recorded baseline
+│   ├── bench-baseline.json      the numbers a regression is measured from
 │   ├── examples-oracle.js       the 24 Playground examples vs native ring
 │   ├── samples-sweep.js         bulk sweep: Ring's own samples + doc snippets
 │   ├── extract-doc-snippets.js  regenerates the doc corpus from your Ring install
@@ -289,6 +291,7 @@ node tests/gates.js            # 36 gates
 node tests/soak.js             # endurance: 40,000 evaluations, nothing accumulates
 node tests/fuzz.js             # robustness: 4,000 hostile inputs, no exceptions
 node tests/wasi.js             # the WASI shim, against the host's own clock and encoding
+node tests/bench.js            # speed + size vs tests/bench-baseline.json
 node tests/examples-oracle.js  # 24 examples vs native ring.exe
 node tests/samples-sweep.js    # ~284 official samples vs native
 node tests/extract-doc-snippets.js && node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.

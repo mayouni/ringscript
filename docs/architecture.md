@@ -135,6 +135,8 @@ ringscript/
 │   ├── soak.js                  long-session endurance (what accumulates?)
 │   ├── fuzz.js                  hostile input (can the loader be made to throw?)
 │   ├── wasi.js                  the hand-written WASI shim, against the host itself
+│   ├── bench.js                 speed and size vs a recorded, calibrated baseline
+│   ├── bench-baseline.json      what a regression is measured from
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
 │   ├── extract-doc-snippets.js  builds the doc corpus from your Ring install
@@ -201,6 +203,7 @@ node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/soak.js              # 40,000 evaluations: nothing may accumulate
 node tests/fuzz.js              # 4,000 hostile inputs: eval must never throw
 node tests/wasi.js              # the WASI shim: clocks, encoding, output ordering
+node tests/bench.js             # speed and size vs the recorded baseline
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \
 node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.
@@ -218,3 +221,60 @@ is verified is what a reader is shown, not a copy of it. Adding an
 example means adding the `.ring` file and one manifest line in
 `playground/examples-data.js`; the oracle then covers it automatically,
 and the file stays runnable with `ring.exe` on its own.
+
+## 7. Performance
+
+Recorded baselines, not aspirations: `tests/bench.js` measures these on
+every run and fails if one regresses beyond 40%. Taken on an Intel Core
+5 210H, Node 22, `ringscript.wasm` at 364,061 bytes.
+
+| | min | what it exercises |
+|---|---|---|
+| instantiate + `rs_init` | **5.6 ms** | cold start — the number a page pays |
+| `? 1+1` | 0.096 ms | one full eval round trip |
+| 10,000-iteration loop | 0.739 ms | VM dispatch |
+| build a 2,000-char string | 0.276 ms | string growth |
+| sort a 2,000-element list | 0.300 ms | library call |
+| create 2,000 objects | 6.02 ms | allocation |
+| 1,000 lines of output | 0.903 ms | the `see` hook |
+| `ring.call` from JS | 0.104 ms | the bridge, JSON both ways |
+| parse a ZQL declaration | 1.55 ms | the shipped payload |
+| JSON encode 8.7 KB | 12.4 ms | the pure-Ring codec |
+| JSON decode 8.7 KB | **28.3 ms** | ...and its slower half |
+
+Two things are worth reading off that table. **Startup at 5.6 ms** is the
+figure that matters most for a page, and it is comfortable. **JSON
+decoding is the slowest thing here** — a character-at-a-time parser
+written in Ring, at roughly 300 KB/s. It is fast enough for the bridge's
+own traffic (arguments and results), and it is the first place to look
+if a page ever moves bulk data across the seam.
+
+Four details make the baseline honest rather than decorative:
+
+- **It is calibrated.** Milliseconds mean nothing on someone else's
+  machine, so each run also times a fixed JS workload — integer
+  arithmetic plus a strided walk over 4 MB, because interpreting Ring
+  chases pointers rather than staying in registers — and compares
+  *ratios*.
+- **It reports the minimum.** Timing noise is always additive; a sample
+  is never faster than the truth. The median is printed beside it to
+  show the spread.
+- **Anything over the line is measured again** before it is called a
+  regression. Run-to-run noise here is ±8%, far inside the tolerance,
+  but a background process landing on the wrong core can inflate a
+  single benchmark — and a suite that cries wolf gets ignored, which
+  protects nothing.
+- **Size is gated harder than speed** (2%, and it needs no calibration).
+  This project has twice chosen the smaller binary over the faster one —
+  ReleaseSmall over ReleaseFast, the Ring ZQL over the Zig one — so a
+  harness watching only speed would quietly reward the trade it has
+  already rejected.
+
+Verified by measuring a debug build against the baseline: all eleven
+benchmarks fail on both the first and the second look (+68% to +310%),
+as does the size check (+631%). And the release build is
+**reproducible** — rebuilding after a debug build returns the committed
+artifact byte-for-byte.
+
+Re-record with `node tests/bench.js --update`, and say in the commit
+message why the numbers moved.
