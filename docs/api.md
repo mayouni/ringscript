@@ -24,25 +24,49 @@ wasm's own answer, so it cannot drift from the file you shipped) and
 const ring = await RingScript.boot();
 ```
 
-Does four things, in order:
+Does five things, in order:
 
-1. loads the wasm (default `"ringscript.wasm"`, next to your HTML —
-   override with `opts.wasm`);
-2. registers the DOM seam handlers `settext` / `gettext` / `getvalue`,
+1. waits for the document to finish parsing, if it has not — so calling
+   `boot()` from a `<script>` in `<head>` is safe and still finds the
+   Ring blocks further down the page;
+2. starts downloading every `src` file **at once**, and loads the wasm
+   alongside them;
+3. registers the DOM seam handlers `settext` / `gettext` / `getvalue`,
    which Ring reaches through `Page(name, data)`
    (documented in [Scripting pages](scripting-pages.md#3-the-dom-seam-precisely));
-3. evaluates every `<script type="text/ring">` block, in document
-   order, in the one resident VM — a block may carry a `src`
-   (`<script type="text/ring" src="helpers.ring"></script>`), in which
-   case the file is fetched and evaluated in place of the tag's own
-   text, the way an ordinary `<script src>` ignores its inline content.
-   Each block finishes before the next starts, so later files may use
-   what earlier ones defined. A file that fails to fetch is reported to
-   the console and skipped; the remaining blocks still run;
-4. exposes the instance as `window.ring` so inline handlers can write
-   `onclick="ring.call('Fn')"`.
+4. publishes the instance as `window.ring`, so inline handlers such as
+   `onclick="ring.call('Fn')"` work from this moment — *before* the page's
+   Ring code has run, not after;
+5. evaluates every `<script type="text/ring">` block, in document order,
+   in the one resident VM.
 
 `boot()` accepts every option `load()` accepts.
+
+**Downloading is parallel; running is sequential.** A block may carry a
+`src` — `<script type="text/ring" src="helpers.ring">` — in which case
+the file is fetched and evaluated in place of the tag's own text, the way
+an ordinary `<script src>` ignores its inline content. The files are
+fetched together because they do not need each other to *arrive*, only to
+*run*; each block still finishes before the next begins, so later files
+may use whatever earlier ones defined. Fetching them one at a time cost a
+round trip each: ten files took 477 ms against 71 ms, and that was over
+localhost.
+
+**A file that fails is reported and skipped**, and the remaining blocks
+still run — the same thing the browser does with a broken `<script src>`.
+Read the *first* console error: the later ones are usually just Ring
+reporting functions the missing file was supposed to define. Three cases
+are named explicitly rather than left to a syntax error: an HTTP status
+(the path is wrong), a page served instead of the file (a 404 page or a
+single-page-app fallback answering with HTML), and a blocked fetch
+(the page was opened from `file://` instead of over http).
+
+**Clicks that arrive during startup do not throw.** Until the VM exists,
+`window.ring` answers with `{ ok: false, error: "...still starting..." }`
+and warns on the console, so an impatient click leaves a message rather
+than `ReferenceError: ring is not defined` and a dead button. `ring.booting`
+is `true` while that placeholder is in place. If you need certainty, wire
+controls inside `boot().then(...)`.
 
 ## load(source, opts) — programmatic mode
 

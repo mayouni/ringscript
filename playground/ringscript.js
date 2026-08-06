@@ -551,9 +551,117 @@
     ** Note: functions invoked with ring.call receive exactly one argument
     ** (the JSON payload, NULL when omitted) — declare them as `func F aArg`.
     */
+    /**
+     * Fetch one .ring file. Never rejects — a failed file must not take the
+     * rest of the page with it, exactly as a failed <script src> does not.
+     * Returns { code } or { error }.
+     */
+    async function fetchRingFile(src) {
+        try {
+            const resp = await fetch(src);
+            if (!resp.ok) {
+                // The server answered, so the address is the problem.
+                return { error: "HTTP " + resp.status + " " + resp.statusText +
+                    " — check the path is right and the file sits beside your page" };
+            }
+            const code = await resp.text();
+            // A server that rewrites unknown paths to index.html — the usual
+            // single-page-app fallback — answers 200 with HTML, and Ring then
+            // reports a syntax error on line 1 that tells the reader nothing.
+            const ctype = resp.headers.get("content-type") || "";
+            if (/text\/html/i.test(ctype) || /^\s*(<!doctype html|<html[\s>])/i.test(code.slice(0, 200))) {
+                return { error: "the server returned HTML, not Ring — the path is " +
+                    "probably wrong and your server answered with a page (a 404 page, " +
+                    "or a single-page-app fallback) instead of the file" };
+            }
+            return { code: code };
+        } catch (e) {
+            // No response at all usually means the page was opened as file://,
+            // where fetch is blocked outright. Say so, rather than leaving the
+            // reader with a bare "Failed to fetch".
+            const blocked = /Failed to fetch|NetworkError|Load failed/i.test(e.message);
+            return { error: e.message + (blocked
+                ? " — .ring files must be served over http:// or https://, not opened from file://"
+                : "") };
+        }
+    }
+
+    /**
+     * Stands in for `ring` while the runtime is still loading.
+     *
+     * The starter kit and the docs both teach
+     * `<button onclick="ring.call('Greet')">`, so a click during startup is
+     * the taught pattern, not an edge case — and it used to die with
+     * "ReferenceError: ring is not defined", leaving a dead button and a
+     * cryptic console entry.
+     *
+     * It warns as well as returning a result: a quiet error object nobody
+     * reads would trade a cryptic failure for an invisible one, and a button
+     * that does nothing without saying why is the harder bug.
+     */
+    function bootPlaceholder(reason) {
+        const say = function (what) {
+            const msg = "RingScript: " + reason + ", so this " + what + " did nothing.";
+            if (typeof console !== "undefined") console.warn("[ringscript] " + msg);
+            return msg;
+        };
+        return {
+            booting: true,
+            eval: function () { return { ok: false, code: -4, output: "", error: say("evaluation") }; },
+            call: function () { return { ok: false, result: null, output: "", error: say("call") }; },
+            busy: function () { return true; },
+            reset: function () { say("reset"); return -4; },
+            on: function () { say("handler registration"); },
+            lastOutput: function () { return ""; },
+            lastError: function () { return ""; },
+        };
+    }
+
     async function boot(opts) {
         opts = opts || {};
-        const ring = await load(opts.wasm || "ringscript.wasm", opts);
+
+        // Answer from the first instant, before the wasm has even been
+        // fetched. Replaced by the real API as soon as the VM exists.
+        const placeholder = bootPlaceholder("the runtime is still starting");
+        if (typeof global.ring === "undefined") global.ring = placeholder;
+
+        // Wait for the parser before looking for tags. boot() is normally
+        // called from a <script> in <head>, and until now it only found the
+        // page's Ring blocks because awaiting the wasm happened to give the
+        // parser enough time — a race that a warm cache or a large document
+        // could lose, silently running nothing at all.
+        if (typeof document !== "undefined" && document.readyState === "loading") {
+            await new Promise(function (done) {
+                document.addEventListener("DOMContentLoaded", done, { once: true });
+            });
+        }
+
+        // Start every download now, before the wasm is even awaited. The files
+        // depend on each other to RUN in order, not to ARRIVE in order, and
+        // fetching them one at a time cost a full round trip each: twelve
+        // files took 2,160 ms against 251 ms for the same code inline — and
+        // that was over localhost, where a round trip is nearly free.
+        const tags = document.querySelectorAll('script[type="text/ring"]');
+        const pending = [];
+        for (let i = 0; i < tags.length; i++) {
+            const src = tags[i].getAttribute("src");
+            pending.push(src
+                ? { where: src, result: fetchRingFile(src) }
+                : { where: 'inline <script type="text/ring">',
+                    result: Promise.resolve({ code: tags[i].textContent }) });
+        }
+
+        let ring;
+        try {
+            ring = await load(opts.wasm || "ringscript.wasm", opts);
+        } catch (e) {
+            // Leaving "still starting" in place would be a lie the page
+            // repeats forever, so say what actually happened instead.
+            if (global.ring === placeholder) {
+                global.ring = bootPlaceholder("the runtime failed to load (" + e.message + ")");
+            }
+            throw e;
+        }
         ring.on("settext", function (p) {
             const el = document.getElementById(p && p.id);
             if (el) el.textContent = (p && p.text != null) ? String(p.text) : "";
@@ -567,45 +675,32 @@
             const el = document.getElementById(p && p.id);
             return el ? el.value : "";
         });
-        // Every <script type="text/ring"> on the page, in document order.
-        // With a src attribute the file is fetched and evaluated in place of
-        // the tag's own text — mirroring how the browser treats <script src>,
-        // where inline content is ignored when src is present. This is the
-        // browser's stand-in for Ring's `load`: a page has no filesystem, so
-        // the file arrives over HTTP instead of off a disk.
-        //
-        // Sequential on purpose: a file defining Greet must finish before the
-        // file calling it begins, exactly as consecutive `load` lines behave.
-        const tags = document.querySelectorAll('script[type="text/ring"]');
-        for (let i = 0; i < tags.length; i++) {
-            const src = tags[i].getAttribute("src");
-            let code = tags[i].textContent;
-            let where = 'inline <script type="text/ring">';
-            if (src) {
-                where = src;
-                try {
-                    const resp = await fetch(src);
-                    if (!resp.ok) {
-                        // The server answered, so the address is the problem.
-                        throw new Error("HTTP " + resp.status + " " + resp.statusText +
-                            " — check the path is right and the file sits beside your page");
-                    }
-                    code = await resp.text();
-                } catch (e) {
-                    // No response at all usually means the page was opened as
-                    // file://, where fetch is blocked outright. Say so, rather
-                    // than leaving the reader with a bare "Failed to fetch".
-                    const blocked = /Failed to fetch|NetworkError|Load failed/i.test(e.message);
-                    console.error("[ringscript] could not load " + src + ": " + e.message +
-                        (blocked ? " — .ring files must be served over http:// or https://," +
-                                   " not opened from file://" : ""));
-                    continue;
-                }
-            }
-            const r = ring.eval(code);
-            if (!r.ok) console.error("[ringscript] " + where + ": " + r.error);
-        }
+        // Published before the blocks run, not after. Page controls are wired
+        // as onclick="ring.call('Save')", and until now `ring` did not exist
+        // until every file had downloaded AND run — so a click during loading
+        // died with "ReferenceError: ring is not defined" and the button
+        // simply did nothing. The VM is real from here on, so an early click
+        // gets an ordinary Ring error naming the function it could not find,
+        // which is a message someone can act on.
         global.ring = ring;
+
+        // Run them in document order, each finishing before the next starts:
+        // a file defining Greet must complete before the file calling it
+        // begins, exactly as consecutive `load` lines behave. Only the
+        // downloading was made parallel; the running is still sequential.
+        //
+        // A file that failed to arrive is skipped and the page carries on,
+        // which is what the browser does with a broken <script src> — and the
+        // first error logged is the real one, so read upwards.
+        for (let i = 0; i < pending.length; i++) {
+            const got = await pending[i].result;
+            if (got.error) {
+                console.error("[ringscript] could not load " + pending[i].where + ": " + got.error);
+                continue;
+            }
+            const r = ring.eval(got.code);
+            if (!r.ok) console.error("[ringscript] " + pending[i].where + ": " + r.error);
+        }
         return ring;
     }
 
