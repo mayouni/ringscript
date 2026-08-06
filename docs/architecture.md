@@ -31,7 +31,11 @@ Three layers, three languages, each doing the one thing it is best at:
   trapping, the input queue, the embedded file map, value printing.
 - **The loader** (`playground/ringscript.js`) — the only JavaScript: a ~150
   line WASI shim (clocks, randomness, stdout) plus the public API.
-  No frameworks, no dependencies, classic script.
+  No frameworks, no dependencies, classic script. It is hand-written, and
+  therefore the densest source of defects per line in the project — a
+  mistake there is silent, since the VM keeps running and merely reports
+  something plausible. `tests/wasi.js` holds it to the host's own clock,
+  encoding and ordering rather than to its opinion of itself.
 
 ## 2. How an eval works
 
@@ -130,6 +134,7 @@ ringscript/
 │   ├── gates.js                 36 permanent gates
 │   ├── soak.js                  long-session endurance (what accumulates?)
 │   ├── fuzz.js                  hostile input (can the loader be made to throw?)
+│   ├── wasi.js                  the hand-written WASI shim, against the host itself
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
 │   ├── extract-doc-snippets.js  builds the doc corpus from your Ring install
@@ -195,6 +200,7 @@ node tests/gates.js             # 36 permanent gates: residency, errors,
 node tests/examples-oracle.js   # playground/examples/*.ring vs native ring.exe
 node tests/soak.js              # 40,000 evaluations: nothing may accumulate
 node tests/fuzz.js              # 4,000 hostile inputs: eval must never throw
+node tests/wasi.js              # the WASI shim: clocks, encoding, output ordering
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \
 node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.

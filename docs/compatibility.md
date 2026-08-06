@@ -17,7 +17,10 @@ excludes. The measurement (re-runnable, see
 | Playground examples | 24 | byte-identical to `ring.exe` |
 | Official samples (`samples/` of the Ring 1.27 distribution) | ~284 runnable | zero mismatches |
 | Code blocks from the official documentation | ~550 runnable | zero mismatches |
-| Permanent gates (residency, errors, memory, I/O, bridge) | 29 | all pass |
+| Permanent gates (residency, errors, memory, I/O, bridge) | 36 | all pass |
+| Soak — one VM, 40,000 evaluations | 2 phases | nothing accumulates |
+| Fuzz — hostile input | 4,000 cases | `eval()` never throws |
+| WASI shim — clocks, encoding, ordering | 20 checks | all pass |
 
 That includes the parts people assume would break: OOP with `private`
 sections, operator overloading, `braceStart`/`braceExprEval` magic,
@@ -40,7 +43,8 @@ each:
 | threads, sockets, GUI bindings (RingQt…) | not present — they are separate C extensions, never part of the core VM |
 | `syssleep` | returns immediately (no blocking sleeps in a page) |
 | `iswindows()` & friends, `filename()`, pointer addresses | answer truthfully *for the wasm environment* — e.g. `iswindows()` is `0`, `filename()` is `Ring_EmbeddedCode` |
-| `clock()`, `time()`, `date()`, `random()` | fully functional (browser clocks & crypto randomness) |
+| `clock()`, `time()`, `date()` | fully functional, and on the host's **local** clock. wasi-libc carries no timezone database, so the runtime applies the browser's offset itself |
+| `random()` | works, but is **unseeded — exactly as in native Ring**, which repeats the same sequence on every run. Every visitor to a page therefore gets the same numbers. Seed it yourself if that matters. (The values differ from native, since the C library differs.) |
 
 The design rule: **exclusion is an error, never a crash.** A program
 that asks for the filesystem gets a catchable Ring error with a line
