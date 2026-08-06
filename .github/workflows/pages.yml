@@ -73,5 +73,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # v5 is v4.0.5 with the Node 24 runtime and nothing else: same inputs,
+      # same outputs. v4 still ran, but only because GitHub was forcing it
+      # onto Node 24 and saying so in every log.
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
