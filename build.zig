@@ -128,12 +128,30 @@ pub fn build(b: *std.Build) void {
     // the default 1 MB wasm shadow stack overflows well before native does.
     exe.stack_size = 8 * 1024 * 1024;
 
-    b.installArtifact(exe);
+    // -Dmax-heap=<MB> caps the wasm heap, for the constrained-heap soak
+    // (tests/soak-browser.html). A phone does not hand a tab a gigabyte, and
+    // the interesting question is what the runtime does when growth is
+    // REFUSED rather than merely slow — which cannot be provoked on a
+    // desktop without waiting for a 4 GB ceiling.
+    //
+    // It writes ringscript-capped.wasm and leaves the shipped artifact alone:
+    // the committed binary must never depend on whether a test flag was
+    // passed. Same source, same flags, only the ceiling differs.
+    const max_heap_mb = b.option(u32, "max-heap",
+        "Cap the wasm heap in MB and emit playground/ringscript-capped.wasm (test builds only)");
 
-    // `zig build` drops the artifact in zig-out/bin/ringscript.wasm; also copy
-    // it next to the web pages so the site folder is self-contained.
-    const copy = b.addInstallFile(exe.getEmittedBin(), "../playground/ringscript.wasm");
-    b.getInstallStep().dependOn(&copy.step);
+    if (max_heap_mb) |mb| {
+        // wasm pages are 64 KiB; --max-memory must be a multiple of one.
+        exe.max_memory = @as(u64, mb) * 1024 * 1024;
+        const capped = b.addInstallFile(exe.getEmittedBin(), "../playground/ringscript-capped.wasm");
+        b.getInstallStep().dependOn(&capped.step);
+    } else {
+        b.installArtifact(exe);
+        // `zig build` drops the artifact in zig-out/bin/ringscript.wasm; also
+        // copy it next to the web pages so the site folder is self-contained.
+        const copy = b.addInstallFile(exe.getEmittedBin(), "../playground/ringscript.wasm");
+        b.getInstallStep().dependOn(&copy.step);
+    }
 
     // `zig build serve` — build everything, then serve playground/ on localhost.
     // The one command a programmer needs: compile the VM to wasm, refresh

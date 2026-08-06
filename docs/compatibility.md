@@ -87,8 +87,15 @@ the runtime were contributed back to Ring as
 
 - **Startup**: ~340 KB of wasm, instantiated in tens of milliseconds;
   a Playground eval round-trip is typically 1–3 ms.
-- **Memory**: flat across sustained use — 500 successful + 500 failing
-  evals leave the wasm heap unchanged (gated).
+- **Memory**: flat across sustained use — 40,000 evaluations of
+  page-shaped work leave the wasm heap unchanged, in Node and in a
+  browser alike (gated, and re-runnable on your own device with
+  [`playground/soak.html`](../playground/soak.html)).
+- **At a hard memory ceiling** — a phone, or the 64 MB-capped test build
+  — Ring's allocator exits rather than reporting failure, so the VM
+  stops and `ring.reset()` (or a fresh instance) is needed. The *page*
+  survives: the failure arrives as an ordinary `{ ok: false, error }`
+  that says exactly that, never as an exception.
 - **Performance**: interpreted Ring at wasm speed — right for page
   logic, rules, notebooks and teaching; not a number-crunching target.
 - **Determinism**: same code, same input ⇒ same output as native Ring.

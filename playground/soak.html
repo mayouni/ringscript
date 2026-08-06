@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingScript endurance — run it on the device you care about</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔁</text></svg>">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --dim: #666; --line: #e2e2e2;
+    --ok: #12703a; --bad: #b3261e; --warn: #8a5a00; --accent: #1a4fa0;
+    --card: #fafafa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161a; --fg: #e8e8e8; --dim: #9aa0a6; --line: #2c3038;
+            --ok: #6fcf97; --bad: #ff7a70; --warn: #e0b050; --accent: #7aa7f0;
+            --card: #1a1d22; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 1.5rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--dim); margin: 0 0 22px; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 10px; padding: 16px; margin: 0 0 18px; }
+  label { display: block; font-weight: 600; margin: 0 0 6px; font-size: .9rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .row > div { flex: 1 1 150px; min-width: 0; }
+  select, input { width: 100%; padding: 9px 10px; font: inherit; color: var(--fg);
+                  background: var(--bg); border: 1px solid var(--line); border-radius: 7px; }
+  button { padding: 11px 20px; font: inherit; font-weight: 600; cursor: pointer;
+           background: var(--accent); color: #fff; border: 0; border-radius: 7px; }
+  button[disabled] { opacity: .5; cursor: default; }
+  .hint { color: var(--dim); font-size: .85rem; margin-top: 8px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 14px 0 4px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .9rem; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--dim); font-weight: 600; }
+  .verdict { margin: 4px 0; padding-left: 22px; text-indent: -22px; }
+  .verdict.p::before { content: "PASS  "; color: var(--ok); font-weight: 700; }
+  .verdict.f::before { content: "FAIL  "; color: var(--bad); font-weight: 700; }
+  .verdict small { color: var(--dim); }
+  .banner { font-weight: 600; padding: 12px 14px; border-radius: 8px; margin: 16px 0 0; }
+  .banner.p { background: rgba(18,112,58,.12); color: var(--ok); }
+  .banner.f { background: rgba(179,38,30,.12); color: var(--bad); }
+  .banner.w { background: rgba(138,90,0,.12); color: var(--warn); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; }
+  h2 { font-size: 1.05rem; margin: 22px 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>RingScript endurance</h1>
+<p class="sub">The same soak <code>tests/soak.js</code> runs in Node, but in a real
+browser on a real device — where the memory ceiling is the operating system's
+to decide, not a number in a test.</p>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label for="runtime">Runtime</label>
+      <select id="runtime">
+        <option value="ringscript.wasm">shipped — heap grows until the browser says no</option>
+        <option value="ringscript-capped.wasm">capped at 64 MB — provokes refusal on purpose</option>
+      </select>
+    </div>
+    <div>
+      <label for="batches">Batches</label>
+      <input id="batches" type="number" value="8" min="2" max="40">
+    </div>
+    <div>
+      <label for="per">Evals per batch</label>
+      <input id="per" type="number" value="2500" min="100" max="20000" step="100">
+    </div>
+    <div style="flex:0 0 auto"><button id="go">Run</button></div>
+  </div>
+  <p class="hint">On a phone start with 8 &times; 2500. The page yields between
+  batches so the browser stays responsive; leave it in the foreground, since
+  a backgrounded tab is throttled and the numbers stop meaning anything.</p>
+</div>
+
+<div class="bar"><i id="bar"></i></div>
+<p class="hint" id="status">idle</p>
+
+<div id="results"></div>
+
+</div>
+<script src="ringscript.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // Identical to tests/soak.js — the two suites must ask the same question.
+  var PAGE_WORKLOAD = [
+    "nSoak = %I + 1",
+    'cSoak = "row " + %I + " of many"',
+    "aSoak = [1,2,3]  add(aSoak, %I)  aSoak = sort(aSoak)",
+    "NoSuchFunction%I()",                     // runtime error
+    "see %I",
+    "if %I % 2 = 0  x = 1  else  x = 2  ok",
+    "$$ not ring $$"                          // parse error, no keyword
+  ];
+  var MIXED_WORKLOAD = PAGE_WORKLOAD.concat([
+    "func SoakFn%I return %I",
+    "func (",                                 // malformed declaration
+    "class SoakCls%I gkA gkB"
+  ]);
+
+  var $ = function (id) { return document.getElementById(id); };
+  var results = $("results"), status = $("status"), bar = $("bar");
+  var failures = 0;
+
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html !== undefined) n.innerHTML = html;
+    return n;
+  }
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function verdict(name, ok, detail) {
+    if (!ok) failures++;
+    var v = el("p", "verdict " + (ok ? "p" : "f"));
+    v.appendChild(document.createTextNode(name));
+    if (!ok && detail !== undefined) {
+      var s = el("small"); s.textContent = "  [" + detail + "]"; v.appendChild(s);
+    }
+    results.appendChild(v);
+    return ok;
+  }
+  // Let the browser paint and, more importantly, let it run its collector.
+  var breathe = function () { return new Promise(function (r) { setTimeout(r, 0); }); };
+
+  async function main() {
+    failures = 0;
+    results.innerHTML = "";
+    var wasmName = $("runtime").value;
+    var BATCHES = Math.max(2, parseInt($("batches").value, 10) || 8);
+    var PER = Math.max(100, parseInt($("per").value, 10) || 2500);
+    var capped = wasmName.indexOf("capped") >= 0;
+
+    status.textContent = "loading " + wasmName + "…";
+    var resp = await fetch(wasmName);
+    if (!resp.ok) {
+      results.appendChild(el("p", "banner w",
+        "<b>" + esc(wasmName) + " is not here.</b> It is a test build and is not " +
+        "committed — produce it with <code>zig build -Dmax-heap=64</code>, or pick " +
+        "the shipped runtime above."));
+      status.textContent = "idle";
+      return;
+    }
+    var bytes = await resp.arrayBuffer();
+    var ring = await RingScript.load(bytes, { onOutput: function () {} });
+
+    var mem = function () { return ring.instance.exports.memory.buffer.byteLength / 1048576; };
+    var count = function (what) {
+      var r = ring.eval("see len(" + what + "())");
+      return r.ok ? parseInt(r.output, 10) : NaN;
+    };
+    ring.eval("nCanary = 12345");
+
+    var head = el("p");
+    head.innerHTML = "<b>" + esc(wasmName) + "</b> &middot; " + BATCHES + " batches &times; " +
+      PER.toLocaleString() + " evaluations per phase &middot; heap starts at " +
+      mem().toFixed(1) + " MB" +
+      (capped ? " &middot; <b>ceiling 64 MB</b>" : "");
+    results.appendChild(head);
+
+    var totalBatches = BATCHES * 2, done = 0;
+
+    async function run(work, label) {
+      results.appendChild(el("h2", null, esc(label)));
+      var wrap = el("div", "scroll");
+      var table = el("table");
+      table.innerHTML = "<thead><tr><th>batch</th><th>heap MB</th><th>classes</th>" +
+        "<th>functions</th><th>threw</th></tr></thead><tbody></tbody>";
+      wrap.appendChild(table); results.appendChild(wrap);
+      var body = table.querySelector("tbody");
+
+      var heap = [], classes = [], funcs = [], threw = 0;
+      for (var b = 0; b < BATCHES; b++) {
+        var batchThrew = 0;
+        for (var i = 0; i < PER; i++) {
+          var code = work[i % work.length].replace(/%I/g, String(i));
+          try {
+            var r = ring.eval(code);
+            if (typeof r !== "object" || typeof r.ok !== "boolean") batchThrew++;
+          } catch (e) { batchThrew++; }
+        }
+        threw += batchThrew;
+        heap.push(mem()); classes.push(count("classes")); funcs.push(count("functions"));
+        var tr = el("tr");
+        tr.innerHTML = "<td>" + (b + 1) + "</td><td>" + heap[b].toFixed(1) + "</td><td>" +
+          classes[b] + "</td><td>" + funcs[b] + "</td><td>" + batchThrew + "</td>";
+        body.appendChild(tr);
+
+        done++;
+        bar.style.width = (done / totalBatches * 100) + "%";
+        status.textContent = label + " — batch " + (b + 1) + " of " + BATCHES +
+          ", heap " + heap[b].toFixed(1) + " MB";
+        await breathe();
+      }
+      return { heap: heap, classes: classes, funcs: funcs, threw: threw };
+    }
+
+    var tail = Math.max(2, Math.floor(BATCHES / 3));
+    var grew = function (a) { return a[a.length - 1] - a[a.length - 1 - tail]; };
+
+    // Phase 1 — what a live page does all day. Nothing may accumulate.
+    var page = await run(PAGE_WORKLOAD, "Phase 1 — declaration-free (what a live page does)");
+    verdict("phase 1: eval never threw", page.threw === 0, page.threw + " of " + BATCHES * PER);
+    verdict("phase 1: NO class accumulates", grew(page.classes) === 0,
+      "+" + grew(page.classes) + " over the last " + tail + " batches");
+    verdict("phase 1: no function accumulates", grew(page.funcs) === 0, "+" + grew(page.funcs));
+    verdict("phase 1: heap flat", grew(page.heap) <= 16, "+" + grew(page.heap).toFixed(1) + " MB");
+
+    // Phase 2 — declarations are allowed to cost. Crashing is not.
+    var mixed = await run(MIXED_WORKLOAD, "Phase 2 — mixed, with declarations");
+    verdict("phase 2: eval never threw", mixed.threw === 0, mixed.threw + " of " + BATCHES * PER);
+    verdict("phase 2: heap bounded", grew(mixed.heap) <= 64,
+      "+" + grew(mixed.heap).toFixed(1) + " MB over the last " + tail + " batches");
+
+    var canary = ring.eval("see nCanary");
+    verdict("state survived the whole session", canary.ok && canary.output === "12345");
+    var still = ring.eval("see 6 * 7");
+    verdict("VM still evaluates correctly", still.ok && still.output === "42");
+
+    // Phase 3 — only worth running when there is a ceiling to hit. This is
+    // the part a desktop cannot show you: what the runtime does when the
+    // browser REFUSES to grow the heap, rather than merely taking its time.
+    if (capped) {
+      results.appendChild(el("h2", null, "Phase 3 — at the ceiling"));
+      status.textContent = "pushing to the 64 MB ceiling…";
+      var hitIt = false, threwAtLimit = false, lastErr = "", spins = 0;
+      while (!hitIt && spins < 400) {
+        spins++;
+        var res;
+        try {
+          // Big, awkward allocations: the fastest honest way to the ceiling.
+          res = ring.eval('cBig' + spins + ' = space(400000)  aBig' + spins + ' = [cBig' + spins + ']');
+        } catch (e) { threwAtLimit = true; lastErr = e.name + ": " + e.message; break; }
+        if (typeof res !== "object" || typeof res.ok !== "boolean") { threwAtLimit = true; break; }
+        if (!res.ok) { hitIt = true; lastErr = res.error; }
+        if (spins % 20 === 0) {
+          status.textContent = "pushing to the ceiling — heap " + mem().toFixed(1) + " MB";
+          await breathe();
+        }
+      }
+      var note = el("p");
+      note.innerHTML = "Heap reached <b>" + mem().toFixed(1) + " MB</b> after " + spins +
+        " large allocations. " + (hitIt
+          ? "The runtime refused further work with: <code>" + esc(String(lastErr).slice(0, 160)) + "</code>"
+          : "The ceiling was not reached — raise the batch size or lower the cap.");
+      results.appendChild(note);
+
+      verdict("allocation failure is a result, not an exception", !threwAtLimit, lastErr);
+      // The promise the home page makes: an error never takes the page down.
+      var alive;
+      try { alive = ring.eval("see 6*7"); } catch (e) { alive = { ok: false, error: e.message }; }
+      if (!alive.ok || alive.output !== "42") {
+        var rc = ring.reset();
+        try { alive = ring.eval("see 6*7"); } catch (e2) { alive = { ok: false, error: e2.message }; }
+        verdict("the VM comes back after reset()", alive.ok && alive.output === "42",
+          "reset returned " + rc);
+      } else {
+        verdict("the VM keeps answering at the ceiling", true);
+      }
+      // ...and a page can always start over, which is the real escape hatch.
+      var fresh = await RingScript.load(bytes, { onOutput: function () {} });
+      var f = fresh.eval('see "alive"');
+      verdict("a fresh instance still loads under memory pressure",
+        f.ok && f.output === "alive", JSON.stringify(f).slice(0, 80));
+    }
+
+    bar.style.width = "100%";
+    status.textContent = "done";
+    var b2 = el("p", "banner " + (failures ? "f" : "p"));
+    b2.textContent = failures ? failures + " check(s) FAILED on this device."
+                              : "Clean on this device — " + navigator.userAgent;
+    results.appendChild(b2);
+  }
+
+  $("go").addEventListener("click", async function () {
+    var btn = $("go");
+    btn.disabled = true;
+    try { await main(); }
+    catch (e) {
+      results.appendChild(el("p", "banner f", "The run itself failed: " + esc(e.message)));
+      status.textContent = "failed";
+    }
+    btn.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>

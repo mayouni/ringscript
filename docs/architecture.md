@@ -145,6 +145,7 @@ ringscript/
 │   ├── examples/                the 24 examples, one plain .ring file each
 │   ├── examples-data.js         their manifest (id / title / give answers)
 │   ├── site.css                 shared design tokens
+│   ├── soak.html                endurance, in a real browser on a real device
 │   ├── ringscript.js            the loader + WASI shim (the whole JS side)
 │   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
@@ -171,6 +172,7 @@ zig build            # build the wasm (ReleaseSmall by default, ~350 KB)
 zig build serve      # ...and serve playground/ at http://localhost:8377/
 zig build dist       # cross-compile the server for all shipped platforms
 zig build -Ddebug    # debug build of the wasm, when you need one
+zig build -Dmax-heap=64   # a 64 MB-capped wasm for the endurance page
 ```
 
 **Release is the default on purpose**: `playground/ringscript.wasm` and
@@ -234,6 +236,35 @@ The oracle suites run each program through **both** the wasm runtime
 and a native `ring.exe`, then compare byte-for-byte (nondeterministic
 programs — clock, random, date — are required to run cleanly rather
 than match). Current status: **zero mismatches, zero failures**.
+
+### Endurance on a real device
+
+Every suite above runs in Node, on a machine with a great deal of memory.
+`playground/soak.html` runs the same two soak workloads in a browser —
+open it on the phone or tablet you actually care about, press Run, and
+read the verdicts. It yields between batches so the tab stays
+responsive, and the tables scroll inside their own box rather than
+pushing the page sideways.
+
+`zig build -Dmax-heap=64` additionally emits `ringscript-capped.wasm`, a
+64 MB-ceilinged build (same source, same flags — only the ceiling
+differs; the shipped artifact is never touched and the capped one is not
+committed). Picking it in the page adds a third phase that a desktop
+cannot show you: what happens when the browser **refuses** to grow the
+heap, rather than merely taking its time.
+
+The answer, measured: at the ceiling the Ring VM calls `proc_exit(1)`
+rather than returning an allocation failure — Ring's allocator exits on
+out-of-memory, as it does natively. The WASI shim turns that into a
+thrown error, the loader turns *that* into an ordinary
+`{ ok: false, error }`, and **the page survives**. The VM itself does
+not: it needs `ring.reset()`, which the error message says, and a fresh
+instance loads even under that pressure. So the promise that holds on a
+constrained device is "an error never takes the page down", not "the VM
+shrugs off exhaustion".
+
+Browser numbers agree with Node's: 40,000 evaluations, phase 1 dead flat
+at 20.8 MB with zero classes accumulated, phase 2 bounded.
 
 `examples-oracle.js` reads its programs straight out of
 `playground/examples/` — the very files the Playground fetches — so what

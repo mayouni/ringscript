@@ -7,3 +7,7 @@ tests/sweep-failures.json
 # purpose: RingPM installs by downloading files from GitHub, with no build
 # step on the user's machine. They are release artifacts — refresh them
 # (zig build && zig build dist) when bumping the version.
+
+# Test-only build: zig build -Dmax-heap=64 emits this for the constrained
+# soak (playground/soak.html). Not shipped, not committed.
+playground/ringscript-capped.wasm
