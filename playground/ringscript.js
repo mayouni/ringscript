@@ -374,6 +374,31 @@
             }
         }
 
+        // The VM is one resident state: it cannot run inside itself. The
+        // reachable way to try is a jscall or onGive handler calling Ring
+        // back while Ring is still running — and before this guard that
+        // silently discarded the rest of the outer program, swapped its
+        // output and its error for the inner one's, and gave rs_call the
+        // wrong return value, all while reporting success.
+        //
+        // Checked before entering wasm, so a refused call disturbs no runtime
+        // state at all and the run already in progress finishes normally.
+        // Cleared in a `finally` after every top-level entry: a wasm trap
+        // unwinds out of rs_eval without running its defer, and a guard left
+        // standing would refuse every later eval for the life of the page.
+        function endRun() {
+            try { if (ex.rs_end_run) ex.rs_end_run(); } catch (e) { /* nothing left to clear */ }
+        }
+
+        function reentryError(what) {
+            return "RingScript: the VM is already running, so this " + what +
+                " was refused (it would have discarded the rest of the " +
+                "program already in progress). A jscall or onGive handler " +
+                "cannot call Ring back while Ring is still running — " +
+                "return from the handler first, e.g. " +
+                "queueMicrotask(function () { ring.call(...) }).";
+        }
+
         const api = {
             instance: instance,
             /// RingScript's version, read from the wasm actually loaded.
@@ -385,17 +410,26 @@
             /// success, nonzero if the runtime is beyond saving and the page
             /// should be reloaded.
             reset() {
+                // Not from inside a handler: rs_reset deletes the state the
+                // running VM is standing on. The bridge refuses too (-3).
+                if (ex.rs_busy && ex.rs_busy() !== 0) return -3;
                 try {
                     return ex.rs_reset();
                 } catch (e) {
                     return -1;
                 }
             },
+            /// True while an eval or call is inside the VM. A jscall/onGive
+            /// handler can ask this to find out why it must defer.
+            busy() { return !!(ex.rs_busy && ex.rs_busy() !== 0); },
             /// eval(code[, input]) — `input` is the text queue served to
             /// Ring's `give`, line by line. Each eval starts with a fresh
             /// queue (empty when the argument is omitted). CRLF is
             /// normalized to LF, matching native Ring's text-mode reads.
             eval(code, input) {
+                if (ex.rs_busy && ex.rs_busy() !== 0) {
+                    return { ok: false, code: -3, output: "", error: reentryError("evaluation") };
+                }
                 try {
                     withCString((input || "").replace(/\r\n/g, "\n"), function (ptr) { ex.rs_set_input(ptr); });
                     const rc = withCString(String(code).replace(/\r\n/g, "\n"), function (ptr) { return ex.rs_eval(ptr); });
@@ -431,6 +465,8 @@
                               "). The page is intact; call ring.reset() if the VM " +
                               "misbehaves afterwards.",
                     };
+                } finally {
+                    endRun();
                 }
             },
             lastOutput() { return readOutput(); },
@@ -438,6 +474,9 @@
             /// Call a Ring function with one JSON-serializable argument;
             /// returns { ok, result (parsed), output, error }.
             call(fname, arg) {
+                if (ex.rs_busy && ex.rs_busy() !== 0) {
+                    return { ok: false, result: null, output: "", error: reentryError("call") };
+                }
                 const json = JSON.stringify(arg === undefined ? null : arg);
                 let resPtr;
                 try {
@@ -459,6 +498,8 @@
                               ((e && e.name) || "Error") + ": " +
                               ((e && e.message) || String(e)) + ").",
                     };
+                } finally {
+                    endRun();
                 }
                 const raw = readCString(resPtr);
                 const error = readCString(ex.rs_last_error());

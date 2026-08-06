@@ -183,11 +183,40 @@ dispatched as DOM `CustomEvent`s named `ringscript:<name>` with the
 payload in `event.detail` — a zero-coupling way to observe Ring from
 elsewhere in the page.
 
+### One rule: a handler must not call Ring back
+
+Your handler runs **while Ring is still running** — it is called from
+inside the VM, not after it. The VM is one resident state and cannot run
+inside itself, so `ring.eval()`, `ring.call()` and `ring.reset()` are
+refused for as long as a handler is on the stack. The refusal is an
+ordinary result, `{ ok: false, code: -3, error }`, and the program
+already in progress finishes normally and correctly.
+
+```js
+ring.on("saved", data => {
+    ring.call("Refresh", data);                      // refused, code -3
+    queueMicrotask(() => ring.call("Refresh", data)); // runs, after Ring returns
+    return { ack: 1 };
+});
+```
+
+Anything that reaches Ring *after* the handler returns is fine, which is
+almost everything real: `fetch(...).then(r => ring.call(...))`, a timer,
+an event listener, an `await`. Only the synchronous callback-into-Ring
+is refused. `ring.busy()` answers whether the VM is running, if a shared
+helper needs to decide for itself.
+
+This is a guard, not a limitation discovered late: without it the outer
+program was silently truncated at the callback and still reported
+success. See [Architecture](architecture.md#3-design-decisions-worth-knowing).
+
 ## ring.reset()
 
 Destroys and recreates the VM — explicitly, never implicitly. All Ring
 state is gone; the DOM-seam handlers and your `on()` registrations are
-JavaScript-side and survive. Use it for "restart program" buttons; the
+JavaScript-side and survive. Returns `-3` and does nothing if called
+from inside a handler: it would delete the state the running VM is
+standing on. Use it for "restart program" buttons; the
 Playground instead creates a fresh instance per run, which is the right
 call when examples may rewire the language itself
 (`ChangeRingKeyword`).
@@ -217,4 +246,9 @@ ring.eval(code, "l1\nl2")          // scripted input queue for give
 ring.call("Fn", { any: "json" })   // { ok, result, output, error }
 ring.on("name", fn)                // handle Ring's Page/Platform("name", …)
 ring.reset()                       // explicit fresh state
+ring.busy()                        // true while Ring is running (inside a handler)
 ```
+
+Inside an `on()` handler the VM is busy: `eval`, `call` and `reset` are
+refused (`code: -3`) until the handler returns. Defer with
+`queueMicrotask` — see [above](#one-rule-a-handler-must-not-call-ring-back).

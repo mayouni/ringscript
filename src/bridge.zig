@@ -75,6 +75,38 @@ var g_eval_counter: u64 = 0;
 /// Sticky: once any eval renames keywords, `class` may no longer be spelled
 /// "class", so every later eval gets a terminator regardless of its text.
 var g_keywords_changed: bool = false;
+/// Non-zero while rs_eval/rs_call is inside the VM.
+///
+/// The VM is one resident state with one set of buffers, and
+/// ring_state_runcode does not nest on it: entering it again from a
+/// jscall/onGive handler — the page calling Ring back while Ring is still
+/// running — discarded the rest of the outer program, returned the inner
+/// eval's output as the outer's, reported the inner's error as the outer's,
+/// and handed rs_call the wrong return value. All of it silently, with
+/// ok = true.
+///
+/// So re-entry is refused rather than half-supported: the guard returns
+/// before anything is cleared, so the outer run keeps its buffers and
+/// finishes normally, and the handler gets a plain error telling it to call
+/// Ring after it returns.
+var g_running: u32 = 0;
+
+/// Non-zero while the VM is running. The loader checks this before entering
+/// wasm at all, so a re-entrant call touches no runtime state whatsoever.
+export fn rs_busy() u32 {
+    return g_running;
+}
+
+/// Clear the guard. A wasm trap — an exhausted heap, a stack overflow in the
+/// parser — unwinds straight out of rs_eval without running its `defer`, so
+/// the flag would stay set and every later eval would be refused forever:
+/// a fresh way to brick exactly the page P1 was about. The loader calls this
+/// in a `finally` after every top-level eval or call, so a trapped run can
+/// never leave the guard standing.
+export fn rs_end_run() void {
+    g_running = 0;
+}
+
 var g_main_called: bool = false;
 
 fn appendOut(bytes: []const u8) void {
@@ -325,6 +357,9 @@ export fn rs_init() i32 {
 }
 
 export fn rs_reset() i32 {
+    // Deleting the state while the VM is executing would free the ground it
+    // stands on, so a handler cannot reset mid-run either.
+    if (g_running != 0) return -3;
     if (g_state) |st| {
         _ = ring_state_delete(st);
         g_state = null;
@@ -361,7 +396,12 @@ fn hasKeyword(src: []const u8, kw: []const u8) bool {
 }
 
 export fn rs_eval(code: [*:0]const u8) i32 {
+    // Before anything is cleared — see g_running. -3 is "refused, nothing
+    // touched", which is not the same as -1 ("could not start").
+    if (g_running != 0) return -3;
     if (g_state == null and rs_init() != 0) return -1;
+    g_running += 1;
+    defer g_running -= 1;
     g_out.clearRetainingCapacity();
     g_err.clearRetainingCapacity();
 
@@ -425,7 +465,12 @@ export fn rs_eval(code: [*:0]const u8) i32 {
 /// NUL-terminated JSON string ("" + rs_last_error set on failure).
 /// Runtime-mode counterpart of rs_eval (REPAIR_PLAN.md §3).
 export fn rs_call(fname: [*:0]const u8, json: [*:0]const u8) [*:0]const u8 {
+    // See g_running. Returns an empty result without disturbing the run
+    // already in progress; hosts should ask rs_busy() first.
+    if (g_running != 0) return "";
     if (g_state == null and rs_init() != 0) return "";
+    g_running += 1;
+    defer g_running -= 1;
     g_out.clearRetainingCapacity();
     g_err.clearRetainingCapacity();
     g_result.clearRetainingCapacity();

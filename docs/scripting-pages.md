@@ -136,6 +136,14 @@ apart at a glance.
 - **Keep the seam thin.** Handlers should move data, not contain
   logic. If an `if` is creeping into a handler, it probably belongs in
   Ring.
+- **A handler must not call Ring back.** It runs *while* Ring is still
+  running, and the VM cannot run inside itself, so `ring.eval()`,
+  `ring.call()` and `ring.reset()` are refused until it returns
+  (`{ ok: false, code: -3 }`). Anything that reaches Ring afterwards is
+  fine — a `fetch().then(...)`, a timer, an event listener, or
+  `queueMicrotask(function () { ring.call(...) })` when you want it
+  immediately. This is another reason to keep the seam thin: a handler
+  that only moves data never wants to.
 - **One `text/ring` block per concern** is fine — `boot()` runs all of
   them in document order, into the same resident VM, so later blocks
   see earlier definitions.

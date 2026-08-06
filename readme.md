@@ -244,7 +244,8 @@ ringscript/
 │   └── ringscript.wasm          the built runtime — committed, so no build step
 │
 ├── tests/                       verification, all runnable with Node
-│   ├── gates.js                 42 permanent gates: state, errors, memory, I/O, bridge
+│   ├── gates.js                 58 permanent gates: state, errors, memory, I/O, bridge,
+│   │                            reentrancy
 │   ├── soak.js                  long-session endurance — what accumulates over 40,000 evals
 │   ├── fuzz.js                  hostile input — eval() must always return, never throw
 │   ├── wasi.js                  the hand-written host surface: clocks, encoding, ordering
@@ -287,7 +288,7 @@ ring.reset();                             // explicit fresh state
 
 ```bash
 zig build -Drelease=true       # build
-node tests/gates.js            # 42 gates
+node tests/gates.js            # 58 gates
 node tests/soak.js             # endurance: 40,000 evaluations, nothing accumulates
 node tests/fuzz.js             # robustness: 4,000 hostile inputs, no exceptions
 node tests/wasi.js             # the WASI shim, against the host's own clock and encoding

@@ -17,7 +17,7 @@ excludes. The measurement (re-runnable, see
 | Playground examples | 24 | byte-identical to `ring.exe` |
 | Official samples (`samples/` of the Ring 1.27 distribution) | ~284 runnable | zero mismatches |
 | Code blocks from the official documentation | ~550 runnable | zero mismatches |
-| Permanent gates (residency, errors, memory, I/O, bridge) | 42 | all pass |
+| Permanent gates (residency, errors, memory, I/O, bridge, reentrancy) | 58 | all pass |
 | Soak — one VM, 40,000 evaluations | 2 phases | nothing accumulates |
 | Fuzz — hostile input | 4,000 cases | `eval()` never throws |
 | WASI shim — clocks, encoding, ordering | 20 checks | all pass |

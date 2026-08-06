@@ -172,6 +172,102 @@ const phases = {
         check("unknown function traps cleanly", !bad.ok && bad.error.includes("without definition"), bad.error);
     },
 
+    // The VM is one resident state and cannot run inside itself. The
+    // reachable way to try is a jscall or onGive handler calling Ring back
+    // while Ring is still running. Unguarded, that discarded the rest of the
+    // outer program, swapped its output and error for the inner one's, and
+    // handed rs_call the wrong return value — all reporting ok = true.
+    async reentry() {
+        console.log("\nReentrancy — the page calling Ring back while Ring runs");
+
+        // 1. An eval attempted from a jscall handler is refused, and — the
+        //    part that matters — the OUTER program is unharmed.
+        const ring = await newVM();
+        let innerErr = null;
+        ring.on("gate_probe", () => { innerErr = ring.eval('see "INNER"'); return "ok"; });
+        const outer = ring.eval('nAfter = 0\nsee "A"\njscall("gate_probe", "")\nnAfter = 22\nsee "B"');
+        check("outer eval keeps its own output across a callback",
+            outer.ok && outer.output === "AB", JSON.stringify(outer.output));
+        check("outer eval runs to completion across a callback",
+            ring.eval("? nAfter").output.trim() === "22", ring.eval("? nAfter").output.trim());
+        check("the re-entrant eval is refused, not silently run",
+            innerErr && !innerErr.ok && innerErr.code === -3 &&
+            /already running/.test(innerErr.error), innerErr && innerErr.error);
+
+        // 2. An error raised AFTER the callback must still be reported. This
+        //    was the worst symptom: a failing program reported success.
+        const ring2 = await newVM();
+        ring2.on("gate_p2", () => { ring2.eval('see "x"'); return "ok"; });
+        const errOuter = ring2.eval('jscall("gate_p2", "")\nno_such_function_here()');
+        check("an error after the callback is still the outer's error",
+            !errOuter.ok && /no_such_function_here/.test(errOuter.error), errOuter.error);
+
+        // 3. ring.call must return ITS value, not the handler's.
+        const ring3 = await newVM();
+        ring3.eval("func GateOuter p\n  jscall('gate_p3', '')\n  return 'OUTER'\n" +
+                   "func GateInner p\n  return 'INNER'");
+        let innerCall = null;
+        ring3.on("gate_p3", () => { innerCall = ring3.call("GateInner", 1); return "handler"; });
+        const called = ring3.call("GateOuter", 1);
+        check("ring.call returns its own result, not the handler's",
+            called.ok && called.result === "OUTER", JSON.stringify(called.result));
+        check("the re-entrant call is refused", innerCall && !innerCall.ok &&
+            /already running/.test(innerCall.error), innerCall && innerCall.error);
+
+        // 4. onGive is the other way in.
+        let ring4, giveInner = null;
+        ring4 = await newVM({ onOutput: () => {},
+            onGive: () => { giveInner = ring4.eval('see "INNER"'); return "Bob"; } });
+        const giveOuter = ring4.eval('see "before "\ngive n\nsee "got " + n');
+        check("onGive re-entry is refused and the outer survives",
+            giveOuter.ok && giveOuter.output === "before Bob\ngot Bob" &&
+            giveInner && !giveInner.ok, JSON.stringify(giveOuter.output));
+
+        // 5. reset() would delete the state the running VM stands on.
+        const ring5 = await newVM();
+        let resetRc = null;
+        ring5.on("gate_p5", () => { resetRc = ring5.reset(); return "ok"; });
+        const survived = ring5.eval('nLived = 0\njscall("gate_p5", "")\nnLived = 1\nsee "alive"');
+        check("reset() from inside a handler is refused", resetRc === -3, String(resetRc));
+        check("the VM survives a refused reset", survived.ok && survived.output === "alive",
+            JSON.stringify(survived.output));
+
+        // 6. busy() is what a handler asks to find out why it must defer.
+        const ring6 = await newVM();
+        let busyInside = null;
+        ring6.on("gate_p6", () => { busyInside = ring6.busy(); return "ok"; });
+        check("busy() is false at rest", ring6.busy() === false);
+        ring6.eval('jscall("gate_p6", "")');
+        check("busy() is true inside a handler", busyInside === true, String(busyInside));
+        check("busy() is false again afterwards", ring6.busy() === false);
+
+        // 7. A wasm TRAP unwinds out of rs_eval without running its defer.
+        //    If the guard survived that, every later eval would be refused for
+        //    the life of the page — a fresh way to brick exactly the page P1
+        //    was about. The loader clears it in a finally.
+        const ring7 = await newVM();
+        const trapped = ring7.eval("[".repeat(200000));
+        check("a trapping eval returns a result", !trapped.ok, String(trapped.code));
+        check("a trap does not leave the guard standing", ring7.busy() === false);
+        check("the VM still evaluates after a trap",
+            ring7.eval("? 6*7").output.trim() === "42");
+
+        // 8. And the workaround the error message recommends must actually
+        //    work — deferring past the handler's return.
+        const ring8 = await newVM();
+        let deferred = null;
+        ring8.eval("func GateLater p\n  return 'ran later'");
+        ring8.on("gate_p8", () => {
+            queueMicrotask(() => { deferred = ring8.call("GateLater", 1); });
+            return "ok";
+        });
+        ring8.eval('jscall("gate_p8", "")');
+        await new Promise((r) => setTimeout(r, 0));
+        check("the documented deferral (queueMicrotask) works",
+            deferred && deferred.ok && deferred.result === "ran later",
+            JSON.stringify(deferred));
+    },
+
     async io() {
         console.log("IO — give input, object printing, auto-main (examples challenge)");
         const ring = await newVM();
