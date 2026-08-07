@@ -376,6 +376,93 @@ const phases = {
         check("C codec is byte-identical to the pure reference", diffBad === "", diffBad.slice(0, 100));
     },
 
+    // Object semantics that the HEADROOM P5 template cache must preserve.
+    // Written and verified BEFORE the patch existed, so it tests behavior,
+    // not the implementation. The center of it: an object built through the
+    // fast path must be indistinguishable from one built any other way.
+    async oop() {
+        console.log("\nOOP — object construction, every path, identical results");
+        const ring = await newVM();
+        const out = (c) => { const r = ring.eval(c); return r.ok ? r.output.trim() : "ERR " + r.error; };
+
+        // func BEFORE class: in Ring everything after `class` belongs to it,
+        // so a func written below would silently have become a method.
+        ring.eval("func OcMake\n  return new OcPoint\nclass OcPoint ocx ocy ocz");
+        // variable path vs func-return (temp) path: byte-identical objects
+        const a = out('o1 = new OcPoint  ? o1');
+        const b = out('o2 = OcMake()  ? o2');
+        check("variable-path and temp-path objects print identically", a === b && a.includes("ocx"), a.slice(0, 40));
+        check("attributes() identical across paths",
+            out("? attributes(o1)") === out("? attributes(o2)"), out("? attributes(o1)"));
+        check("fresh attributes are NULL", out("? isnull(o1.ocx)") === "1");
+
+        // repeated construction: the 2nd..Nth object (the cached ones, once
+        // the cache exists) must equal the 1st in every observable way
+        const rep = out("aObjs = []\nfor i = 1 to 50 add(aObjs, new OcPoint) next\n" +
+            "nSame = 0\nfor o in aObjs\n" +
+            "  if len(attributes(o)) = 3 and isnull(o.ocx) and isnull(o.ocz) nSame++ ok\nnext\n? nSame");
+        check("50 repeated objects all match the first", rep === "50", rep);
+
+        // state independence: writing one object touches no other
+        out("o1.ocx = 111  o2.ocx = 222");
+        check("objects are independent", out("? o1.ocx") === "111" && out("? o2.ocx") === "222");
+
+        // methods, init, braces, defaults, inheritance, private — every
+        // construction feature on top of attribute regions
+        ring.eval("class OcM ocx\n  func double return ocx * 2");
+        check("methods work on bare-attribute classes",
+            out("m = new OcM  m.ocx = 21  ? m.double()") === "42");
+        ring.eval("class OcInit ocv\n  func init n ocv = n");
+        check("init runs with arguments", out("? (new OcInit(9)).ocv") === "9");
+        check("braces run after construction", out("ob = new OcPoint { ocx = 5 }  ? ob.ocx") === "5");
+        ring.eval("class OcDef ocd = 7 oce");
+        check("defaulted attributes keep their default", out("? (new OcDef).ocd") === "7");
+        ring.eval("class OcChild from OcPoint occ");
+        const kid = out("k = new OcChild  k.ocx = 1  k.occ = 2  ? k.ocx + k.occ");
+        check("inheritance still constructs", kid === "3", kid);
+        ring.eval("class OcPriv ocpub\n  private\n  ocsecret");
+        check("private sections still work",
+            out('p = new OcPriv  ? isattribute(p, "ocpub")') === "1");
+
+        // reflection & mutation on constructed objects
+        check("addattribute on a constructed object",
+            out('ad = new OcPoint  addattribute(ad, "ocnew")  ad.ocnew = 3  ? ad.ocnew') === "3");
+        check("setattribute/getattribute",
+            out('sa = new OcPoint  setattribute(sa, "ocy", 4)  ? getattribute(sa, "ocy")') === "4");
+
+        // classes born in eval, and life after reset
+        ring.eval('eval("class OcEval oce1 oce2")');
+        check("eval-defined classes construct", out("? len(attributes(new OcEval))") === "2");
+        ring.reset();
+        ring.eval("class OcPoint ocx");   // same NAME, different class now
+        check("after reset, a same-named class is its new self",
+            out("? len(attributes(new OcPoint))") === "1");
+
+        // many distinct classes (the soak makes thousands; spot-check here)
+        let manyOk = true;
+        for (let i = 0; i < 120; i++) ring.eval("class OcGen" + i + " ga gb");
+        for (const i of [0, 59, 119]) {
+            if (out("? len(attributes(new OcGen" + i + "))") !== "2") { manyOk = false; break; }
+        }
+        check("120 distinct classes all construct correctly", manyOk);
+
+        // Ring's documented conflict rule (Scope Rules): a global sharing an
+        // attribute's name prevents that attribute from being defined. The
+        // doc-snippet oracle caught the template cache violating this — the
+        // shape is now a permanent gate. Note the global must exist BEFORE
+        // the first `new`, and the check must hold on repeated news too
+        // (the cached path, once a cache exists).
+        const cf = await newVM();
+        const cfOut = (c) => { const r = cf.eval(c); return r.ok ? r.output.trim() : "ERR " + r.error; };
+        cf.eval('gname = 1');
+        cf.eval("class OcClash gname ocother");
+        const clash1 = cfOut('c1 = new OcClash  ? attributes(c1)');
+        const clash2 = cfOut('c2 = new OcClash  ? attributes(c2)');
+        check("a global blocks its namesake attribute (documented rule)",
+            clash1 === "ocother" && clash2 === "ocother", clash1 + " / " + clash2);
+        check("VM healthy after the OOP gauntlet", out("? 6*7") === "42");
+    },
+
     async io() {
         console.log("IO — give input, object printing, auto-main (examples challenge)");
         const ring = await newVM();

@@ -18,6 +18,11 @@
 */
 #include "ring.h"
 
+/* RINGSCRIPT PATCH (6): the object template cache (src/rs_oop.c) —
+** attributes-only classes replay a scanned template instead of executing
+** the class region per instantiation. Returns 1 when it built the object. */
+extern unsigned int rs_objcache_new(VM *pVM, List *pClassList, List *pStateList, unsigned int nClassPC);
+
 void ring_vm_oop_newobj(VM *pVM) {
 	const char *cClassName, *cClassName2;
 	unsigned int x, nLimit, nClassPC, nType;
@@ -112,6 +117,11 @@ void ring_vm_oop_newobj(VM *pVM) {
 					RING_VAR_SETPOINTER_GC(pVM->pRingState, pSelf, pItem);
 				}
 				RING_VAR_SETPVALUETYPE(pSelf, nType);
+				/* RINGSCRIPT PATCH (6): attributes-only classes skip the
+				** save/region/restore round trip entirely */
+				if (rs_objcache_new(pVM, pList, pList3, nClassPC)) {
+					return;
+				}
 				/* Save the State */
 				ring_vm_savestatefornewobjects(pVM);
 				/* Push Class Package */

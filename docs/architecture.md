@@ -14,7 +14,7 @@ way around the repository, and change the runtime with confidence.*
 │  · boot()/load() API    │               │  · embedded ringlib map      │
 └─────────────────────────┘               │  Ring VM (vendored C, 1.27)  │
                                           │  · compiler + VM, unmodified │
-                                          │    except 5 marked patches   │
+                                          │    except 6 marked patches   │
                                           └──────────────────────────────┘
 ```
 
@@ -106,8 +106,8 @@ Three layers, three languages, each doing the one thing it is best at:
   later eval for the life of the page.
 - **8 MB wasm stack.** Deep parser recursion and deeply nested lists
   (2000 levels verified) need more than the 1 MB default.
-- **Vendor purity with five exceptions.** The Ring source is compiled
-  as-is, plus five small patches each marked `RINGSCRIPT PATCH` in
+- **Vendor purity with six exceptions.** The Ring source is compiled
+  as-is, plus six small patches each marked `RINGSCRIPT PATCH` in
   place and documented in [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — two
   of them fix upstream bugs that were contributed back
   ([ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639)).
@@ -143,7 +143,7 @@ ringscript/
 │       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
 │
-├── ringvm/                      vendored Ring 1.27 (src + include) + 5 patches
+├── ringvm/                      vendored Ring 1.27 (src + include) + 6 patches
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
@@ -214,7 +214,7 @@ contract that makes them portable into the browser unchanged.
 ### Upgrading the vendored Ring
 
 Replace `ringvm/` with the new version's `ringvm/src` +
-`ringvm/include`, re-apply the five patches from
+`ringvm/include`, re-apply the six patches from
 [VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and run the full test
 battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 1.26 → 1.27 upgrades in this repository's history each took minutes.
@@ -285,7 +285,7 @@ and the file stays runnable with `ring.exe` on its own.
 
 Recorded baselines, not aspirations: `tests/bench.js` measures these on
 every run and fails if one regresses beyond 40%. Taken on an Intel Core
-5 210H, Node 22, `ringscript.wasm` at 394,959 bytes.
+5 210H, Node 22, `ringscript.wasm` at 396,030 bytes.
 
 | | min | what it exercises |
 |---|---|---|
@@ -294,7 +294,7 @@ every run and fails if one regresses beyond 40%. Taken on an Intel Core
 | 10,000-iteration loop | 0.688 ms | VM dispatch (computed goto + `-O2` core) |
 | build a 2,000-char string | 0.215 ms | string growth |
 | sort a 2,000-element list | 0.202 ms | library call |
-| create 2,000 objects | 5.68 ms | allocation |
+| create 2,000 objects | 3.06 ms | allocation (template cache — HEADROOM P5) |
 | 1,000 lines of output | 0.764 ms | the `see` hook |
 | `ring.call` from JS | 0.053 ms | the bridge, JSON both ways |
 | parse a ZQL declaration | 1.40 ms | the shipped payload |

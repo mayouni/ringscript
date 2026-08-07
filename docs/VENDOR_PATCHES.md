@@ -68,3 +68,20 @@ is compiled `-O2`. Behavior is held identical by the oracle battery
 (~850 programs byte-exact vs native). If the opcode enum ever changes,
 the function must be regenerated — a stale table dispatches the wrong
 opcode. Worth offering upstream, since the hook is the vendor's own.
+
+## 6. `ringvm/src/vmoop.c` — one call out to the object template cache
+
+`new X` on an attributes-only class re-executes the class-region
+bytecode on every instantiation, wrapped in a full VM state save/restore
+— identical work producing identical NULL attributes each time
+(measured: 31x a Lua table). The patch is two lines in
+`ring_vm_oop_newobj`: an extern declaration and one guarded call, placed
+where the state save was about to happen. Everything else — the static
+region-bytecode scan that proves a class is bare-attributes-only, the
+name table, the replay, Ring's documented global-vs-attribute conflict
+rule (any cached name visible as a global falls back to the normal
+path), the reset lifecycle — lives in RingScript's own `src/rs_oop.c`.
+Ineligible classes (defaults, private sections, parents, executable
+statements) never leave the stock path. Held identical by the gates'
+oop phase (written against the unpatched VM first) and the full oracle
+battery, which caught and now guards the conflict rule.

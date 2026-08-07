@@ -65,6 +65,10 @@ extern fn rs_print_pointer(p: ?*anyopaque, pValue: ?*anyopaque) void;
 extern fn rs_jsonencode_hook(p: ?*anyopaque) callconv(.c) void;
 extern fn rs_jsondecode_hook(p: ?*anyopaque) callconv(.c) void;
 
+// The object template cache (src/rs_oop.c) borrows pointers into the
+// state's class lists and bytecode; both die on reset, so it must too.
+extern fn rs_objcache_clear() void;
+
 // ---------------------------------------------------------------- state
 
 var g_state: ?*RingState = null;
@@ -370,6 +374,7 @@ export fn rs_reset() i32 {
     // Deleting the state while the VM is executing would free the ground it
     // stands on, so a handler cannot reset mid-run either.
     if (g_running != 0) return -3;
+    rs_objcache_clear();
     if (g_state) |st| {
         _ = ring_state_delete(st);
         g_state = null;

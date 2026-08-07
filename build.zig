@@ -124,7 +124,7 @@ pub fn build(b: *std.Build) void {
         .flags = &(vm_cflags ++ [_][]const u8{"-O2"}),
     });
     mod.addCSourceFiles(.{
-        .files = &.{ "src/wasi_stubs.c", "src/rs_json.c" },
+        .files = &.{ "src/wasi_stubs.c", "src/rs_json.c", "src/rs_oop.c" },
         .flags = &stub_cflags,
     });
 

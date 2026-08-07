@@ -8,7 +8,7 @@ markers are updated as items land.*
 ## The constraint that shapes everything
 
 RingScript's crown jewel is **byte-exact conformance** — ~850 programs
-identical to native `ring.exe`, held by a 5-patch vendor discipline.
+identical to native `ring.exe`, held by a 6-patch vendor discipline.
 Speed bought with semantic drift is a loss. So every intervention is
 ranked by *where* it lives:
 
@@ -144,16 +144,34 @@ string 0.28 → 0.21, objects 6.1 → 5.7, eval 48 → 43 µs, ZQL parse
 than the rejected ReleaseFast (6.2× size for ~15%). Lua's fused
 `FORLOOP` remains upstream-only.
 
-### 5. Objects — the one risky vendor patch worth considering
-A **template cache**: when a class region's bytecode is solely
-attribute definitions (`class point x y z` — the overwhelmingly common
-case), instantiate once and deep-copy thereafter; any executable
-statement disables the cache for that class. Expected: 31× → 3–5×.
-Highest risk on this page (arbitrary code in class regions,
-`mergemethods`, inheritance) — lands only with the full battery plus
-dedicated gates, or becomes an upstream proposal instead. Until then
-the honest guidance stands: hot-path data belongs in lists (10×
-cheaper); objects in the domain model.
+### 5. Objects — the one risky vendor patch worth considering — **DONE, one real bug caught by the oracle**
+*Executed August 7, 2026.* Shipped safer than designed: no deep-copy
+at all. Eligibility is proven by **scanning the class-region bytecode
+once** (bare `LoadA/PushV/FreeStack` triplets only — the attribute
+names are static operands), and replay builds each object directly:
+super object, then one `[name, STRING, "NULL"]` variable per attribute
+— byte-for-byte what executing the region produces. The
+save/region/restore round trip is skipped whole; the `SETSCOPE` that
+statically follows every `New` is stepped over. init() and braces run
+*after* SETSCOPE on the completed object, so they needed nothing.
+Defaults, private sections, parents, any executable statement: normal
+path, forever. The vendor patch is two lines (patch 6); the cache
+lives in `src/rs_oop.c` and clears on reset.
+
+**The oracle earned its keep**: the doc-snippet corpus caught the
+first version violating Ring's documented global-vs-attribute conflict
+rule (a global named like an attribute suppresses that attribute).
+The fix bails to the normal path when any cached name is visible as a
+global — behavior by construction, not imitation — and the shape is a
+permanent gate now.
+
+Measured: 2,000 objects **5.7 → 3.1 ms** (bench −45%). Honest
+arithmetic: the plan hoped 31× → 3–5× vs Lua; the safe patch delivers
+**~1.9× better, leaving ~15×** — the rest is the newobj machinery
+above the patch point (class lookup, target setup, super construction),
+which a bolder patch could chase and this one deliberately does not.
+The guidance still stands: hot-path data belongs in lists; objects in
+the domain model. Cost: +1.1 KB.
 
 ### 6. What we do not do
 No register VM, no NaN-boxing, no bytecode redesign, no fork — that
@@ -177,7 +195,7 @@ page can feel, with [rivals.md](rivals.md) as the public scoreboard.
 | P2 | C JSON codec | bridge C | gated by the 8 JSON gates + oracle | **done — 46–55×, +7.9 KB** |
 | P3 | eval-path slimming (main-skip; driver idea killed by scope semantics) | bridge | battery-gated | **done — 95 → 48 µs** |
 | P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | **done — 5–15%, +16 KB** |
-| P5 | object template cache | vendor patch | highest — or upstream proposal | — |
+| P5 | object template cache | vendor patch | highest — or upstream proposal | **done — 1.9×, +1.1 KB** |
 | P6 | upstream case: string-arg borrowing, with measurements | upstream | none | — |
 
 Each lands alone: full battery green, bench + rivals re-run, losses

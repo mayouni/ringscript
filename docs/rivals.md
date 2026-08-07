@@ -28,13 +28,14 @@ verbatim as the before-picture.
 | 10,000-iteration loop | 0.654² | 0.058 | 0.403 | lua | 0.738 |
 | build a 2,000-char string | **0.203²** | 0.301 | 0.667 | **ring** | 0.282 |
 | copy + sort 2,000 numbers | **0.212²** | 0.370 | 0.835 | **ring** | 0.294 |
-| create 2,000 objects | 6.120 | 0.205 | 0.612 | lua | 6.262 |
+| create 2,000 objects | 3.051³ | 0.205 | 0.612 | lua | 6.262 |
 | JSON encode ~8.7 KB | **0.185** | 0.723 | 0.420 | **ring** | 10.4 |
 | JSON decode ~8.7 KB | 0.719 | 1.153 | 0.198 | js | 32.7 |
 | 1 MB through JSON | **1.542** | 76.4 | 8.0 | **ring** | 944.6 |
 
 ¹ 0.046 after P3 (the auto-main skip); 0.043 after P4.
 ² After P4 (computed-goto dispatch + `-O2` VM core), same day.
+³ After P5 (the object template cache), same day.
 
 Ring's wins went from two rows to **four of nine** in one day of
 executing the plan — including JSON encode, where Ring now beats
@@ -43,9 +44,11 @@ everyone. (Ring's and QuickJS's JSON are C now; Lua's stays pure Lua —
 that column measures what a C codec buys.) The robustness tables below
 re-ran identically: heap flat everywhere, zero deaths everywhere.
 
-The remaining open item is object creation (P5). Dispatch closed to
-~1.5× of QuickJS under P4; Lua's fused loop opcode stays a design
-generation ahead, as the plan said it would.
+Dispatch closed to ~1.5× of QuickJS under P4; object creation halved
+under P5 (the safe patch keeps ~15× vs Lua tables — the honest
+guidance stands: hot-path data in lists, objects in the domain model).
+Lua's fused loop opcode stays a design generation ahead, as the plan
+said it would. What remains is P6: the upstream case.
 
 ## The contenders
 
