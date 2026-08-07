@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The ledger — what a real Ring page costs</title>
+<meta name="description" content="A working data page written in Ring, running in the browser. Filter, sort and total 20,000 rows — measured against how fast a page has to feel, not against JavaScript.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.23">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+
+    .budgets { list-style: none; padding: 0; margin: 1.4rem 0; }
+    .budgets li {
+        display: flex; gap: .8rem; align-items: baseline;
+        padding: .55rem 0; border-top: 1px solid var(--border);
+    }
+    .budgets li:first-child { border-top: 0; }
+    .budgets b { flex: 0 0 7.5rem; }
+    .budgets .ms { flex: 0 0 5.5rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+    table.perf { width: 100%; border-collapse: collapse; margin: 1.4rem 0; font-size: .95rem; }
+    table.perf th, table.perf td {
+        text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border);
+    }
+    table.perf th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+                    color: var(--ink-soft); font-weight: 600; }
+    table.perf td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .good { color: #12703a; font-weight: 600; }
+    .warn { color: #8a5a00; font-weight: 600; }
+    @media (prefers-color-scheme: dark) {
+        .good { color: #6fcf97; } .warn { color: #e0b050; }
+    }
+
+    .found { margin: 2.4rem 0; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .found h3 { margin: 0 0 .5rem; }
+    .found .tag {
+        display: inline-block; font-size: .72rem; text-transform: uppercase;
+        letter-spacing: .05em; padding: .15rem .5rem; border-radius: 999px;
+        background: var(--accent); color: #fff; vertical-align: middle;
+        margin-left: .5rem;
+    }
+    .scroll { overflow-x: auto; }
+    .cta-row { margin: 2rem 0; display: flex; gap: .8rem; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">Tutorial</a>
+    <a class="active" href="ledger.html">The ledger</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>The ledger — what a real Ring page costs</h1>
+
+<p class="first">A working data page, with its logic written in Ring and
+running in your browser: twenty thousand deposits you can filter, sort,
+total and add to. It exists to answer one question honestly — and it found
+two bugs in the Ring VM while doing so.</p>
+
+<div class="cta-row">
+  <a class="btn primary" href="playground/ledger.html" target="_blank" rel="noopener">Open the ledger <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn ghost" href="https://github.com/mayouni/ringscript/blob/main/docs/ledger-app.md" target="_blank" rel="noopener">Read the full write-up <span class="newtab" aria-hidden="true">&#8599;</span></a>
+</div>
+
+<h2>The question is not "is Ring faster than JavaScript"</h2>
+
+<p>That comparison is easy to rig, hard to make fair, and answers nothing a
+page author actually needs. This asks something narrower and more
+useful:</p>
+
+<p><b>If you write an ordinary data-driven page in Ring, does it feel right
+to use?</b></p>
+
+<p>"Feels right" is not an opinion here. It is three thresholds that come
+from how people perceive delay, and they do not care which language you
+picked:</p>
+
+<ul class="budgets">
+  <li><b class="good">instant</b><span class="ms">&lt; 16 ms</span>
+      inside one animation frame — the result is simply there</li>
+  <li><b class="warn">responsive</b><span class="ms">&lt; 100 ms</span>
+      feels caused by the click</li>
+  <li><b>noticeable</b><span class="ms">&gt; 100 ms</span>
+      the page is visibly thinking</li>
+</ul>
+
+<p>Every interaction is measured against those, and labelled. JavaScript is
+on the page, but only as a <b>referee</b>: it recomputes every answer from
+the same data and marks it correct or not. It has no timing column, because
+"is Ring correct" is the question worth asking of it.</p>
+
+<h2>The data lives inside the VM</h2>
+
+<p>That is the whole reason a resident runtime exists. The ledger is loaded
+once, into Ring globals held as columns, and every later interaction works
+on that copy. Nothing crosses the bridge again except the answer — no
+re-parsing, no re-sending, no JSON per keystroke.</p>
+
+<h2>What it costs</h2>
+
+<div class="scroll">
+<table class="perf">
+  <thead><tr><th>Interaction</th><th class="n">20,000 rows</th><th class="n">50,000 rows</th></tr></thead>
+  <tbody>
+    <tr><td>Draw a page of 25 rows</td><td class="n good">0.2 ms</td><td class="n good">0.4 ms</td></tr>
+    <tr><td>Recompute the totals</td><td class="n good">11 ms</td><td class="n warn">28 ms</td></tr>
+    <tr><td>Filter, on every keystroke</td><td class="n good">15 ms</td><td class="n warn">38 ms</td></tr>
+    <tr><td>Sort a column</td><td class="n warn">53 ms</td><td class="n">130 ms</td></tr>
+    <tr><td>Rebuild the leaderboard</td><td class="n warn">92 ms</td><td class="n">238 ms</td></tr>
+    <tr><td>Load, once at startup</td><td class="n">106 ms</td><td class="n">879 ms</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>At twenty thousand rows, everything a user touches is instant or
+responsive. At fifty thousand, two interactions cross the line — and the
+page says so rather than hiding it.</p>
+
+<p>But those are the numbers <em>after</em> the app was driven like a real
+one. On its first run, totalling fifty thousand rows took <b>5.7
+seconds</b> and the leaderboard took <b>nearly twenty</b>.</p>
+
+<h2>What driving it found</h2>
+
+<div class="found">
+  <h3>Sorting by a column was quadratic <span class="tag">VM bug, fixed</span></h3>
+  <p>Ring's sort rebuilds the list by reading it in sorted — that is,
+  random — order. Without an index array, every read walks the list.
+  Sorting twenty thousand rows took <b>257 ms</b>, quadrupling each time the
+  data doubled. Building the array first: <b>16 ms</b>.</p>
+</div>
+
+<div class="found">
+  <h3>Random list access walked the list, every time <span class="tag">VM bug, fixed</span></h3>
+  <p>The deeper one. Ring's list cache is a <em>cursor</em>: sequential
+  access is instant, random access falls through to a linear walk and is
+  never remembered. So any pass over a big list through a sorted index —
+  "sort the table, then total the visible rows", the most ordinary thing a
+  data page does — was O(n²). Totalling fifty thousand rows went from
+  <b>5,751 ms to 31 ms</b>; the leaderboard from <b>19.8 s to 277 ms</b>.</p>
+</div>
+
+<div class="found">
+  <h3>Ask your API for rows, not objects <span class="tag">no VM change</span></h3>
+  <p>Loading fifty thousand deposits took 7.9 seconds — and almost none of
+  it was parsing. A JSON <em>object</em> becomes a pair-list in Ring: a list
+  per field, two items per field. Twenty thousand five-field records were
+  taking <b>88 MB</b>, and most of that second was spent first-touching
+  memory the page immediately throws away. Sent as arrays instead —
+  <code>[1,"m03",3,250,"ACTIVE"]</code> — the same data costs 23 MB and
+  loads in a tenth of the time. Load went <b>7.9 s to 0.88 s</b>.</p>
+</div>
+
+<div class="found">
+  <h3>Five Ring rules, learned by getting them wrong</h3>
+  <p>Functions called from the page take exactly one parameter. Do not name
+  one after a builtin — <code>func Load</code> collides with Ring's own
+  <code>load</code>. Index your loops and hoist the length, because
+  <code>for x in aList</code> hands back a copy of every item. And
+  assignment copies, so <code>o = aList[i]</code> gives you a copy that
+  writes to nothing. They are all at the top of the source, where the next
+  person will meet them before the bug does.</p>
+</div>
+
+<h2>What this proves, and what it does not</h2>
+
+<p><b>It proves</b> the runtime is sound for real data work at real sizes.
+A twenty-thousand-row page is instant to filter, sort and total, every
+answer matches JavaScript's, and all ~850 conformance programs still match
+native Ring byte-for-byte after both VM patches.</p>
+
+<p><b>It does not prove</b> Ring is as fast as JavaScript — it is not, and
+that is measured honestly elsewhere. Nor does it speak for half-million-row
+workloads, which would need a different approach than a linear scan.</p>
+
+<p>The useful claim is narrower and more durable: <b>an ordinary Ring page,
+at the sizes ordinary pages carry, feels like a page.</b> The way to keep
+that true is to keep driving real applications — that is what found all
+four items above.</p>
+
+<div class="cta-row">
+  <a class="btn primary" href="playground/ledger.html" target="_blank" rel="noopener">Try it yourself <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn ghost" href="https://github.com/mayouni/ringscript/blob/main/playground/ledger.ring" target="_blank" rel="noopener">Read the Ring source <span class="newtab" aria-hidden="true">&#8599;</span></a>
+</div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

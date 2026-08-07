@@ -33,9 +33,19 @@ Read them in order — each builds on the previous one:
 | 5 | [Compatibility & scope](compatibility.md) | What works (verified against native Ring), what's excluded and why, the full-stack picture |
 | 6 | [The ZQL payload](zql-payload.md) | The library baked into the wasm: why it is there, and the grammar it accepts |
 
+Worked examples and measurement:
+
+- [The ledger](ledger-app.md) — a real data page written in Ring: what
+  each interaction costs against how fast a page has to *feel*, and the
+  four things driving it found (two of them VM bugs, now fixed).
+- [RingScript vs its peers](rivals.md) — the same scenarios through Lua
+  and QuickJS in wasm, so the absolute numbers have context.
+- [The headroom plan](HEADROOM_PLAN.md) — where the remaining gaps are,
+  traced to root causes, with what each fix actually bought.
+
 Reference material:
 
-- [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — the four deliberate patches
+- [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — the eight deliberate patches
   carried by the vendored Ring source, and why each exists.
 - [REPAIR_PLAN.md](REPAIR_PLAN.md) — the original design plan and its
   execution record (August 2026).
