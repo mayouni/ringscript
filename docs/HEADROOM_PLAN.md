@@ -107,11 +107,13 @@ and wins the 1 MB row against everyone. Cost: **+7,967 bytes** of wasm
 (+2.15%), which tripped the size gate exactly as designed and was
 accepted deliberately.
 
-#### The rest of front 3 (open)
+#### The rest of front 3 — now P6, drafted
 The honest fix for `PUSHCVAR` (borrowed / copy-on-write string
 arguments) is a VM semantics change that should **not** be
-vendor-patched unilaterally — it goes upstream, argued with the 190×
-measurement. What the bridge can do now, zero vendor risk: implement
+vendor-patched unilaterally — it goes upstream. **Drafted in
+[UPSTREAM_CASE.md](UPSTREAM_CASE.md)**, with the measurement re-taken
+on stock native ring.exe 1.27.0: **5,000×** there (1 ms vs 5,006 ms
+for 20k `len()` calls), far worse than wasm's 190×. What the bridge can do now, zero vendor risk: implement
 **`JsonEncode`/`JsonDecode` in C** (`wasi_stubs.c`), reading the
 argument once and building pair-lists through the Ring API, byte-exact
 against the Ring codec — the 8 JSON gates define "correct". Expected:
@@ -196,7 +198,7 @@ page can feel, with [rivals.md](rivals.md) as the public scoreboard.
 | P3 | eval-path slimming (main-skip; driver idea killed by scope semantics) | bridge | battery-gated | **done — 95 → 48 µs** |
 | P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | **done — 5–15%, +16 KB** |
 | P5 | object template cache | vendor patch | highest — or upstream proposal | **done — 1.9×, +1.1 KB** |
-| P6 | upstream case: string-arg borrowing, with measurements | upstream | none | — |
+| P6 | upstream case: four items, all native-verified | upstream | none | **drafted — [UPSTREAM_CASE.md](UPSTREAM_CASE.md)** |
 
 Each lands alone: full battery green, bench + rivals re-run, losses
 reported next to wins — the same discipline as everything before it.
