@@ -62,9 +62,15 @@ jobs:
           ls -R _site | head -40
 
       - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v3
+      # include-hidden-files is NOT optional here. v4 stopped putting
+      # dotfiles in the artifact, and the .nojekyll written above is a
+      # dotfile — without it GitHub runs the published site through Jekyll,
+      # which quietly drops anything beginning with _ and treats {{ }} in
+      # the pages as Liquid. v5 added this input to put them back.
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+          include-hidden-files: true
 
   deploy:
     needs: build
