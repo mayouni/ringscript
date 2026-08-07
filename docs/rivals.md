@@ -13,6 +13,39 @@ Two honesty rules, or a page like this is marketing:
 - **Losses are published with the wins.** The point is to find the
   headroom, not to win.
 
+## The scoreboard, kept current
+
+The first run of this harness (August 7, 2026, morning) became the
+work list in [HEADROOM_PLAN.md](HEADROOM_PLAN.md); the numbers below
+are the re-run after P1 (snapshot instancing) and P2 (the C JSON
+codec) landed the same day. The original table further down is kept
+verbatim as the before-picture.
+
+| scenario (min ms) | ring | lua | js | winner | was (ring) |
+|---|---|---|---|---|---|
+| fresh evaluator | 3.34 | 0.15 | 0.13 | peers | 6.70 |
+| assign a global | 0.046¹ | 0.002 | 0.003 | lua | 0.095 |
+| 10,000-iteration loop | 0.719 | 0.058 | 0.403 | lua | 0.738 |
+| build a 2,000-char string | **0.279** | 0.301 | 0.667 | **ring** | 0.282 |
+| copy + sort 2,000 numbers | **0.286** | 0.370 | 0.835 | **ring** | 0.294 |
+| create 2,000 objects | 6.120 | 0.205 | 0.612 | lua | 6.262 |
+| JSON encode ~8.7 KB | **0.185** | 0.723 | 0.420 | **ring** | 10.4 |
+| JSON decode ~8.7 KB | 0.719 | 1.153 | 0.198 | js | 32.7 |
+| 1 MB through JSON | **1.542** | 76.4 | 8.0 | **ring** | 944.6 |
+
+¹ 0.046 after P3 (the auto-main skip), re-measured the same day.
+
+Ring's wins went from two rows to **four of nine** in one day of
+executing the plan — including JSON encode, where Ring now beats
+QuickJS's *native* codec, and the 1 MB row, won outright against
+everyone. (Ring's and QuickJS's JSON are C now; Lua's stays pure Lua —
+that column measures what a C codec buys.) The robustness tables below
+re-ran identically: heap flat everywhere, zero deaths everywhere.
+
+The gaps that remain are the plan's open items: dispatch (P4) and
+object creation (P5); the eval round trip halved under P3 and its
+remaining floor is scanner cost, which P4 also touches.
+
 ## The contenders
 
 | | wasm size | eval API | errors |
@@ -45,7 +78,7 @@ mature interpreters sit. (Ring "accepts" more garbage than the others —
 as valid programs. Accepting garbage quietly is not a crash, but it is
 worth knowing.)
 
-## Speed: the ratios, and what each one teaches
+## Speed: the first measurement (the before-picture), and what each ratio taught
 
 Intel Core 5 210H, Node 22, min of many runs:
 

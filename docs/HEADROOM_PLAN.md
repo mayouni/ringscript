@@ -66,18 +66,24 @@ it would change observable behavior (`JsonEncode` is documented as
 available without a `load`, and `seam.ring` depends on it), and
 semantics outrank milliseconds.
 
-### 2. Per-eval overhead — bridge, then one careful vendor question
-Three compiles per eval; two are constant strings. (a) Skip the
-auto-main pass when the source never mentions `main` — `hasKeyword`
-already runs for the terminator; one more word is free. (b) Replace the
-eval-shim compile with a **resident driver function** defined once at
-init, entered per eval via `ring_vm_runcode(pVM, "__rs_drive()")`
-(12 chars, not ~70) or via the `loadfunc2/call2/mainloopforeval`
-sequence `ring_vm_callfunction` uses — the latter is compile-free but
-built for extension context (`lActiveCatch = 1`), so both get
-prototyped and the battery decides. Expected: 95 µs → 15–40 µs. The
-floor is Ring's scanner startup (~30 µs/pass) — vendor territory,
-probably not worth touching.
+### 2. Per-eval overhead — bridge, then one careful vendor question — **DONE (half of it), premise corrected**
+*Executed August 7, 2026.* The resident-driver idea (b) died on
+inspection: a driver **function** would run `eval()` in function scope,
+so `x = 5` inside user code would become a local of the driver and
+state persistence would silently break. Scope semantics outrank
+microseconds; not done, not doable at the bridge tier.
+
+The auto-main skip (a) landed, and measurement improved on the plan:
+the main pass was itself wrapped in the eval shim, so every eval paid
+**four** compiles, not three — and skipping it removes two. Evals that
+mention neither `main` nor `eval` (the word an inner definition could
+hide behind) skip the pass outright; `load` needs no guard because the
+only loadable files are the embedded ringlib and none defines main.
+
+Measured: `eval("")` **89 → 32 µs**, `x = 1 + 1` **105 → 48 µs** —
+inside the plan's 15–40 µs target zone at the top. The 32 µs floor is
+one shim compile + the user code's own compile, which is scanner
+territory: P4's per-file `-O2` is the remaining lever.
 
 ### 3. Strings at scale — C powerhouse now, upstream case later — **codec DONE**
 *Executed August 7, 2026 (the codec half; the upstream `PUSHCVAR` case is
@@ -155,7 +161,7 @@ page can feel, with [rivals.md](rivals.md) as the public scoreboard.
 |---|---|---|---|---|
 | P1 | `WebAssembly.Module` cache + memory snapshot | loader | none | **done — 6.7 → 3.3 ms** |
 | P2 | C JSON codec | bridge C | gated by the 8 JSON gates + oracle | **done — 46–55×, +7.9 KB** |
-| P3 | eval-path slimming (main-skip + resident driver) | bridge | battery-gated | — |
+| P3 | eval-path slimming (main-skip; driver idea killed by scope semantics) | bridge | battery-gated | **done — 95 → 48 µs** |
 | P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | — |
 | P5 | object template cache | vendor patch | highest — or upstream proposal | — |
 | P6 | upstream case: string-arg borrowing, with measurements | upstream | none | — |

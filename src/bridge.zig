@@ -458,12 +458,22 @@ export fn rs_eval(code: [*:0]const u8) i32 {
         g_evalcode.appendSlice(alloc, term) catch return -1;
     }
 
+    // The auto-main pass costs a full scanner+compiler run of its shim on
+    // EVERY eval — and for the page workload it finds nothing every time,
+    // because most evals cannot possibly have defined main(): the word
+    // does not appear in them. Skip it unless this source could have —
+    // "main" as a whole word, or an eval() that could smuggle a definition
+    // in through code this scan never sees. (`load` needs no guard: the
+    // only loadable files are the embedded ringlib, and none defines
+    // main.) Once main HAS run, g_main_called skips it forever, as before.
+    const could_define_main = hasKeyword(src, "main") or hasKeyword(src, "eval");
+
     g_code = g_evalcode.items;
     defer g_code = "";
     ring_state_runcode(g_state, eval_shim);
     if (g_err.items.len != 0) return 1;
 
-    if (!g_main_called) {
+    if (!g_main_called and could_define_main) {
         g_code = call_main_shim;
         ring_state_runcode(g_state, eval_shim);
         if (g_err.items.len != 0) return 1;

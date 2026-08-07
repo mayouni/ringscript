@@ -290,7 +290,7 @@ every run and fails if one regresses beyond 40%. Taken on an Intel Core
 | | min | what it exercises |
 |---|---|---|
 | instantiate + `rs_init` | **3.2 ms** | a fresh instance (module cached, memory stamped from a post-init snapshot — HEADROOM_PLAN P1) |
-| `? 1+1` | 0.098 ms | one full eval round trip |
+| `? 1+1` | 0.044 ms | one full eval round trip |
 | 10,000-iteration loop | 0.754 ms | VM dispatch |
 | build a 2,000-char string | 0.289 ms | string growth |
 | sort a 2,000-element list | 0.296 ms | library call |
