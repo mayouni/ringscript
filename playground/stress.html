@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tontine ledger — RingScript under load</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<style>
+  :root {
+    --bg:#fff; --fg:#1a1a1a; --dim:#666; --line:#e2e2e2; --card:#fafafa;
+    --ok:#12703a; --bad:#b3261e; --accent:#1a4fa0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14161a; --fg:#e8e8e8; --dim:#9aa0a6; --line:#2c3038; --card:#1a1d22;
+            --ok:#6fcf97; --bad:#ff7a70; --accent:#7aa7f0; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px 18px 60px; }
+  h1 { font-size:1.5rem; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--dim); margin:0 0 22px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:16px; margin:0 0 18px; }
+  label { display:block; font-weight:600; margin:0 0 6px; font-size:.9rem; }
+  .row { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
+  .row > div { flex:1 1 150px; min-width:0; }
+  select, input { width:100%; padding:9px 10px; font:inherit; color:var(--fg);
+                  background:var(--bg); border:1px solid var(--line); border-radius:7px; }
+  button { padding:11px 20px; font:inherit; font-weight:600; cursor:pointer;
+           background:var(--accent); color:#fff; border:0; border-radius:7px; }
+  button[disabled] { opacity:.5; cursor:default; }
+  .hint { color:var(--dim); font-size:.85rem; margin-top:8px; }
+  .stats { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 0; }
+  .stat { flex:1 1 130px; background:var(--card); border:1px solid var(--line);
+          border-radius:9px; padding:10px 12px; }
+  .stat b { display:block; font-size:1.35rem; font-variant-numeric:tabular-nums; }
+  .stat span { color:var(--dim); font-size:.8rem; }
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+        padding:14px; overflow-x:auto; font-size:.85rem; line-height:1.45;
+        font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .verdict { margin:3px 0; padding-left:22px; text-indent:-22px; }
+  .verdict.p::before { content:"PASS  "; color:var(--ok); font-weight:700; }
+  .verdict.f::before { content:"FAIL  "; color:var(--bad); font-weight:700; }
+  h2 { font-size:1.05rem; margin:22px 0 8px; }
+  code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.88em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Tontine ledger</h1>
+<p class="sub">A savings circle under load: members, rounds, deposits. The
+whole computation — validate, aggregate, rank, report — is
+<a href="stress.ring">a page of ordinary Ring</a>, running in this tab.
+Every number it produces is re-computed in JavaScript and compared, so
+this is a correctness test that happens to be timed.</p>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label for="n">Deposits</label>
+      <input id="n" type="number" value="20000" min="100" max="200000" step="1000">
+    </div>
+    <div>
+      <label for="shape">Payload shape</label>
+      <select id="shape">
+        <option value="objects">objects — {"id":1,"member":"m03",…}</option>
+        <option value="arrays">arrays — [1,"m03",…]</option>
+      </select>
+    </div>
+    <div style="flex:0 0 auto"><button id="go">Run</button></div>
+  </div>
+  <p class="hint">On a phone start at 20,000. The first run also pays for
+  growing the VM's heap to hold the decoded records — that cost is shown
+  separately, because a page feels it once and never again.</p>
+</div>
+
+<p class="hint" id="status">idle</p>
+<div id="out"></div>
+
+</div>
+<script src="ringscript.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var out = $("out"), status = $("status");
+  var ring = null, appSrc = null, fails = 0;
+
+  function el(t, c, h) { var n = document.createElement(t); if (c) n.className = c;
+                         if (h !== undefined) n.innerHTML = h; return n; }
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  function verdict(name, ok, detail) {
+    if (!ok) fails++;
+    var v = el("p", "verdict " + (ok ? "p" : "f"));
+    v.textContent = name + (ok || detail === undefined ? "" : "  [" + detail + "]");
+    out.appendChild(v);
+  }
+  var breathe = function () { return new Promise(function (r) { setTimeout(r, 0); }); };
+
+  // Deterministic generator — same shape as tests/stress-app.js
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  var MEMBERS = 20, ROUNDS = 12, STATUSES = ["STAGED", "AUDITED", "ACTIVE"];
+
+  function makeDeposits(n) {
+    var rand = rng(20260807), o = [];
+    for (var i = 1; i <= n; i++) {
+      var m = Math.floor(rand() * MEMBERS) + 1, r = Math.floor(rand() * ROUNDS) + 1;
+      var bad = rand() < 0.0025;
+      var amount = bad ? (rand() < 0.5 ? 0 : -Math.floor(rand() * 50) - 1)
+                       : Math.floor(rand() * 500) + 1;
+      o.push({ id: i, member: "m" + String(m).padStart(2, "0"), round: r,
+               amount: amount, status: STATUSES[Math.floor(rand() * 3)] });
+    }
+    return o;
+  }
+
+  // The oracle: the same answers, computed a different way.
+  function oracle(deposits) {
+    var members = new Map(), rounds = new Array(ROUNDS).fill(0), statuses = new Map();
+    var bad = [], grand = 0, accepted = 0, rejected = 0;
+    deposits.forEach(function (d) {
+      if (typeof d.amount !== "number" || d.amount <= 0) {
+        rejected++; if (bad.length < 25) bad.push(d.id + ":" + d.member); return;
+      }
+      accepted++;
+      var m = members.get(d.member);
+      if (!m) { m = { total: 0, count: 0, biggest: 0 }; members.set(d.member, m); }
+      m.total += d.amount; m.count++;
+      if (d.amount > m.biggest) m.biggest = d.amount;
+      rounds[d.round - 1] += d.amount;
+      statuses.set(d.status, (statuses.get(d.status) || 0) + 1);
+      grand += d.amount;
+    });
+    var rank = Array.from(members.entries())
+      .map(function (e) { return [e[1].total, e[0], e[1].count, e[1].biggest]; })
+      .sort(function (a, b) { return (a[0] - b[0]) || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0); })
+      .reverse();
+    return { grand: grand, accepted: accepted, rejected: rejected, seen: deposits.length,
+             members: members.size, rounds: rounds, rank: rank, bad: bad,
+             statuses: Array.from(statuses.entries()) };
+  }
+
+  async function main() {
+    fails = 0; out.innerHTML = "";
+    var n = Math.max(100, parseInt($("n").value, 10) || 20000);
+    var shape = $("shape").value;
+
+    if (!ring) {
+      status.textContent = "loading the runtime…";
+      var resp = await fetch("ringscript.wasm");
+      ring = await RingScript.load(await resp.arrayBuffer(), { onOutput: function () {} });
+      appSrc = await (await fetch("stress.ring")).text();
+      var loaded = ring.eval(appSrc);
+      if (!loaded.ok) { out.appendChild(el("pre", null, esc(loaded.error))); status.textContent = "failed"; return; }
+    }
+
+    status.textContent = "building " + n.toLocaleString() + " deposits…";
+    await breathe();
+    var deposits = makeDeposits(n);
+    var want = oracle(deposits);
+    var payload = shape === "arrays"
+      ? JSON.stringify(deposits.map(function (d) { return [d.id, d.member, d.round, d.amount, d.status]; }))
+      : JSON.stringify(deposits);
+
+    if (shape === "arrays") {
+      out.appendChild(el("p", "hint",
+        "The Ring app reads named fields, so it only understands the object " +
+        "shape. Arrays are offered here to show the <b>decode</b> cost of each " +
+        "shape — the ledger itself runs on objects."));
+      status.textContent = "decoding " + (payload.length / 1048576).toFixed(2) + " MB of arrays…";
+      await breathe();
+      ring.eval("func JustDecode c\n  a = JsonDecode(c)\n  return len(a)");
+      var hb = ring.instance.exports.memory.buffer.byteLength;
+      var t = performance.now();
+      var rr = ring.call("JustDecode", payload);
+      var dms = performance.now() - t;
+      var ha = ring.instance.exports.memory.buffer.byteLength;
+      out.appendChild(el("div", "stats",
+        '<div class="stat"><b>' + Number(rr.result).toLocaleString() + '</b><span>records decoded</span></div>' +
+        '<div class="stat"><b>' + dms.toFixed(0) + ' ms</b><span>decode</span></div>' +
+        '<div class="stat"><b>' + (payload.length / 1048576).toFixed(2) + ' MB</b><span>payload</span></div>' +
+        '<div class="stat"><b>+' + ((ha - hb) / 1048576).toFixed(0) + ' MB</b><span>heap growth</span></div>'));
+      status.textContent = "done";
+      return;
+    }
+
+    status.textContent = "running the ledger over " + (payload.length / 1048576).toFixed(2) + " MB…";
+    await breathe();
+    var heapBefore = ring.instance.exports.memory.buffer.byteLength;
+    var t0 = performance.now();
+    var res = ring.call("StressRun", payload);
+    var ms = performance.now() - t0;
+    var heapAfter = ring.instance.exports.memory.buffer.byteLength;
+    if (!res.ok) { out.appendChild(el("pre", null, esc(res.error))); status.textContent = "failed"; return; }
+    var got = typeof res.result === "string" ? JSON.parse(res.result) : res.result;
+
+    out.appendChild(el("div", "stats",
+      '<div class="stat"><b>' + got.seen.toLocaleString() + '</b><span>deposits</span></div>' +
+      '<div class="stat"><b>' + got.grand.toLocaleString() + '</b><span>grand total</span></div>' +
+      '<div class="stat"><b>' + got.rejected + '</b><span>rejected by the norm</span></div>' +
+      '<div class="stat"><b>' + ms.toFixed(0) + ' ms</b><span>end to end</span></div>' +
+      '<div class="stat"><b>' + Math.round(n / (ms / 1000)).toLocaleString() + '</b><span>deposits/second</span></div>' +
+      '<div class="stat"><b>+' + ((heapAfter - heapBefore) / 1048576).toFixed(0) + ' MB</b><span>heap growth</span></div>'));
+
+    var ph = Object.keys(got.phases || {}).map(function (k) {
+      return k + " " + got.phases[k].toFixed(0) + " ms"; }).join("   ");
+    out.appendChild(el("p", "hint", "inside Ring: " + ph +
+      "   (the rest is encoding the summary and crossing the bridge)"));
+
+    out.appendChild(el("h2", null, "Correctness — Ring vs an independent JavaScript computation"));
+    verdict("deposits seen", got.seen === want.seen, got.seen + " vs " + want.seen);
+    verdict("accepted", got.accepted === want.accepted, got.accepted + " vs " + want.accepted);
+    verdict("rejected by the positive_deposit norm", got.rejected === want.rejected,
+      got.rejected + " vs " + want.rejected);
+    verdict("grand total", got.grand === want.grand, got.grand + " vs " + want.grand);
+    verdict("distinct members", got.members === want.members);
+    verdict("per-round totals", JSON.stringify(got.rounds) === JSON.stringify(want.rounds));
+    var wantTop = want.rank.slice(0, 5).map(function (r) {
+      return { member: r[1], total: r[0], count: r[2], biggest: r[3] }; });
+    verdict("top 5 ranking, with tie-breaks",
+      JSON.stringify(got.top) === JSON.stringify(wantTop));
+    verdict("round totals sum to the grand total",
+      got.rounds.reduce(function (a, b) { return a + b; }, 0) === got.grand);
+
+    out.appendChild(el("h2", null, "The report Ring rendered"));
+    var pre = el("pre"); pre.textContent = got.report; out.appendChild(pre);
+
+    var b = el("p", "verdict " + (fails ? "f" : "p"));
+    b.textContent = fails ? fails + " check(s) failed on this device."
+                          : "Every answer matches. " + navigator.userAgent;
+    out.appendChild(b);
+    status.textContent = "done";
+  }
+
+  $("go").addEventListener("click", async function () {
+    var btn = $("go"); btn.disabled = true;
+    try { await main(); }
+    catch (e) { out.appendChild(el("pre", null, esc(e && e.message))); status.textContent = "failed"; }
+    btn.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>

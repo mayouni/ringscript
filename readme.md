@@ -254,6 +254,8 @@ ringscript/
 │   ├── rivals/                  the same scenarios through Lua and QuickJS in wasm —
 │   │                            context for every number above (docs/rivals.md)
 │   ├── bench.js                 speed and size, against a recorded baseline
+│   ├── stress-app.js            a real app (playground/stress.ring) at 50k records,
+│   │                            every answer checked against a JS oracle
 │   ├── bench-baseline.json      the numbers a regression is measured from
 │   ├── examples-oracle.js       the 24 Playground examples vs native ring
 │   ├── samples-sweep.js         bulk sweep: Ring's own samples + doc snippets
@@ -299,6 +301,7 @@ node tests/wasi.js             # the WASI shim, against the host's own clock and
 node tests/boot.js             # boot(): many src files, failures mid-load, early clicks
 zig build -Dmax-heap=64        # ...then open playground/soak.html to soak a real device
 node tests/bench.js            # speed + size vs tests/bench-baseline.json
+node tests/stress-app.js       # the tontine ledger: 50,000 records, oracle-checked
 node tests/examples-oracle.js  # 24 examples vs native ring.exe
 node tests/samples-sweep.js    # ~284 official samples vs native
 node tests/extract-doc-snippets.js && node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.

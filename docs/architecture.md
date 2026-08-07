@@ -151,6 +151,8 @@ ringscript/
 │   ├── examples-data.js         their manifest (id / title / give answers)
 │   ├── site.css                 shared design tokens
 │   ├── soak.html                endurance, in a real browser on a real device
+│   ├── stress.html              the tontine ledger, as a page you can run
+│   ├── stress.ring              its Ring source — the whole computation
 │   ├── ringscript.js            the loader + WASI shim (the whole JS side)
 │   └── ringscript.wasm          built runtime — committed (zig build refreshes)
 │
@@ -162,6 +164,7 @@ ringscript/
 │   ├── boot.js                  the page path, over a fake document and network
 │   ├── rivals/                  Lua + QuickJS through the same scenarios (see rivals.md)
 │   ├── bench.js                 speed and size vs a recorded, calibrated baseline
+│   ├── stress-app.js            a real application under load, oracle-checked
 │   ├── bench-baseline.json      what a regression is measured from
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
@@ -234,6 +237,7 @@ node tests/boot.js              # boot(): fetching, ordering, failures, early cl
 # and for context rather than gating — RingScript vs Lua and QuickJS:
 # cd tests/rivals && npm install && node run.js     (docs/rivals.md)
 node tests/bench.js             # speed and size vs the recorded baseline
+node tests/stress-app.js        # 50,000-record ledger vs a JavaScript oracle
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \
 node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.
