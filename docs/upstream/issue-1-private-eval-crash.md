@@ -1,50 +1,70 @@
-# TITLE: Crash: eval("class q private b = 2") kills ring.exe (K_PRIVATE indexes pGenCode with a global instruction number)
+**Title:** `eval()` of a class with a `private` section crashes ring.exe
 
-<!-- ready to paste as a ring-lang/ring ISSUE — everything below this line -->
+**Labels:** bug, crash
 
-**Ring 1.27.0, Windows (also reproduced in a WASI build of the same source).**
+**Kind:** issue (a PR with the one-line fix can follow)
+
+---
+
+## Summary
+
+Defining a class that has a `private` section through `eval()` terminates
+the process immediately — no output, no error message, exit code 1.
 
 ## Reproduction
+
+Ring 1.27.0, Windows (also reproduces anywhere code is compiled into the
+state before the class):
 
 ```ring
 eval("class q private b = 2")
 see "survived" + nl
 ```
 
-The process dies before printing anything — exit code 1, no error
-message. The same class definition works fine when it is written in the
-file directly.
+**Expected:** `survived`
 
-The trigger is not `eval()` itself but **any code compiled into the
-state before the class**: the crash needs `nInstructionsCount` to be
-non-zero when the `private` section is parsed. An embedded or resident
-use of `ring_state_runcode()` hits the same crash without `eval()`.
+**Actual:** the process dies before printing anything. Exit code 1, and
+nothing on stdout or stderr.
+
+The same class works when written directly in the file — the crash needs
+the class definition to arrive *after* other code has already been
+compiled into the state. `eval()` is the easy way to reach that, but any
+embedded or long-running host that compiles more than once will hit it
+routinely.
 
 ## Cause
 
-In the `K_PRIVATE` handler in `stmt.c`, `pParser->nClassMark` (recorded
-by `ring_parser_icg_newlabel2()`) is a **global** instruction number —
-`pGenCode size + nInstructionsCount` — but it is passed to
-`ring_parser_icg_getoperationlist()`, which indexes the **local**
-`pGenCode` list:
+In `ring_parser_stmt()`'s `K_PRIVATE` handler (`ringvm/src/stmt.c`):
 
 ```c
 pList = ring_parser_icg_getoperationlist(pParser, pParser->nClassMark);
 ```
 
-When `nInstructionsCount == 0` (a plain file compiled from scratch) the
-two numbering schemes coincide and everything works. With any
-previously compiled code the raw index reads far past the list.
+`pParser->nClassMark` is set by `ring_parser_icg_newlabel2()`, which
+returns a **global** instruction number — `pGenCode` size **plus**
+`pRingState->nInstructionsCount`. But
+`ring_parser_icg_getoperationlist()` indexes the **local** `pGenCode`
+list.
 
-## Fix (one line)
+When `nInstructionsCount` is 0 — a plain script compiled from scratch —
+the two numbers coincide and everything works, which is why this has
+stayed hidden. With any previously compiled code in the state, the index
+is too large by exactly `nInstructionsCount` and the read runs past the
+end of the list.
+
+## Suggested fix
+
+Subtract the offset at the lookup:
 
 ```c
 pList = ring_parser_icg_getoperationlist(
     pParser, pParser->nClassMark - pParser->pRingState->nInstructionsCount);
 ```
 
-This has been running in RingScript (the Ring 1.27 VM compiled to
-WebAssembly, https://github.com/mayouni/ringscript) since August 2026,
-where every class arrives through the eval path — it is exercised by
-that project's full test battery (~850 programs byte-identical to
-native ring.exe). Happy to open a PR if you'd like it as one.
+## Verification
+
+This fix has been running since August 2026 in a build of the Ring 1.27
+VM that is held byte-exact against native `ring.exe` across roughly 850
+programs — Ring's own `samples/` corpus plus every runnable code block in
+the documentation — with zero output differences. Happy to open it as a
+PR if the shape looks right.

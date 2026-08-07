@@ -115,9 +115,9 @@ see "len(10 B)  x 20k : " + ((t2-t1)/clockspersecond()*1000) + " ms" + nl
 see "len(1 MB)  x 20k : " + ((t3-t2)/clockspersecond()*1000) + " ms" + nl
 ```
 
-Measured native: **1 ms vs 5,006 ms — 5,000×** for identical work.
-Twenty gigabytes were memcpy'd to answer twenty thousand length
-queries.
+Measured native: **1 ms vs ~4,900–5,000 ms — roughly 5,000×** for
+identical work (four runs). About twenty gigabytes memcpy'd to answer
+twenty thousand length queries.
 
 **Cause.** `RING_VM_STACK_PUSHCVAR` (`vm.h`):
 

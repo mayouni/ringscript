@@ -1,49 +1,89 @@
-# TITLE: Portability: string/number comparison raises R41 on musl-based builds (strtod errno differs from MSVC/glibc)
+**Title:** Comparing a non-numeric string to a number raises R41 on musl builds (Alpine, WASI)
 
-<!-- ready to paste as a ring-lang/ring ISSUE — everything below this line -->
+**Labels:** bug, portability
 
-**Ring 1.27.0. Affects any musl-libc build: WASI/WebAssembly, Alpine
-Linux, some embedded toolchains. MSVC and glibc builds are unaffected.**
+**Kind:** issue (a PR with the one-line fix can follow)
+
+---
+
+## Summary
+
+On any Ring built against **musl** libc — Alpine Linux, or a
+wasm32-wasi build via wasi-libc — comparing a plain non-numeric string
+to a number raises `Error (R41): Invalid numeric string` instead of
+evaluating false.
 
 ## Reproduction
 
 ```ring
 if "test" = 5 see "equal" else see "not equal" ok
+see nl
 ```
 
-- MSVC / glibc build: prints `not equal` (verified on Windows 1.27.0)
-- musl build: raises `Error (R41) : Invalid numeric string`
+**On Windows/MSVC and Linux/glibc** (verified on Ring 1.27.0, Windows):
+
+```
+not equal
+```
+
+**On musl:**
+
+```
+Error (R41) : Invalid numeric string
+```
 
 ## Cause
 
-In `ring_vm_stringtonum` (`vmexpr.c`) the error branch fires when
-`strtod` returned 0 with `errno` set:
+`ring_vm_stringtonum()` in `ringvm/src/vmexpr.c` decides an error
+occurred when `strtod` returned 0 **and** `errno` is set:
 
 ```c
+nResult = strtod(cStr, &cEndStr);
 if (nResult == 0 && (errno != 0)) {
+    if (errno == ERANGE) {
+        ring_vm_error(pVM, RING_VM_ERROR_NUMERICUNDERFLOW);
+    } else {
+        ring_vm_error(pVM, RING_VM_ERROR_NUMERICINVALID);
+    }
+    return RING_ZEROF;
+}
 ```
 
-C leaves `errno` **unspecified** for strtod's no-conversion case:
-MSVC and glibc leave it untouched, musl sets `EINVAL`. So on musl,
-converting a plain non-numeric string ("test") takes the error branch
-instead of falling through to the existing no-conversion handling
-below it.
+C99 only requires `errno` to be set for **range** errors. For a
+*no-conversion* input like `"test"`, whether `errno` is touched is
+implementation-defined:
 
-## Fix (one guard)
+- MSVC and glibc leave it alone → the code falls through to the
+  existing no-conversion branch (`cStr == cEndStr`), which is the
+  correct path;
+- musl sets `EINVAL` → the error branch fires first, and a
+  perfectly ordinary comparison raises.
 
-No conversion means `cEndStr == cStr`, which distinguishes the case
-portably:
+The function already has proper handling for no-conversion a few lines
+below; it simply never gets reached on musl.
+
+## Suggested fix
+
+Only treat a set `errno` as an error when a conversion actually
+happened:
 
 ```c
 if (nResult == 0 && (errno != 0) && (cEndStr != cStr)) {
 ```
 
-The genuine error cases (ERANGE underflow etc.) still take the branch —
-they consumed characters, so `cEndStr != cStr` holds for them.
+Genuine underflow (`ERANGE` with characters consumed) still reports;
+no-conversion falls through to the branch written for it.
 
-This has been running in RingScript (the Ring 1.27 VM compiled to
-WebAssembly against musl-based wasi-libc,
-https://github.com/mayouni/ringscript), where without it every
-string-vs-number comparison misfired; with it, ~850 programs run
-byte-identical to native ring.exe. Happy to open a PR if you'd like
-it as one.
+## Why it matters beyond wasm
+
+Alpine-based Docker images are a common way to ship small Ring
+containers, and everything there is musl. The symptom is subtle — a
+comparison that should be false raises instead — so it is easy to
+mistake for a program bug rather than a platform difference.
+
+## Verification
+
+This fix has been running since 2026 in a wasm32-wasi build of the Ring
+1.27 VM held byte-exact against native `ring.exe` across roughly 850
+programs (Ring's `samples/` corpus plus every runnable documentation
+snippet), with zero output differences. Happy to open it as a PR.

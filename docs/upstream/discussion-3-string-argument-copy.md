@@ -1,16 +1,23 @@
-# TITLE: Discussion: every string argument is copied onto the VM stack — 20k len() calls on a 1 MB string cost 5 seconds
+**Title:** Every string argument is copied onto the VM stack — `len()` on a 1 MB string is 5,000× slower than on a 10-byte one
 
-<!-- ready to paste as a ring-lang/ring DISCUSSION (or issue) -->
+**Labels:** performance, discussion
 
-**Ring 1.27.0, Windows, stock ring.exe. This is a measurement and a
-question about direction, not a patch — the current behavior is also
-what gives Ring its clean value semantics, so the trade-off is a
-design decision.**
+**Kind:** discussion — this is a design question, not a patch request
 
-## The measurement
+---
 
-`len()` does the same O(1) work in both loops below; only the size of
-the argument differs:
+## Summary
+
+Passing a string variable to a function copies the entire string onto
+the VM stack. Because of that, any Ring code that touches a large string
+repeatedly is O(length) per touch and O(n²) overall — even when the
+function does no work proportional to the length at all.
+
+## Reproduction
+
+Both loops do exactly the same amount of *work* — 20,000 calls to
+`len()`, which just reads a stored size. Only the size of the argument
+differs.
 
 ```ring
 cTiny = "0123456789"
@@ -28,20 +35,20 @@ see "len(10 B)  x 20k : " + ((t2-t1)/clockspersecond()*1000) + " ms" + nl
 see "len(1 MB)  x 20k : " + ((t3-t2)/clockspersecond()*1000) + " ms" + nl
 ```
 
-Measured on stock native 1.27.0:
+Measured on stock Ring 1.27.0, Windows (one run; four repeats gave
+4,885–5,006 ms for the second line, 1 ms for the first):
 
 ```
 len(10 B)  x 20k : 1 ms
 len(1 MB)  x 20k : 5006 ms
 ```
 
-**5,000× for identical work** — about twenty gigabytes memcpy'd to
-answer twenty thousand length queries.
+**Roughly 5,000×.** About 20 GB was memcpy'd to answer 20,000 length
+queries.
 
-## Where it comes from
+## Cause
 
-`RING_VM_STACK_PUSHCVAR` in `vm.h` copies the full string value onto
-the VM stack whenever a string variable is used as an argument:
+`RING_VM_STACK_PUSHCVAR` in `ringvm/include/vm.h`:
 
 ```c
 #define RING_VM_STACK_PUSHCVAR \
@@ -50,31 +57,53 @@ the VM stack whenever a string variable is used as an argument:
                                  ring_list_getstringsize(pVar, RING_VAR_VALUE))
 ```
 
-The consequence is that any Ring program touching a large string
-repeatedly — a parser, a codec, a text processor — is O(len) per touch
-and O(n²) overall. Concretely: a pure-Ring JSON decoder we wrote
-measures ~0.27 MB/s, while Lua's pure-Lua equivalent (json.lua) does
-~7.5 MB/s on the same machine. Part of that gap is Lua's C string
-primitives, but the *quadratic* component is entirely this copy.
+The value is copied, not referenced. This is also what gives Ring its
+clean value semantics, so it is not a bug — but the cost is invisible
+from Ring, and it sets a ceiling on what any string-heavy Ring library
+can achieve.
 
-## Possible directions, in rising ambition
+## Practical impact
 
-1. **Borrowed arguments for read-only builtins.** `len()`, `ascii()`,
-   `substr()`'s source argument, `left/right/copy/find` never mutate or
-   retain their string argument. A flag on C-function registration
-   ("does not retain or mutate") could let the push hand over a
-   pointer for exactly those calls. Smallest semantic surface; covers
-   the hottest cases.
-2. **Copy-on-write strings** — reference-count the buffer, copy only
-   when a writer appears. Larger change, benefits everything, needs
-   care around the GC.
-3. The existing **`RING_OBJTYPE_SUBSTRING`** machinery already gives
-   the VM a vocabulary for "a view into a string" — maybe it can carry
-   more of this weight.
+Anything that scans a large string in Ring inherits the quadratic:
+parsers, tokenizers, template engines, CSV/JSON codecs, text
+processing.
 
-I'm happy to contribute benchmarks, test programs, or prototype work
-for any direction you consider right for Ring. The measurement above
-came out of RingScript (https://github.com/mayouni/ringscript), where
-this showed up as the bottleneck under a JSON codec — but every
-pure-Ring program on every platform pays it, which is why I'm raising
-it here rather than only working around it.
+A concrete data point: a JSON decoder written in pure Ring decodes at
+about **0.27 MB/s**, while the equivalent decoder written in pure Lua
+manages **7.5 MB/s** on the same machine — a 28× gap. Part of that is
+Lua's C string primitives, but the *quadratic* component is entirely
+this copy: the Ring decoder cannot look at byte *i* of the payload
+without the payload being copied.
+
+## Possible directions
+
+Offered as data for a decision — each has a different semantic cost,
+and the trade-off is genuinely yours to make:
+
+1. **Borrowed arguments for read-only builtins.**
+   `len()`, `ascii()`, `left()`, `right()`, `substr()` (the source
+   argument), `find()` never mutate or retain their string argument. A
+   flag at C-function registration — "does not retain or mutate" —
+   could let `PUSHCVAR` push a pointer for exactly those calls. This is
+   the smallest change with the largest share of the benefit, and it
+   leaves user-defined functions untouched.
+
+2. **Copy-on-write strings.** Reference-count the buffer and copy only
+   when a writer appears. Benefits everything, including user
+   functions, but needs care with the GC and with `ring_string_*`
+   mutation sites.
+
+3. **Reuse the existing substring machinery.** `RING_OBJTYPE_SUBSTRING`
+   suggests the VM already has vocabulary for "a view into a string";
+   perhaps it can carry more of this weight.
+
+## Context
+
+Found while building a WebAssembly runtime on the Ring 1.27 VM, but the
+measurement above is stock native `ring.exe` on Windows — nothing about
+this is wasm-specific. That project worked around it by moving its JSON
+codec into C, but every pure-Ring program on every platform still pays
+it.
+
+Happy to contribute benchmarks, a test corpus, or prototype work if any
+of these directions is of interest.
