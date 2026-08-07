@@ -284,7 +284,7 @@ every run and fails if one regresses beyond 40%. Taken on an Intel Core
 
 | | min | what it exercises |
 |---|---|---|
-| instantiate + `rs_init` | **6.6 ms** | cold start — the number a page pays |
+| instantiate + `rs_init` | **3.2 ms** | a fresh instance (module cached, memory stamped from a post-init snapshot — HEADROOM_PLAN P1) |
 | `? 1+1` | 0.098 ms | one full eval round trip |
 | 10,000-iteration loop | 0.754 ms | VM dispatch |
 | build a 2,000-char string | 0.289 ms | string growth |
@@ -296,8 +296,10 @@ every run and fails if one regresses beyond 40%. Taken on an Intel Core
 | JSON encode 8.7 KB | 10.2 ms | the pure-Ring codec |
 | JSON decode 8.7 KB | **33.1 ms** | ...and its slower half |
 
-Two things are worth reading off that table. **Startup at 6.6 ms** is the
-figure that matters most for a page, and it is comfortable. **JSON
+Two things are worth reading off that table. **Startup at 3.2 ms** is the
+figure that matters most for a page, and it is comfortable — the first
+instance pays a one-time wasm compile on top; every later one is
+stamped from a snapshot. **JSON
 decoding is still the slowest thing here**, but it no longer falls off a
 cliff: both directions are now linear in the payload, where they used to
 be quadratic. A 1 MB value through `ring.call` took **260 seconds**

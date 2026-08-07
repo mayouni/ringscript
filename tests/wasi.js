@@ -34,7 +34,10 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 (async () => {
     const buf = fs.readFileSync(path.join(__dirname, "..", "playground", "ringscript.wasm"));
-    const bytes = () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    // Sliced ONCE: the loader caches the compiled Module by buffer identity,
+    // so sharing the buffer shares the compile (docs/HEADROOM_PLAN.md P1).
+    const shared = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    const bytes = () => shared;
     const newVM = (opts) => RingScript.load(bytes(), opts || { onOutput: () => {} });
 
     const ring = await newVM();

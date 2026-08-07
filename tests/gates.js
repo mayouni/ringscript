@@ -15,9 +15,13 @@ function check(name, cond, detail) {
     if (!cond) failures++;
 }
 
+// One buffer for every gate VM: the loader caches the compiled Module by
+// buffer identity, so the suite compiles the wasm once (HEADROOM_PLAN P1).
+const gateBuf = fs.readFileSync(wasmPath);
+const sharedBytes = gateBuf.buffer.slice(gateBuf.byteOffset, gateBuf.byteOffset + gateBuf.byteLength);
+
 async function newVM(opts) {
-    const buf = fs.readFileSync(wasmPath);
-    return RingScript.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength), opts || { onOutput: () => {} });
+    return RingScript.load(sharedBytes, opts || { onOutput: () => {} });
 }
 
 const phases = {

@@ -201,7 +201,11 @@ const BENCHES = [
 
 (async () => {
     const buf = fs.readFileSync(WASM);
-    const bytes = () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    // One shared buffer -> one compiled Module: "instantiate + rs_init" below
+    // now measures what a page pays per instance AFTER the first, which is
+    // the number that matters since P1 of docs/HEADROOM_PLAN.md.
+    const shared = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    const bytes = () => shared;
     const newVM = () => RingScript.load(bytes(), { onOutput: () => {} });
 
     const base = fs.existsSync(BASELINE)

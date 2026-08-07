@@ -127,6 +127,12 @@ pub fn build(b: *std.Build) void {
     // recursive list operations (copy/delete/print of deeply nested lists);
     // the default 1 MB wasm shadow stack overflows well before native does.
     exe.stack_size = 8 * 1024 * 1024;
+    // Start memory at the size rs_init grows it to anyway (332 pages,
+    // measured). Every instance reaches this within milliseconds of loading,
+    // so nothing is spent — but starting there removes the memory.grow from
+    // both init and the loader's snapshot-stamp path, whose cost is then one
+    // memcpy (docs/HEADROOM_PLAN.md P1). Pure limits field: size unchanged.
+    exe.initial_memory = 332 * 65536;
 
     // -Dmax-heap=<MB> caps the wasm heap, for the constrained-heap soak
     // (tests/soak-browser.html). A phone does not hand a tab a gigabyte, and

@@ -604,9 +604,12 @@
         $("run").disabled = true;
         $("status").textContent = "running…";
         try {
-            // fresh VM per run — examples like ChangeRingKeyword rewire the scanner
+            // fresh VM per run — examples like ChangeRingKeyword rewire the
+            // scanner. Same buffer object on purpose: the loader caches the
+            // compiled Module by identity, so each run pays instantiate-only
+            // (a fresh .slice(0) here would recompile 371 KB every run).
             let needsInput = false;
-            const ring = await RingScript.load(wasmBytes.slice(0), {
+            const ring = await RingScript.load(wasmBytes, {
                 captureStdout: true,
                 onOutput: () => {},
                 onGive: () => { needsInput = true; return null; },
@@ -658,7 +661,7 @@
         try {
             const resp = await fetch("ringscript.wasm");
             wasmBytes = await resp.arrayBuffer();
-            const probe = await RingScript.load(wasmBytes.slice(0), { onOutput: () => {} });
+            const probe = await RingScript.load(wasmBytes, { onOutput: () => {} });
             $("version").textContent = "v" + probe.version + " · Ring " + probe.eval("see version()").output;
             $("run").disabled = false;
             await firstExample;

@@ -120,6 +120,11 @@ compile once and instantiate many. Caching the compiled
 pages that create instances repeatedly (the Playground creates one per
 run). This is the most actionable single item on this page.
 
+*Executed as [HEADROOM_PLAN.md](HEADROOM_PLAN.md) P1 — and the
+measurement corrected the diagnosis: the compile was only ~1.1 ms of
+the 6.7; the bulk was init. A post-init memory snapshot now stamps
+every later instance: **6.7 → 3.3 ms**.*
+
 ## Running it
 
 ```bash
@@ -140,4 +145,5 @@ A single machine, Node rather than a browser, and three engines that
 made different trade-offs (Lua ships no JSON at all; QuickJS ships a
 C one; Ring ships a pure-Ring one so the same file runs natively).
 The scoreboard is not the product — the product is the list above of
-where RingScript's next multiple is known to live.
+where RingScript's next multiple is known to live. That list became a
+plan: [HEADROOM_PLAN.md](HEADROOM_PLAN.md).

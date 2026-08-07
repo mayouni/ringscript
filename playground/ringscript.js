@@ -154,6 +154,81 @@
         });
     }
 
+    /*
+    ** The compiled Module cache behind load(). Keyed by identity — the URL
+    ** string, or the buffer object itself — and it stores the PROMISE, so
+    ** two loads racing on the same source share one compile instead of
+    ** starting two. A failed compile removes itself from the cache: a
+    ** network hiccup must not poison every later attempt at the same URL.
+    **
+    ** Identity keying is deliberate. Hashing 371 KB to key by content would
+    ** cost a chunk of what the cache saves, and the identity story is
+    ** sound: a URL's bytes do not change within a page's lifetime (a
+    ** reload clears the cache), and a buffer object IS its bytes. Callers
+    ** that slice a fresh buffer per load simply miss the cache and get
+    ** today's behavior.
+    */
+    const moduleByUrl = new Map();
+    const moduleByBuffer = typeof WeakMap !== "undefined" ? new WeakMap() : null;
+
+    /*
+    ** Post-init memory snapshots, one per compiled Module. Measured on the
+    ** shipped build: instantiating a cached Module costs 0.06 ms, but
+    ** _initialize + rs_init cost ~5.5 ms — libc constructors, building the
+    ** RingState, parsing the embedded ringlib. All of that work writes
+    ** nothing but linear memory (the C hook pointers rs_init registers are
+    ** function-table indices, identical in every instance of the same
+    ** Module), so the FIRST instance donates a copy of its just-initialized
+    ** memory and every later instance is stamped from it: grow, memcpy,
+    ** done — ~1 ms instead of ~5.5.
+    **
+    ** Verified equivalent before shipping: a stamped VM has no leftover
+    ** state, classes and errors behave, embedded loads resolve, and the
+    ** unseeded random() sequence is byte-identical to a fresh init's —
+    ** the whole battery runs on stamped instances by construction.
+    **
+    ** The price is one extra instance-worth of RAM (~21 MB) held per cached
+    ** Module for the page's lifetime. opts.snapshot === false opts out of
+    ** both donating and receiving.
+    */
+    const snapshotByModule = typeof WeakMap !== "undefined" ? new WeakMap() : null;
+
+    function compileSource(source) {
+        const isBuf = source instanceof ArrayBuffer ||
+            (typeof Buffer !== "undefined" && Buffer.isBuffer && Buffer.isBuffer(source)) ||
+            (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView && ArrayBuffer.isView(source));
+        if (isBuf) {
+            let p = moduleByBuffer && moduleByBuffer.get(source);
+            if (!p) {
+                p = WebAssembly.compile(source);
+                if (moduleByBuffer) moduleByBuffer.set(source, p);
+            }
+            return p;
+        }
+        if (typeof fetch !== "function") {
+            return Promise.reject(new Error("RingScript.load: pass an ArrayBuffer in this environment"));
+        }
+        let p = moduleByUrl.get(source);
+        if (!p) {
+            p = (async function () {
+                const resp = await fetch(source);
+                if (WebAssembly.compileStreaming) {
+                    try {
+                        return await WebAssembly.compileStreaming(resp);
+                    } catch (e) {
+                        // Server sent a non-wasm MIME type; refetch and compile from bytes.
+                        const resp2 = await fetch(source);
+                        return await WebAssembly.compile(await resp2.arrayBuffer());
+                    }
+                }
+                return WebAssembly.compile(await resp.arrayBuffer());
+            })();
+            moduleByUrl.set(source, p);
+            p.catch(function () { moduleByUrl.delete(source); });
+        }
+        return p;
+    }
+
     async function load(source, opts) {
         opts = opts || {};
         const onOutput = opts.onOutput || function (t) { console.log(t); };
@@ -259,33 +334,34 @@
             ringscript: { js_dispatch: js_dispatch, js_give: js_give },
         };
 
-        let wasmModule;
-        if (source instanceof ArrayBuffer || (typeof Buffer !== "undefined" && Buffer.isBuffer && Buffer.isBuffer(source))) {
-            wasmModule = await WebAssembly.instantiate(source, imports);
-        } else if (typeof fetch === "function") {
-            const resp = await fetch(source);
-            if (WebAssembly.instantiateStreaming) {
-                try {
-                    wasmModule = await WebAssembly.instantiateStreaming(resp, imports);
-                } catch (e) {
-                    // Server sent a non-wasm MIME type; refetch and instantiate from bytes.
-                    const resp2 = await fetch(source);
-                    wasmModule = await WebAssembly.instantiate(await resp2.arrayBuffer(), imports);
-                }
-            } else {
-                wasmModule = await WebAssembly.instantiate(await resp.arrayBuffer(), imports);
-            }
-        } else {
-            throw new Error("RingScript.load: pass an ArrayBuffer in this environment");
-        }
-
-        const instance = wasmModule.instance || wasmModule;
+        // Compile once, instantiate per instance. Compiling 371 KB of wasm
+        // costs milliseconds; instantiating an already-compiled Module costs
+        // microseconds — and this loader used to recompile for EVERY
+        // instance, which the rivals harness measured as the whole
+        // fresh-evaluator gap against Lua and QuickJS (6.7 ms vs 0.15 ms;
+        // the Playground creates a fresh instance per run). See
+        // docs/HEADROOM_PLAN.md P1.
+        const wasmModule = await compileSource(source);
+        const instance = await WebAssembly.instantiate(wasmModule, imports);
+        const snapshot = (opts.snapshot === false || !snapshotByModule)
+            ? null : snapshotByModule.get(wasmModule);
         const ex = instance.exports;
         exports = ex;
         memory = ex.memory;
 
-        // WASI reactor model: run C runtime constructors once.
-        if (typeof ex._initialize === "function") ex._initialize();
+        if (snapshot) {
+            // Stamp the donated post-init memory instead of running the
+            // constructors and rs_init again; both already ran in the donor
+            // and wrote nothing outside this memory.
+            const nowBytes = ex.memory.buffer.byteLength;
+            if (snapshot.length > nowBytes) {
+                ex.memory.grow((snapshot.length - nowBytes) / 65536);
+            }
+            new Uint8Array(ex.memory.buffer).set(snapshot);
+        } else if (typeof ex._initialize === "function") {
+            // WASI reactor model: run C runtime constructors once.
+            ex._initialize();
+        }
 
         function readCString(rawPtr) {
             // Unsigned: a wasm i32 pointer past 2 GB arrives negative, and
@@ -518,8 +594,16 @@
             on(name, fn) { handlers[name] = fn; return api; },
         };
 
-        const rc = api.init();
-        if (rc !== 0) throw new Error("RingScript: rs_init failed (" + rc + ")");
+        if (!snapshot) {
+            const rc = api.init();
+            if (rc !== 0) throw new Error("RingScript: rs_init failed (" + rc + ")");
+            // This instance becomes the donor: its memory right now is
+            // exactly "a freshly initialized VM", captured before any user
+            // code could make it anything else.
+            if (opts.snapshot !== false && snapshotByModule && !snapshotByModule.get(wasmModule)) {
+                snapshotByModule.set(wasmModule, new Uint8Array(ex.memory.buffer).slice());
+            }
+        }
         return api;
     }
 
