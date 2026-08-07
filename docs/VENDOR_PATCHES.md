@@ -48,3 +48,23 @@ to EINVAL while MSVC/glibc leave it untouched — so `"test" = 5` raised
 The patch adds a `cEndStr != cStr` guard so plain no-conversion falls to
 the existing no-conversion branch. Portability fix, worth upstreaming
 (bites any musl-based Ring build, not just wasm).
+
+## 5. `ringvm/src/vm.c` — the computed-goto dispatch loop, written
+
+The vendor scaffolded this one and left it to be filled in: `vm.h`
+declares `ring_vm_computedgoto()` under `#ifdef RING_VM_COMPUTEDGOTO`,
+`ring_vm_mainloop()` calls it, and the comment says it "must be written
+if RING_VM_COMPUTEDGOTO is enabled". The patch appends that function,
+GENERATED mechanically from `ring_vm_execute()`'s switch — one label per
+opcode, bodies identical, label table in `codegen.h` enum order — so
+fetch, dispatch and the stack check live in one loop with no function
+call per instruction.
+
+Purely additive and guarded: without `-DRING_VM_COMPUTEDGOTO`
+(build.zig sets it) the file compiles exactly as stock. Measured in
+wasm: nothing at `-Os` (clang lowers switch and goto to the same
+`br_table`), a consistent ~9% on dispatch-bound code once the VM core
+is compiled `-O2`. Behavior is held identical by the oracle battery
+(~850 programs byte-exact vs native). If the opcode enum ever changes,
+the function must be regenerated — a stale table dispatches the wrong
+opcode. Worth offering upstream, since the hook is the vendor's own.

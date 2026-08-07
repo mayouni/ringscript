@@ -14,7 +14,7 @@ way around the repository, and change the runtime with confidence.*
 │  · boot()/load() API    │               │  · embedded ringlib map      │
 └─────────────────────────┘               │  Ring VM (vendored C, 1.27)  │
                                           │  · compiler + VM, unmodified │
-                                          │    except 4 marked patches   │
+                                          │    except 5 marked patches   │
                                           └──────────────────────────────┘
 ```
 
@@ -106,8 +106,8 @@ Three layers, three languages, each doing the one thing it is best at:
   later eval for the life of the page.
 - **8 MB wasm stack.** Deep parser recursion and deeply nested lists
   (2000 levels verified) need more than the 1 MB default.
-- **Vendor purity with four exceptions.** The Ring source is compiled
-  as-is, plus four small patches each marked `RINGSCRIPT PATCH` in
+- **Vendor purity with five exceptions.** The Ring source is compiled
+  as-is, plus five small patches each marked `RINGSCRIPT PATCH` in
   place and documented in [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — two
   of them fix upstream bugs that were contributed back
   ([ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639)).
@@ -143,7 +143,7 @@ ringscript/
 │       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
 │
-├── ringvm/                      vendored Ring 1.27 (src + include) + 4 patches
+├── ringvm/                      vendored Ring 1.27 (src + include) + 5 patches
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
@@ -214,7 +214,7 @@ contract that makes them portable into the browser unchanged.
 ### Upgrading the vendored Ring
 
 Replace `ringvm/` with the new version's `ringvm/src` +
-`ringvm/include`, re-apply the four patches from
+`ringvm/include`, re-apply the five patches from
 [VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and run the full test
 battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 1.26 → 1.27 upgrades in this repository's history each took minutes.
@@ -285,21 +285,21 @@ and the file stays runnable with `ring.exe` on its own.
 
 Recorded baselines, not aspirations: `tests/bench.js` measures these on
 every run and fails if one regresses beyond 40%. Taken on an Intel Core
-5 210H, Node 22, `ringscript.wasm` at 378,719 bytes.
+5 210H, Node 22, `ringscript.wasm` at 394,959 bytes.
 
 | | min | what it exercises |
 |---|---|---|
 | instantiate + `rs_init` | **3.2 ms** | a fresh instance (module cached, memory stamped from a post-init snapshot — HEADROOM_PLAN P1) |
-| `? 1+1` | 0.044 ms | one full eval round trip |
-| 10,000-iteration loop | 0.754 ms | VM dispatch |
-| build a 2,000-char string | 0.289 ms | string growth |
-| sort a 2,000-element list | 0.296 ms | library call |
-| create 2,000 objects | 6.25 ms | allocation |
-| 1,000 lines of output | 0.881 ms | the `see` hook |
-| `ring.call` from JS | 0.055 ms | the bridge, JSON both ways |
-| parse a ZQL declaration | 1.52 ms | the shipped payload |
-| JSON encode 8.7 KB | 0.19 ms | the C codec (`src/rs_json.c`) |
-| JSON decode 8.7 KB | 0.73 ms | ...held byte-identical to `ringlib/json.ring` |
+| `? 1+1` | 0.043 ms | one full eval round trip |
+| 10,000-iteration loop | 0.688 ms | VM dispatch (computed goto + `-O2` core) |
+| build a 2,000-char string | 0.215 ms | string growth |
+| sort a 2,000-element list | 0.202 ms | library call |
+| create 2,000 objects | 5.68 ms | allocation |
+| 1,000 lines of output | 0.764 ms | the `see` hook |
+| `ring.call` from JS | 0.053 ms | the bridge, JSON both ways |
+| parse a ZQL declaration | 1.40 ms | the shipped payload |
+| JSON encode 8.7 KB | 0.13 ms | the C codec (`src/rs_json.c`) |
+| JSON decode 8.7 KB | 0.66 ms | ...held byte-identical to `ringlib/json.ring` |
 
 Two things are worth reading off that table. **Startup at 3.2 ms** is the
 figure that matters most for a page, and it is comfortable — the first

@@ -1114,3 +1114,435 @@ void ring_vm_execute(VM *pVM) {
 		break;
 	}
 }
+
+#ifdef RING_VM_COMPUTEDGOTO
+/*
+** RINGSCRIPT PATCH (5): the computed-goto dispatch loop the vendor
+** scaffolded — vm.h declares ring_vm_computedgoto() under this same
+** guard, ring_vm_mainloop() calls it, and the comment there says it
+** "must be written if RING_VM_COMPUTEDGOTO is enabled". This writes it.
+**
+** GENERATED mechanically from ring_vm_execute()'s switch: one label per
+** opcode, bodies identical, label table in codegen.h enum order (three
+** opcodes — NEWLABEL, PACKAGE, NOOP — have no case there and fall
+** through, so their labels do the same). The win in wasm is not the
+** goto itself (clang lowers both this and a dense switch to br_table);
+** it is that fetch, dispatch and the stack check live in ONE loop with
+** no function call per instruction. Behavior is held identical to the
+** fetch loop by the oracle battery (~850 programs byte-exact vs native
+** ring.exe).
+**
+** If codegen.h's opcode enum changes, REGENERATE this function — a
+** stale label table dispatches the wrong opcode. Enabled with
+** -DRING_VM_COMPUTEDGOTO (build.zig).
+*/
+void ring_vm_computedgoto(VM *pVM) {
+	static const void *aLabels[] = {
+	    &&rs_cg_ICO_NEWLINE, &&rs_cg_ICO_FILENAME, &&rs_cg_ICO_NEWCLASS, &&rs_cg_ICO_NEWFUNC,
+	    &&rs_cg_ICO_DUPLICATE, &&rs_cg_ICO_NEWOBJ, &&rs_cg_ICO_PRIVATE, &&rs_cg_ICO_NEWLABEL,
+	    &&rs_cg_ICO_JUMP, &&rs_cg_ICO_JUMPZERO, &&rs_cg_ICO_JUMPONE, &&rs_cg_ICO_JUMPFOR,
+	    &&rs_cg_ICO_JUMPZERO2, &&rs_cg_ICO_JUMPONE2, &&rs_cg_ICO_PUSHNULLTHENJUMP, &&rs_cg_ICO_PUSHNTHENJUMP,
+	    &&rs_cg_ICO_LOADADDRESS, &&rs_cg_ICO_ASSIGNMENT, &&rs_cg_ICO_LOADSUBADDRESS, &&rs_cg_ICO_LOADINDEXADDRESS,
+	    &&rs_cg_ICO_LOADAPUSHV, &&rs_cg_ICO_EQUAL, &&rs_cg_ICO_LESS, &&rs_cg_ICO_GREATER,
+	    &&rs_cg_ICO_NOTEQUAL, &&rs_cg_ICO_LESSEQUAL, &&rs_cg_ICO_GREATEREQUAL, &&rs_cg_ICO_PUSHC,
+	    &&rs_cg_ICO_PUSHNL, &&rs_cg_ICO_PUSHN, &&rs_cg_ICO_PUSH2N, &&rs_cg_ICO_PUSHV,
+	    &&rs_cg_ICO_PUSHP, &&rs_cg_ICO_PUSHPV, &&rs_cg_ICO_PUSHPLOCAL, &&rs_cg_ICO_PUSHARG,
+	    &&rs_cg_ICO_SUM, &&rs_cg_ICO_SUB, &&rs_cg_ICO_MUL, &&rs_cg_ICO_DIV,
+	    &&rs_cg_ICO_MOD, &&rs_cg_ICO_NEG, &&rs_cg_ICO_INC, &&rs_cg_ICO_INCP,
+	    &&rs_cg_ICO_POW, &&rs_cg_ICO_SUMN, &&rs_cg_ICO_SUBN, &&rs_cg_ICO_MULN,
+	    &&rs_cg_ICO_DIVN, &&rs_cg_ICO_MODN, &&rs_cg_ICO_POWN, &&rs_cg_ICO_LOADFUNC,
+	    &&rs_cg_ICO_CALL, &&rs_cg_ICO_RETURN, &&rs_cg_ICO_RETNULL, &&rs_cg_ICO_RETFROMEVAL,
+	    &&rs_cg_ICO_RETITEMREF, &&rs_cg_ICO_RETURNN, &&rs_cg_ICO_LISTSTART, &&rs_cg_ICO_LISTITEM,
+	    &&rs_cg_ICO_LISTITEMN, &&rs_cg_ICO_LISTITEMC, &&rs_cg_ICO_LISTEND, &&rs_cg_ICO_AND,
+	    &&rs_cg_ICO_OR, &&rs_cg_ICO_NOT, &&rs_cg_ICO_FREESTACK, &&rs_cg_ICO_BLOCKFLAG,
+	    &&rs_cg_ICO_BYE, &&rs_cg_ICO_EXITMARK, &&rs_cg_ICO_POPEXITMARK, &&rs_cg_ICO_EXIT,
+	    &&rs_cg_ICO_INCJUMP, &&rs_cg_ICO_INCPJUMP, &&rs_cg_ICO_TRY, &&rs_cg_ICO_DONE,
+	    &&rs_cg_ICO_RANGE, &&rs_cg_ICO_LOADMETHOD, &&rs_cg_ICO_SETSCOPE, &&rs_cg_ICO_AFTERCALLMETHOD,
+	    &&rs_cg_ICO_BRACESTART, &&rs_cg_ICO_BRACEEND, &&rs_cg_ICO_LOADFUNCP, &&rs_cg_ICO_FREELOADASCOPE,
+	    &&rs_cg_ICO_LOOP, &&rs_cg_ICO_INCLPJUMP, &&rs_cg_ICO_PACKAGE, &&rs_cg_ICO_IMPORT,
+	    &&rs_cg_ICO_SETPROPERTY, &&rs_cg_ICO_NOOP, &&rs_cg_ICO_AFTERCALLMETHOD2, &&rs_cg_ICO_SETREFERENCE,
+	    &&rs_cg_ICO_KILLREFERENCE, &&rs_cg_ICO_ASSIGNMENTPOINTER, &&rs_cg_ICO_BEFOREEQUAL, &&rs_cg_ICO_PLUSPLUS,
+	    &&rs_cg_ICO_MINUSMINUS, &&rs_cg_ICO_BITAND, &&rs_cg_ICO_BITOR, &&rs_cg_ICO_BITNOT,
+	    &&rs_cg_ICO_BITXOR, &&rs_cg_ICO_BITSHL, &&rs_cg_ICO_BITSHR, &&rs_cg_ICO_STEPNUMBER,
+	    &&rs_cg_ICO_STEPFROMREG, &&rs_cg_ICO_POPSTEP, &&rs_cg_ICO_LOADAFIRST, &&rs_cg_ICO_INCPJUMPSTEP1,
+	    &&rs_cg_ICO_INCLPJUMPSTEP1, &&rs_cg_ICO_ANONYMOUS, &&rs_cg_ICO_CALLCLASSINIT, &&rs_cg_ICO_NEWGLOBALSCOPE,
+	    &&rs_cg_ICO_ENDGLOBALSCOPE, &&rs_cg_ICO_SETGLOBALSCOPE, &&rs_cg_ICO_FREETEMPLISTS, &&rs_cg_ICO_LEN,
+	    &&rs_cg_ICO_SETOPCODE, &&rs_cg_ICO_CHECKBRACEMETHOD, &&rs_cg_ICO_OPTIONALLOOP, &&rs_cg_ICO_LOADMETHODP,
+	    &&rs_cg_ICO_LOADBRACEMETHODP
+	};
+rs_cg_fetch:
+	pVM->pByteCodeIR = pVM->pByteCode + pVM->nPC - 1;
+	pVM->nOPCode = RING_VM_IR_OPCODE;
+	pVM->nPC++;
+	goto *aLabels[pVM->nOPCode];
+rs_cg_check:
+	if (pVM->nSP > RING_VM_STACK_CHECKOVERFLOW) {
+		ring_vm_error(pVM, RING_VM_ERROR_STACKOVERFLOW);
+	}
+	if (pVM->nPC <= RING_VM_INSTRUCTIONSCOUNT) {
+		goto rs_cg_fetch;
+	}
+	return;
+rs_cg_ICO_NEWLINE:
+		ring_vm_newline(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_FILENAME:
+		ring_vm_setfilename(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NEWCLASS:
+		ring_vm_oop_newclass(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NEWFUNC:
+		ring_vm_newfunc(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_DUPLICATE:
+		ring_vm_stackdup(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NEWOBJ:
+		ring_vm_oop_newobj(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PRIVATE:
+		pVM->lPrivateFlag = 1;
+	goto rs_cg_check;
+rs_cg_ICO_NEWLABEL:
+	goto rs_cg_check;
+rs_cg_ICO_JUMP:
+		RING_VM_JUMP;
+	goto rs_cg_check;
+rs_cg_ICO_JUMPZERO:
+		ring_vm_jumpzero(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_JUMPONE:
+		ring_vm_jumpone(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_JUMPFOR:
+		ring_vm_jumpfor(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_JUMPZERO2:
+		ring_vm_jumpzero2(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_JUMPONE2:
+		ring_vm_jumpone2(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PUSHNULLTHENJUMP:
+		RING_VM_PUSHNULLTHENJUMP;
+	goto rs_cg_check;
+rs_cg_ICO_PUSHNTHENJUMP:
+		RING_VM_PUSHNTHENJUMP;
+	goto rs_cg_check;
+rs_cg_ICO_LOADADDRESS:
+		ring_vm_loadaddress(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_ASSIGNMENT:
+		ring_vm_assignment(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADSUBADDRESS:
+		ring_vm_oop_property(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADINDEXADDRESS:
+		ring_vm_loadindexaddress(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADAPUSHV:
+		ring_vm_loadapushv(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_EQUAL:
+		ring_vm_equal(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LESS:
+		ring_vm_less(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_GREATER:
+		ring_vm_greater(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NOTEQUAL:
+		ring_vm_notequal(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LESSEQUAL:
+		ring_vm_lessequal(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_GREATEREQUAL:
+		ring_vm_greaterequal(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PUSHC:
+		RING_VM_STACK_PUSHC;
+	goto rs_cg_check;
+rs_cg_ICO_PUSHNL:
+		RING_VM_STACK_PUSHNL;
+	goto rs_cg_check;
+rs_cg_ICO_PUSHN:
+		RING_VM_STACK_PUSHNVALUE(RING_VM_IR_READDVALUE(RING_VM_IR_REG1));
+	goto rs_cg_check;
+rs_cg_ICO_PUSH2N:
+		RING_VM_STACK_PUSHNVALUE(RING_VM_IR_READDVALUE(RING_VM_IR_REG1));
+		RING_VM_STACK_PUSHNVALUE(RING_VM_IR_READDVALUE(RING_VM_IR_REG2));
+	goto rs_cg_check;
+rs_cg_ICO_PUSHV:
+		ring_vm_pushv(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PUSHP:
+		ring_vm_pushp(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PUSHPV:
+		ring_vm_pushpv(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PUSHPLOCAL:
+		ring_vm_pushplocal(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PUSHARG:
+		ring_vm_pusharg(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SUM:
+		ring_vm_sum(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SUB:
+		ring_vm_sub(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_MUL:
+		ring_vm_mul(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_DIV:
+		ring_vm_div(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_MOD:
+		ring_vm_mod(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NEG:
+		ring_vm_neg(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_INC:
+		ring_vm_inc(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_INCP:
+		ring_vm_incp(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_POW:
+		ring_vm_pow(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SUMN:
+		ring_vm_sumn(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SUBN:
+		ring_vm_subn(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_MULN:
+		ring_vm_muln(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_DIVN:
+		ring_vm_divn(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_MODN:
+		ring_vm_modn(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_POWN:
+		ring_vm_pown(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADFUNC:
+		ring_vm_loadfunc(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_CALL:
+		ring_vm_call(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_RETURN:
+		ring_vm_return(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_RETNULL:
+		ring_vm_returnnull(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_RETFROMEVAL:
+		ring_vm_returneval(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_RETITEMREF:
+		ring_vm_retitemref(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_RETURNN:
+		ring_vm_returnn(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LISTSTART:
+		ring_vm_liststart(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LISTITEM:
+		ring_vm_listitem(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LISTITEMN:
+		ring_vm_listitemn(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LISTITEMC:
+		ring_vm_listitemc(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LISTEND:
+		ring_vm_listend(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_AND:
+		ring_vm_and(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_OR:
+		ring_vm_or(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NOT:
+		ring_vm_not(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_FREESTACK:
+		ring_vm_freestack(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BLOCKFLAG:
+		ring_vm_blockflag(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BYE:
+		ring_vm_bye(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_EXITMARK:
+		ring_vm_exitmark(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_POPEXITMARK:
+		ring_vm_popexitmark(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_EXIT:
+		ring_vm_exit(pVM, RING_COMMANDTYPE_EXIT);
+	goto rs_cg_check;
+rs_cg_ICO_INCJUMP:
+		ring_vm_incjump(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_INCPJUMP:
+		ring_vm_incpjump(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_TRY:
+		ring_vm_try(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_DONE:
+		ring_vm_done(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_RANGE:
+		ring_vm_range(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADMETHOD:
+		ring_vm_oop_loadmethod(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SETSCOPE:
+		ring_vm_oop_setscope(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_AFTERCALLMETHOD:
+		ring_vm_oop_aftercallmethod(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BRACESTART:
+		ring_vm_oop_bracestart(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BRACEEND:
+		ring_vm_oop_braceend(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADFUNCP:
+		ring_vm_loadfuncp(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_FREELOADASCOPE:
+		ring_vm_freeloadaddressscope(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOOP:
+		ring_vm_exit(pVM, RING_COMMANDTYPE_LOOP);
+	goto rs_cg_check;
+rs_cg_ICO_INCLPJUMP:
+		ring_vm_inclpjump(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_PACKAGE:
+	goto rs_cg_check;
+rs_cg_ICO_IMPORT:
+		ring_vm_oop_import(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SETPROPERTY:
+		ring_vm_oop_setproperty(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NOOP:
+	goto rs_cg_check;
+rs_cg_ICO_AFTERCALLMETHOD2:
+		ring_vm_oop_aftercallmethod(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SETREFERENCE:
+		ring_vm_setreference(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_KILLREFERENCE:
+		ring_vm_gc_killreference(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_ASSIGNMENTPOINTER:
+		ring_vm_assignmentpointer(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BEFOREEQUAL:
+		pVM->nBeforeEqual = RING_VM_IR_READI;
+	goto rs_cg_check;
+rs_cg_ICO_PLUSPLUS:
+		ring_vm_plusplus(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_MINUSMINUS:
+		ring_vm_minusminus(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BITAND:
+		ring_vm_bitand(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BITOR:
+		ring_vm_bitor(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BITNOT:
+		ring_vm_bitnot(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BITXOR:
+		ring_vm_bitxor(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BITSHL:
+		ring_vm_bitshl(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_BITSHR:
+		ring_vm_bitshr(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_STEPNUMBER:
+		ring_vm_stepnumber(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_STEPFROMREG:
+		ring_vm_stepfromreg(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_POPSTEP:
+		ring_vm_popstep(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADAFIRST:
+		ring_vm_loadaddressfirst(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_INCPJUMPSTEP1:
+		ring_vm_incpjumpstep1(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_INCLPJUMPSTEP1:
+		ring_vm_inclpjumpstep1(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_ANONYMOUS:
+		ring_vm_anonymous(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_CALLCLASSINIT:
+		ring_vm_oop_callclassinit(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_NEWGLOBALSCOPE:
+		ring_vm_newglobalscope(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_ENDGLOBALSCOPE:
+		ring_vm_endglobalscope(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SETGLOBALSCOPE:
+		ring_vm_setglobalscope(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_FREETEMPLISTS:
+		ring_vm_freetemplistsins(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LEN:
+		ring_vm_len(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_SETOPCODE:
+		ring_vm_setopcode(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_CHECKBRACEMETHOD:
+		ring_vm_oop_checkbracemethod(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_OPTIONALLOOP:
+		ring_vm_optionalloop(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADMETHODP:
+		ring_vm_oop_loadmethodp(pVM);
+	goto rs_cg_check;
+rs_cg_ICO_LOADBRACEMETHODP:
+		ring_vm_oop_loadbracemethodp(pVM);
+	goto rs_cg_check;
+}
+#endif

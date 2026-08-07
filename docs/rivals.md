@@ -25,15 +25,16 @@ verbatim as the before-picture.
 |---|---|---|---|---|---|
 | fresh evaluator | 3.34 | 0.15 | 0.13 | peers | 6.70 |
 | assign a global | 0.046¹ | 0.002 | 0.003 | lua | 0.095 |
-| 10,000-iteration loop | 0.719 | 0.058 | 0.403 | lua | 0.738 |
-| build a 2,000-char string | **0.279** | 0.301 | 0.667 | **ring** | 0.282 |
-| copy + sort 2,000 numbers | **0.286** | 0.370 | 0.835 | **ring** | 0.294 |
+| 10,000-iteration loop | 0.654² | 0.058 | 0.403 | lua | 0.738 |
+| build a 2,000-char string | **0.203²** | 0.301 | 0.667 | **ring** | 0.282 |
+| copy + sort 2,000 numbers | **0.212²** | 0.370 | 0.835 | **ring** | 0.294 |
 | create 2,000 objects | 6.120 | 0.205 | 0.612 | lua | 6.262 |
 | JSON encode ~8.7 KB | **0.185** | 0.723 | 0.420 | **ring** | 10.4 |
 | JSON decode ~8.7 KB | 0.719 | 1.153 | 0.198 | js | 32.7 |
 | 1 MB through JSON | **1.542** | 76.4 | 8.0 | **ring** | 944.6 |
 
-¹ 0.046 after P3 (the auto-main skip), re-measured the same day.
+¹ 0.046 after P3 (the auto-main skip); 0.043 after P4.
+² After P4 (computed-goto dispatch + `-O2` VM core), same day.
 
 Ring's wins went from two rows to **four of nine** in one day of
 executing the plan — including JSON encode, where Ring now beats
@@ -42,9 +43,9 @@ everyone. (Ring's and QuickJS's JSON are C now; Lua's stays pure Lua —
 that column measures what a C codec buys.) The robustness tables below
 re-ran identically: heap flat everywhere, zero deaths everywhere.
 
-The gaps that remain are the plan's open items: dispatch (P4) and
-object creation (P5); the eval round trip halved under P3 and its
-remaining floor is scanner cost, which P4 also touches.
+The remaining open item is object creation (P5). Dispatch closed to
+~1.5× of QuickJS under P4; Lua's fused loop opcode stays a design
+generation ahead, as the plan said it would.
 
 ## The contenders
 

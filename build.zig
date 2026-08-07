@@ -3,9 +3,27 @@ const std = @import("std");
 // RingScript — Ring VM compiled to wasm32-wasi with a Zig bridge.
 // See REPAIR_PLAN.md §2.5 (Zig-first toolchain decision).
 
-const vm_sources = [_][]const u8{
+// The interpreter's hot core, compiled -O2 while everything else stays -Os:
+// dispatch and data structures (every program), scanner/parser/codegen (the
+// per-eval floor). Chosen by measurement — see docs/HEADROOM_PLAN.md P4.
+const vm_hot_sources = [_][]const u8{
+    "ringvm/src/vm.c",
+    "ringvm/src/vmexpr.c",
+    "ringvm/src/vmstack.c",
+    "ringvm/src/vmvars.c",
+    "ringvm/src/ritem.c",
+    "ringvm/src/ritems.c",
+    "ringvm/src/rlist.c",
+    "ringvm/src/rstring.c",
+    "ringvm/src/rhtable.c",
+    "ringvm/src/scanner.c",
+    "ringvm/src/parser.c",
     "ringvm/src/codegen.c",
+    "ringvm/src/stmt.c",
     "ringvm/src/expr.c",
+};
+
+const vm_sources = [_][]const u8{
     "ringvm/src/ext.c",
     "ringvm/src/file_e.c",
     "ringvm/src/general.c",
@@ -16,21 +34,11 @@ const vm_sources = [_][]const u8{
     "ringvm/src/meta_e.c",
     "ringvm/src/objfile.c",
     "ringvm/src/os_e.c",
-    "ringvm/src/parser.c",
-    "ringvm/src/rhtable.c",
     "ringvm/src/ringapi.c",
-    "ringvm/src/ritem.c",
-    "ringvm/src/ritems.c",
-    "ringvm/src/rlist.c",
-    "ringvm/src/rstring.c",
-    "ringvm/src/scanner.c",
     "ringvm/src/state.c",
-    "ringvm/src/stmt.c",
-    "ringvm/src/vm.c",
     "ringvm/src/vmerror.c",
     "ringvm/src/vmeval.c",
     "ringvm/src/vmexit.c",
-    "ringvm/src/vmexpr.c",
     "ringvm/src/vmfuncs.c",
     "ringvm/src/vmgc.c",
     "ringvm/src/vminfo_e.c",
@@ -39,12 +47,10 @@ const vm_sources = [_][]const u8{
     "ringvm/src/vmoop.c",
     "ringvm/src/vmperf.c",
     "ringvm/src/vmrange.c",
-    "ringvm/src/vmstack.c",
     "ringvm/src/vmstate.c",
     "ringvm/src/vmstr.c",
     "ringvm/src/vmthread.c",
     "ringvm/src/vmtry.c",
-    "ringvm/src/vmvars.c",
     // Excluded on purpose:
     //   ring.c / ringw.c  — CLI / WinMain entry points (the bridge is the entry)
     //   dll_e.c           — dynamic library loading (RING_NODLL=1; browser loads no DLLs)
@@ -72,6 +78,9 @@ const vm_cflags = [_][]const u8{
     // embedded files do not exist. Function-like on purpose: it expands only
     // where `stat` is followed by `(`, leaving every `struct stat` intact.
     "-Dstat(a,b)=rs_stat(a,b)",
+    // Dispatch through the computed-goto loop (RINGSCRIPT PATCH 5 in vm.c:
+    // fetch + dispatch + stack check in one loop, no call per instruction).
+    "-DRING_VM_COMPUTEDGOTO",
     "-fno-sanitize=undefined",
 };
 
@@ -109,6 +118,10 @@ pub fn build(b: *std.Build) void {
     mod.addCSourceFiles(.{
         .files = &vm_sources,
         .flags = &vm_cflags,
+    });
+    mod.addCSourceFiles(.{
+        .files = &vm_hot_sources,
+        .flags = &(vm_cflags ++ [_][]const u8{"-O2"}),
     });
     mod.addCSourceFiles(.{
         .files = &.{ "src/wasi_stubs.c", "src/rs_json.c" },

@@ -8,7 +8,7 @@ markers are updated as items land.*
 ## The constraint that shapes everything
 
 RingScript's crown jewel is **byte-exact conformance** — ~850 programs
-identical to native `ring.exe`, held by a 4-patch vendor discipline.
+identical to native `ring.exe`, held by a 5-patch vendor discipline.
 Speed bought with semantic drift is a loss. So every intervention is
 ranked by *where* it lives:
 
@@ -119,16 +119,30 @@ the 28× pure-codec gap closed to native-codec class; 1 MB round trip
 from ~1 s to single-digit ms; `ring.call` drops too. `json.ring` stays
 shipped for native-Ring portability.
 
-### 4. Dispatch — measure before believing
-Implement `ring_vm_computedgoto` (mechanical: 124 labels, fetch inlined
-into one loop) **plus** compile just the VM core (`vm.c`, `vmexpr.c`,
-`vmstack.c`) with `-O2` while everything else stays small. Stated
-honestly upfront: in wasm, computed goto lowers to `br_table` — the
-same thing a dense switch becomes — so the native branch-prediction win
-largely evaporates; the real candidate is consolidating the
-per-instruction function call into one loop. Expected: 1.2–1.6× on
-dispatch-bound code, judged against the size gate; keep only what
-measures. Lua's fused `FORLOOP` is a compiler redesign — upstream-only.
+### 4. Dispatch — measure before believing — **DONE, both levers kept**
+*Executed August 7, 2026.* Both levers landed, and the honesty note
+proved exactly right:
+
+- **`ring_vm_computedgoto` is written** — vendor patch 5, generated
+  mechanically from `ring_vm_execute()`'s switch (121 labels in enum
+  order, bodies identical, three no-case opcodes fall through as the
+  switch did). Alone, at `-Os`, it measured **nothing** — clang lowers
+  the switch and the goto to the same `br_table`. Combined with the
+  `-O2` core it contributes a consistent **~9% on dispatch** (the one
+  loop keeps fetch/dispatch/check state in registers), for +2.6 KB.
+  Purely additive and guarded; regenerate if the opcode enum changes.
+- **The hot core is compiled `-O2`** (14 files: dispatch, expressions,
+  stack, variables, the item/list/string/hashtable structures, and the
+  scanner→codegen chain that is the per-eval floor) while everything
+  else stays `-Os`. Worth **5–15%** across the whole bench.
+
+Result vs the pre-P4 baseline: loop 0.72 → 0.64 ms, sort 0.29 → 0.20,
+string 0.28 → 0.21, objects 6.1 → 5.7, eval 48 → 43 µs, ZQL parse
+1.53 → 1.40. The plan hoped 1.2–1.6× on dispatch; honest outcome is
+**~1.15× on dispatch, ~1.4× on sort/string**. Cost: **+16.2 KB**
+(+4.3%), flagged by the size gate and accepted — a far better trade
+than the rejected ReleaseFast (6.2× size for ~15%). Lua's fused
+`FORLOOP` remains upstream-only.
 
 ### 5. Objects — the one risky vendor patch worth considering
 A **template cache**: when a class region's bytecode is solely
@@ -162,7 +176,7 @@ page can feel, with [rivals.md](rivals.md) as the public scoreboard.
 | P1 | `WebAssembly.Module` cache + memory snapshot | loader | none | **done — 6.7 → 3.3 ms** |
 | P2 | C JSON codec | bridge C | gated by the 8 JSON gates + oracle | **done — 46–55×, +7.9 KB** |
 | P3 | eval-path slimming (main-skip; driver idea killed by scope semantics) | bridge | battery-gated | **done — 95 → 48 µs** |
-| P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | — |
+| P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | **done — 5–15%, +16 KB** |
 | P5 | object template cache | vendor patch | highest — or upstream proposal | — |
 | P6 | upstream case: string-arg borrowing, with measurements | upstream | none | — |
 
