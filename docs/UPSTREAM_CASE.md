@@ -10,7 +10,17 @@ Items 1 and 2 follow the route of
 [ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639),
 which contributed two earlier fixes from the same work.*
 
-*Status: drafted, not posted. Posting is Mansour's call.*
+*Status: drafted, not posted. Posting is Mansour's call. Ready-to-paste
+versions — each with a suggested title, written in first person and
+self-contained for the ring-lang/ring tracker — live in
+[docs/upstream/](upstream/):*
+
+| file | post as |
+|---|---|
+| [issue-1-private-eval-crash.md](upstream/issue-1-private-eval-crash.md) | issue |
+| [issue-2-strtod-musl-errno.md](upstream/issue-2-strtod-musl-errno.md) | issue |
+| [discussion-3-string-argument-copy.md](upstream/discussion-3-string-argument-copy.md) | discussion |
+| [offer-4-computed-goto.md](upstream/offer-4-computed-goto.md) | discussion or PR |
 
 ---
 
