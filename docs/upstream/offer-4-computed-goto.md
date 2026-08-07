@@ -1,3 +1,24 @@
+> ## OBSOLETE — DO NOT SEND
+>
+> Checked against the live repository on August 7, 2026, before this was
+> ever posted: **Ring already implements `ring_vm_computedgoto()`** in
+> `language/build/vmcgoto/vmcgoto.c`, and PR
+> [#1636](https://github.com/ring-lang/ring/pull/1636) added a
+> `RING_COMPUTED_GOTO` CMake option to build with it.
+>
+> The draft below was written from the declaration in `vm.h` and the
+> comment in `vm.c` ("must be written if RING_VM_COMPUTEDGOTO is
+> enabled"), which look like an open invitation only because the
+> vendored tree here omits `language/build/`. Sending this would have
+> offered work that already exists.
+>
+> Kept for the record. RingScript's own implementation (VENDOR_PATCHES
+> patch 5) is still needed *here* — it covers all 121 opcodes and builds
+> under clang-for-wasm — but it is a variation on existing work, not a
+> contribution.
+
+---
+
 **Title:** Offer: an implementation of `ring_vm_computedgoto()`, the function `vm.c` asks for
 
 **Labels:** performance, enhancement

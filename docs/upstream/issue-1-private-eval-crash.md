@@ -4,6 +4,13 @@
 
 **Kind:** issue (a PR with the one-line fix can follow)
 
+> **ALREADY DELIVERED — do not refile.** This went upstream as PR
+> [#1639](https://github.com/ring-lang/ring/pull/1639) (with the other
+> one-line fix), closed August 2, 2026 with *"Thanks for the bug report /
+> I will revise/fix them using PWCT in the future"*. Also note
+> `ring-lang/ring` has issues disabled — there is no tracker to file
+> this on. Kept as the written-up version of the finding.
+
 ---
 
 ## Summary

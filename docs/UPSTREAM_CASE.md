@@ -10,17 +10,24 @@ Items 1 and 2 follow the route of
 [ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639),
 which contributed two earlier fixes from the same work.*
 
-*Status: drafted, not posted. Posting is Mansour's call. Ready-to-paste
-versions — each with a suggested title, written in first person and
-self-contained for the ring-lang/ring tracker — live in
-[docs/upstream/](upstream/):*
+> **Checked against the live repository on August 7, 2026, before
+> anything was sent — and most of this page turned out to be already
+> handled or already done. Read
+> [upstream/README.md](upstream/) first; it has the current status of
+> every item and the reasons.**
+>
+> In short: `ring-lang/ring` **has issues and discussions disabled**, so
+> there is no tracker — only PRs and the Google Group. Items 1 and 2
+> were **already delivered** as PR
+> [#1639](https://github.com/ring-lang/ring/pull/1639) and consciously
+> deferred to a PWCT reimplementation; **do not refile them**. Item 4 is
+> **obsolete**: Ring already ships `ring_vm_computedgoto()` in
+> `language/build/vmcgoto/vmcgoto.c`, which the vendored tree here does
+> not include. **Item 3 is the one genuinely new finding**, and it is
+> ready to send as
+> [a Google Group message](upstream/group-message-string-copy.md).
 
-| file | post as |
-|---|---|
-| [issue-1-private-eval-crash.md](upstream/issue-1-private-eval-crash.md) | issue |
-| [issue-2-strtod-musl-errno.md](upstream/issue-2-strtod-musl-errno.md) | issue |
-| [discussion-3-string-argument-copy.md](upstream/discussion-3-string-argument-copy.md) | discussion |
-| [offer-4-computed-goto.md](upstream/offer-4-computed-goto.md) | discussion or PR |
+*The four write-ups below are kept as the full record of each finding.*
 
 ---
 

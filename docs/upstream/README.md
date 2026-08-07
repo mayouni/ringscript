@@ -1,48 +1,81 @@
-# Ready-to-paste issues for ring-lang/ring
+# Upstream material for ring-lang/ring
 
-Four items from [UPSTREAM_CASE.md](../UPSTREAM_CASE.md), split so each
-one can be pasted into a fresh GitHub issue on its own. Each file starts
-with its **Title**, suggested labels, and whether it is an issue, a
-discussion, or an offer; everything below the `---` is the body.
+Findings from RingScript prepared for the Ring project, plus what
+happened to each. **Checked against the live repository on August 7,
+2026 — before any of it was sent** — which changed the picture
+considerably. Read this before posting anything.
 
-Nothing here has been posted. Posting is yours to do.
+## Two facts about the channel
 
-| | file | what it is | ready to |
+- **`ring-lang/ring` has issues disabled** (`has_issues: false`), and
+  **Discussions are disabled too**. There is no tracker. The only
+  channels are **pull requests** and the **Ring Google Group**.
+- Mahmoud develops Ring through **PWCT**, so C patches are generally
+  reimplemented there rather than merged as-is. That shapes what is
+  worth sending: a *finding* travels better than a *patch*.
+
+## Status of each item
+
+| | item | status | do not / do |
 |---|---|---|---|
-| 1 | [private + eval crash](issue-1-private-eval-crash.md) | **crash bug**, one-line fix | open issue, then PR |
-| 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | **portability bug**, one-line fix | open issue, then PR |
-| 3 | [string argument copy](discussion-3-string-argument-copy.md) | performance finding, ~5,000× measured | open discussion |
-| 4 | [computed-goto](offer-4-computed-goto.md) | implementation of an existing hook | open discussion, offer PR |
+| 1 | [private + eval crash](issue-1-private-eval-crash.md) | **already delivered** as PR [#1639](https://github.com/ring-lang/ring/pull/1639); closed Aug 2 with "I will revise/fix them using PWCT in the future" | **do not refile** |
+| 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | same PR, same reply | **do not refile** |
+| 3 | [string argument copy](discussion-3-string-argument-copy.md) | **not sent, and the one genuinely new finding** | send as [a Google Group message](group-message-string-copy.md) |
+| 4 | [computed-goto](offer-4-computed-goto.md) | **obsolete — withdraw** | **do not send** |
 
-## Suggested order
+### Why item 4 is obsolete
 
-**1 and 2 first.** They are small, self-contained, come with fixes, and
-follow the same route as
-[ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639) —
-which is the trust already built. Landing them makes the later two
-easier to take seriously.
+The draft offers to write `ring_vm_computedgoto()` because `vm.h`
+declares it and `vm.c` carries the comment *"The next function must be
+written if RING_VM_COMPUTEDGOTO is enabled"*. **Ring already has it**:
+`language/build/vmcgoto/vmcgoto.c` (11 KB, GCC-only, designated-
+initializer dispatch table), and PR
+[#1636](https://github.com/ring-lang/ring/pull/1636) added a
+`RING_COMPUTED_GOTO` CMake option to build with it.
 
-**3 next, as a discussion, not an issue.** It asks Mahmoud to weigh a
-design trade-off (value semantics against O(n²) string handling), and
-framing it as a bug would be both wrong and unpersuasive.
+The vendored tree in this repository contains only `language/include`
+and `language/src`, not `language/build/` — which is why the
+declaration and that comment looked like an open invitation. They are
+not. RingScript's own implementation
+([VENDOR_PATCHES.md](../VENDOR_PATCHES.md) patch 5) is still needed
+*here*, because it covers all 121 opcodes and compiles under
+clang-for-wasm, but it is a variation on existing work, not a
+contribution.
 
-**4 last, or alongside 3.** It is an offer of work, not a request for
-any, so it costs nothing to leave until there is appetite.
+The file is kept for the record, not for sending.
 
-## Every claim is native-verified
+### Items 1 and 2
 
-Each measurement and reproduction was re-run on stock `ring.exe` 1.27.0
-on Windows before being written down — deliberately, so that nothing
-can be set aside as a WebAssembly quirk. The wasm numbers appear only
-where they are labeled as such (item 4), together with the reason they
-are the *weakest* case for that technique.
+Both were delivered together in #1639 and acknowledged. Refiling five
+days later would re-raise something already seen and consciously
+deferred — pressure rather than help, and it would spend goodwill
+better saved for item 3.
+
+If anything is worth adding, it is a short friendly comment on #1639
+with the one fact that PR did not carry: both fixes have since run
+byte-exact across ~850 programs (Ring's `samples/` plus every runnable
+documentation snippet), so a verification corpus is available whenever
+the PWCT reimplementation happens. Additive, not nagging.
+
+### Item 3 — the one to send
+
+The string-argument copy is new, measured on **stock native
+`ring.exe`** (not wasm), and it is a design question rather than a bug —
+which is exactly what a mailing list is for, and what the absent issue
+tracker cannot hold.
+
+Use **[group-message-string-copy.md](group-message-string-copy.md)** —
+the message, with subject line, written for the group. The longer
+[discussion-3-string-argument-copy.md](discussion-3-string-argument-copy.md)
+is the fuller version, useful if the conversation goes deeper or if it
+ever becomes a PR body.
 
 ## If a maintainer asks for more
 
-- **Reproductions**: every snippet in these files runs as-is on stock
-  Ring, no RingScript needed.
-- **The verification corpus**: `tests/samples-sweep.js` in this
-  repository runs Ring's own `samples/` and the documentation snippets
-  through both a patched VM and native `ring.exe` and compares
-  byte-for-byte.
-- **The computed-goto generator**: `tools/regen-computedgoto.py`.
+- **Reproductions** — every `ring` snippet in these files runs as-is on
+  stock Ring; all were extracted and executed against `ring.exe`
+  1.27.0 before being written down.
+- **The verification corpus** — `tests/samples-sweep.js` runs Ring's
+  `samples/` and the documentation snippets through both a modified VM
+  and native `ring.exe`, comparing byte-for-byte.
+- **Everything in one place** — [UPSTREAM_CASE.md](../UPSTREAM_CASE.md).

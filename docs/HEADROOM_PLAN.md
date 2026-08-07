@@ -198,7 +198,7 @@ page can feel, with [rivals.md](rivals.md) as the public scoreboard.
 | P3 | eval-path slimming (main-skip; driver idea killed by scope semantics) | bridge | battery-gated | **done — 95 → 48 µs** |
 | P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | **done — 5–15%, +16 KB** |
 | P5 | object template cache | vendor patch | highest — or upstream proposal | **done — 1.9×, +1.1 KB** |
-| P6 | upstream case: four items, all native-verified | upstream | none | **drafted — [UPSTREAM_CASE.md](UPSTREAM_CASE.md)** |
+| P6 | upstream case: four items, all native-verified | upstream | none | **drafted; checking the live repo settled 3 of 4 — see [upstream/](upstream/)** |
 
 Each lands alone: full battery green, bench + rivals re-run, losses
 reported next to wins — the same discipline as everything before it.
