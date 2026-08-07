@@ -1,0 +1,112 @@
+{
+  "date": "2026-08-07",
+  "quick": false,
+  "engines": {
+    "ring": {
+      "name": "Ring 1.27 (RingScript)",
+      "wasmBytes": 370752,
+      "fresh": {
+        "min": 6.701,
+        "median": 7.653
+      },
+      "soak": {
+        "evals": 10000,
+        "heapStartMB": 20.75,
+        "heapEndMB": 20.75,
+        "survived": true
+      },
+      "hostile": {
+        "cases": 1200,
+        "accepted": 22,
+        "rejected": 1178,
+        "deaths": 0,
+        "unrecovered": 0,
+        "finalAlive": true
+      }
+    },
+    "lua": {
+      "name": "Lua 5.4 (wasmoon)",
+      "wasmBytes": 271581,
+      "fresh": {
+        "min": 0.146,
+        "median": 0.182
+      },
+      "soak": {
+        "evals": 10000,
+        "heapStartMB": 16,
+        "heapEndMB": 16,
+        "survived": true
+      },
+      "hostile": {
+        "cases": 1200,
+        "accepted": 3,
+        "rejected": 1197,
+        "deaths": 0,
+        "unrecovered": 0,
+        "finalAlive": true
+      }
+    },
+    "js": {
+      "name": "QuickJS (quickjs-emscripten)",
+      "wasmBytes": 518880,
+      "fresh": {
+        "min": 0.137,
+        "median": 0.159
+      },
+      "soak": {
+        "evals": 10000,
+        "heapStartMB": 0.04,
+        "heapEndMB": 0.04,
+        "survived": true
+      },
+      "hostile": {
+        "cases": 1200,
+        "accepted": 7,
+        "rejected": 1193,
+        "deaths": 0,
+        "unrecovered": 0,
+        "finalAlive": true
+      }
+    }
+  },
+  "eval-min": {
+    "ring": 0.095,
+    "lua": 0.002,
+    "js": 0.002
+  },
+  "loop-10k": {
+    "ring": 0.738,
+    "lua": 0.058,
+    "js": 0.393
+  },
+  "string-2k": {
+    "ring": 0.282,
+    "lua": 0.3,
+    "js": 0.675
+  },
+  "sort-2k": {
+    "ring": 0.294,
+    "lua": 0.377,
+    "js": 0.829
+  },
+  "objects-2k": {
+    "ring": 6.262,
+    "lua": 0.2,
+    "js": 0.62
+  },
+  "json-encode": {
+    "ring": 10.358,
+    "lua": 0.724,
+    "js": 0.419
+  },
+  "json-decode": {
+    "ring": 32.694,
+    "lua": 1.159,
+    "js": 0.197
+  },
+  "json-1mb": {
+    "ring": 944.573,
+    "lua": 78.493,
+    "js": 7.733
+  }
+}

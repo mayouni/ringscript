@@ -155,6 +155,7 @@ ringscript/
 │   ├── fuzz.js                  hostile input (can the loader be made to throw?)
 │   ├── wasi.js                  the hand-written WASI shim, against the host itself
 │   ├── boot.js                  the page path, over a fake document and network
+│   ├── rivals/                  Lua + QuickJS through the same scenarios (see rivals.md)
 │   ├── bench.js                 speed and size vs a recorded, calibrated baseline
 │   ├── bench-baseline.json      what a regression is measured from
 │   ├── examples-oracle.js       Playground examples vs native ring
@@ -225,6 +226,8 @@ node tests/soak.js              # 40,000 evaluations: nothing may accumulate
 node tests/fuzz.js              # 4,000 hostile inputs: eval must never throw
 node tests/wasi.js              # the WASI shim: clocks, encoding, output ordering
 node tests/boot.js              # boot(): fetching, ordering, failures, early clicks
+# and for context rather than gating — RingScript vs Lua and QuickJS:
+# cd tests/rivals && npm install && node run.js     (docs/rivals.md)
 node tests/bench.js             # speed and size vs the recorded baseline
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \

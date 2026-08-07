@@ -1,0 +1,9 @@
+{
+  "name": "ringscript-rivals",
+  "private": true,
+  "description": "Benchmark harness pitting RingScript against other interpreters compiled to wasm. Not part of the runtime; install with `npm install` here before `node run.js`.",
+  "dependencies": {
+    "wasmoon": "^1.16.0",
+    "quickjs-emscripten": "^0.31.0"
+  }
+}

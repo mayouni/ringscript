@@ -251,6 +251,8 @@ ringscript/
 │   ├── wasi.js                  the hand-written host surface: clocks, encoding, ordering
 │   ├── boot.js                  the page path: parallel fetch, ordering, network failures
 │   │                            (the browser-side soak lives at playground/soak.html)
+│   ├── rivals/                  the same scenarios through Lua and QuickJS in wasm —
+│   │                            context for every number above (docs/rivals.md)
 │   ├── bench.js                 speed and size, against a recorded baseline
 │   ├── bench-baseline.json      the numbers a regression is measured from
 │   ├── examples-oracle.js       the 24 Playground examples vs native ring
