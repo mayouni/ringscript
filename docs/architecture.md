@@ -130,10 +130,15 @@ ringscript/
 ├── src/
 │   ├── bridge.zig               the bridge (§2) + the embedded file map
 │   ├── wasi_stubs.c             fopen resolver, exact-mirror value printers,
-│   │                            VM accessors — the only added C
+│   │                            VM accessors
+│   ├── rs_json.c                the JSON codec in C (HEADROOM_PLAN P2),
+│   │                            byte-identical to ringlib/json.ring
 │   ├── serve.zig                embedded dev HTTP server (correct wasm MIME)
 │   └── ringlib/                 pure Ring baked into the wasm
-│       ├── json.ring            the pure-Ring JSON codec
+│       ├── json.ring            the pure-Ring JSON codec — the REFERENCE
+│       │                        the C codec is held byte-identical to
+│       │                        (and what native Ring runs)
+│       ├── json_wasm.ring       the wasm JSON surface, over src/rs_json.c
 │       ├── seam.ring            Page() and Platform(), the outward seam
 │       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
@@ -280,7 +285,7 @@ and the file stays runnable with `ring.exe` on its own.
 
 Recorded baselines, not aspirations: `tests/bench.js` measures these on
 every run and fails if one regresses beyond 40%. Taken on an Intel Core
-5 210H, Node 22, `ringscript.wasm` at 370,752 bytes.
+5 210H, Node 22, `ringscript.wasm` at 378,719 bytes.
 
 | | min | what it exercises |
 |---|---|---|
@@ -291,23 +296,22 @@ every run and fails if one regresses beyond 40%. Taken on an Intel Core
 | sort a 2,000-element list | 0.296 ms | library call |
 | create 2,000 objects | 6.25 ms | allocation |
 | 1,000 lines of output | 0.881 ms | the `see` hook |
-| `ring.call` from JS | 0.125 ms | the bridge, JSON both ways |
+| `ring.call` from JS | 0.055 ms | the bridge, JSON both ways |
 | parse a ZQL declaration | 1.52 ms | the shipped payload |
-| JSON encode 8.7 KB | 10.2 ms | the pure-Ring codec |
-| JSON decode 8.7 KB | **33.1 ms** | ...and its slower half |
+| JSON encode 8.7 KB | 0.19 ms | the C codec (`src/rs_json.c`) |
+| JSON decode 8.7 KB | 0.73 ms | ...held byte-identical to `ringlib/json.ring` |
 
 Two things are worth reading off that table. **Startup at 3.2 ms** is the
 figure that matters most for a page, and it is comfortable — the first
 instance pays a one-time wasm compile on top; every later one is
-stamped from a snapshot. **JSON
-decoding is still the slowest thing here**, but it no longer falls off a
-cliff: both directions are now linear in the payload, where they used to
-be quadratic. A 1 MB value through `ring.call` took **260 seconds**
-before and takes **under one**. The cost of that is a slower small-payload
-decode (8.7 KB went from 26 to 33 ms) and ~1 ms of startup, because the
-codec's source is larger and `rs_init` parses it. Encoding got faster at
-every size. See [the codec's own notes](../src/ringlib/json.ring) for why
-`substr(cBig, i, 1)` is the villain.
+stamped from a snapshot. **JSON is no
+longer slow at all**: since HEADROOM_PLAN P2 the codec is C
+(`src/rs_json.c`), held byte-identical to the pure-Ring reference
+(`ringlib/json.ring`, which native Ring still runs) by a permanent
+differential gate. A 1 MB value through `ring.call` took **260 seconds**
+when this story began, ~1 s after the pure codec went linear, and
+**6 ms** now — on the rivals board Ring wins JSON encode outright,
+ahead of QuickJS's native codec.
 
 Four details make the baseline honest rather than decorative:
 

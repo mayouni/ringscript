@@ -79,7 +79,29 @@ prototyped and the battery decides. Expected: 95 µs → 15–40 µs. The
 floor is Ring's scanner startup (~30 µs/pass) — vendor territory,
 probably not worth touching.
 
-### 3. Strings at scale — C powerhouse now, upstream case later
+### 3. Strings at scale — C powerhouse now, upstream case later — **codec DONE**
+*Executed August 7, 2026 (the codec half; the upstream `PUSHCVAR` case is
+P6 and still open).* `src/rs_json.c` implements the codec in C, registered
+by the bridge as `rs_jsonencode`/`rs_jsondecode` behind a thin Ring
+surface (`ringlib/json_wasm.ring`). `ringlib/json.ring` stays shipped,
+untouched, as the reference and the native implementation — and a
+permanent gate loads it under renamed entry points and holds the two
+byte-identical (934-case differential ran clean before landing: output
+bytes, decoded trees, raise() texts with positions, number-edge
+delegation to the real `number()`, decimals interplay). Deep-nesting is
+the one documented boundary: C recursion is capped at depth 320 —
+inside the pure codec's own R4 flip zone (300–350) — raising the same
+`Error (R4) : Stack Overflow` text instead of trapping the wasm stack.
+
+Measured: encode 8.7 KB **10.2 → 0.18 ms** (55×), decode **33.1 →
+0.72 ms** (46×), `ring.call` **0.127 → 0.055 ms**, 1 MB through
+`ring.call` **969 → 6.1 ms** (originally 260 s). On the rivals board
+Ring now wins JSON encode outright — ahead of QuickJS's native codec —
+and wins the 1 MB row against everyone. Cost: **+7,967 bytes** of wasm
+(+2.15%), which tripped the size gate exactly as designed and was
+accepted deliberately.
+
+#### The rest of front 3 (open)
 The honest fix for `PUSHCVAR` (borrowed / copy-on-write string
 arguments) is a VM semantics change that should **not** be
 vendor-patched unilaterally — it goes upstream, argued with the 190×
@@ -132,7 +154,7 @@ page can feel, with [rivals.md](rivals.md) as the public scoreboard.
 | | item | tier | risk | status |
 |---|---|---|---|---|
 | P1 | `WebAssembly.Module` cache + memory snapshot | loader | none | **done — 6.7 → 3.3 ms** |
-| P2 | C JSON codec | bridge C | gated by the 8 JSON gates + oracle | — |
+| P2 | C JSON codec | bridge C | gated by the 8 JSON gates + oracle | **done — 46–55×, +7.9 KB** |
 | P3 | eval-path slimming (main-skip + resident driver) | bridge | battery-gated | — |
 | P4 | computed-goto + per-file `-O2`, measured | vendor patch, upstreamable | keep-only-if-wins | — |
 | P5 | object template cache | vendor patch | highest — or upstream proposal | — |

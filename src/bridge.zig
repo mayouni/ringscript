@@ -60,6 +60,11 @@ extern fn ring_general_numtostring(nNum: f64, cStr: [*]u8, nDecimals: c_int) [*:
 extern fn rs_print_value_list(p: ?*anyopaque, pList: ?*List) void;
 extern fn rs_print_pointer(p: ?*anyopaque, pValue: ?*anyopaque) void;
 
+// The C JSON codec (src/rs_json.c) — byte-identical to ringlib/json.ring,
+// which stays shipped as the reference and the native implementation.
+extern fn rs_jsonencode_hook(p: ?*anyopaque) callconv(.c) void;
+extern fn rs_jsondecode_hook(p: ?*anyopaque) callconv(.c) void;
+
 // ---------------------------------------------------------------- state
 
 var g_state: ?*RingState = null;
@@ -176,6 +181,7 @@ const embedded_files = [_]EmbeddedFile{
     .{ .name = "ringlib/stzZql.ring", .data = @embedFile("ringlib/stzZql.ring") },
     .{ .name = "ringlib/stzzql_smoke.ring", .data = @embedFile("ringlib/stzzql_smoke.ring") },
     .{ .name = "ringlib/json.ring", .data = @embedFile("ringlib/json.ring") },
+    .{ .name = "ringlib/json_wasm.ring", .data = @embedFile("ringlib/json_wasm.ring") },
     .{ .name = "ringlib/seam.ring", .data = @embedFile("ringlib/seam.ring") },
 };
 
@@ -322,7 +328,9 @@ fn mainFoundHook(p: ?*anyopaque) callconv(.c) void {
 }
 
 const see_shim = "func ringvm_see cData ring_vm_see(cData)";
-const load_json_shim = "load \"ringlib/json.ring\"";
+// json_wasm.ring delegates to the C codec; json.ring (pure) stays embedded
+// as the reference implementation the C one is held byte-identical to.
+const load_json_shim = "load \"ringlib/json_wasm.ring\"";
 // The outward seam (Page / Platform) — needs the JSON codec above it.
 const load_seam_shim = "load \"ringlib/seam.ring\"";
 
@@ -349,6 +357,8 @@ export fn rs_init() i32 {
     ring_vm_funcregister2(st, "ringvm_give", &giveHook);
     ring_vm_funcregister2(st, "rs_notemain", &mainFoundHook);
     ring_vm_funcregister2(st, "jscall", &jscallHook);
+    ring_vm_funcregister2(st, "rs_jsonencode", &rs_jsonencode_hook);
+    ring_vm_funcregister2(st, "rs_jsondecode", &rs_jsondecode_hook);
     ring_state_runcode(st, see_shim);
     ring_state_runcode(st, load_json_shim);
     ring_state_runcode(st, load_seam_shim);

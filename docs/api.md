@@ -162,18 +162,13 @@ one argument** — declare it `func F aArg` even if you ignore it.
 ### Payload size, and untrusted data
 
 `ring.call`'s argument and result cross the seam as JSON, encoded and
-decoded by a pure-Ring codec (`src/ringlib/json.ring`). Both directions
-are linear in the payload, and a 1 MB value round-trips in well under a
-second — but it is *pure Ring*, roughly 30 MB/s, not the browser's
-native `JSON.parse`. Two practical consequences:
-
-- **Send what the function needs, not the whole response.** Filtering a
-  server payload in JavaScript before handing it to Ring is cheaper than
-  decoding it twice.
-- **A large payload blocks the page while it decodes**, because the VM
-  is synchronous. This is the ordinary cost of any synchronous work, but
-  it scales with the data, so it is worth knowing before a page hands
-  Ring a megabyte on every keystroke.
+decoded by a C codec inside the runtime (`src/rs_json.c`) that is held
+**byte-identical** to the pure-Ring reference (`src/ringlib/json.ring`,
+which native Ring still runs) by a permanent gate. It is fast: a 1 MB
+value round-trips through `ring.call` in ~6 ms. One practical note
+stays: **a large payload still blocks the page while it decodes**,
+because the VM is synchronous — ordinary synchronous-work economics,
+just worth knowing before handing Ring megabytes on every keystroke.
 
 Untrusted data is safe to pass: malformed JSON raises a catchable Ring
 error rather than being accepted, deeply nested input raises a catchable

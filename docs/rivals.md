@@ -110,6 +110,11 @@ is simply a different design generation. Context, not indictment.
   bought linearity; the next multiple lives in **one C-level "find
   next byte of interest" helper** in the bridge — or upstream in Ring.
 
+  *Executed as [HEADROOM_PLAN.md](HEADROOM_PLAN.md) P2 — the codec
+  itself moved to C, held byte-identical to the pure reference by a
+  permanent gate. Ring now wins JSON encode outright (0.19 ms, ahead of
+  QuickJS's native codec) and the 1 MB row against everyone (1.5 ms).*
+
 ### 5. The fresh-evaluator gap is mostly self-inflicted, and fixable
 
 6.7 ms vs 0.15 ms is not interpreter quality: the loader calls

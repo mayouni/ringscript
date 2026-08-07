@@ -344,6 +344,36 @@ const phases = {
         check("hostile nesting raises cleanly instead of crashing",
             deep.ok && deep.output.trim() === "raised", JSON.stringify(deep.output));
         check("VM survives the whole JSON gauntlet", out("? 6*7") === "42");
+
+        // Since HEADROOM_PLAN P2 the shipped codec is C (src/rs_json.c);
+        // ringlib/json.ring stays as the reference it is held BYTE-IDENTICAL
+        // to. This gate loads the reference under renamed entry points and
+        // compares outputs and error texts, so the two cannot drift apart.
+        const fs2 = require("fs");
+        const pureSrc = fs2.readFileSync(path.join(__dirname, "..", "src", "ringlib", "json.ring"), "utf8")
+            .replace("func JsonEncode v", "func PureJsonEncode v")
+            .replace("func JsonDecode cJson", "func PureJsonDecode cJson");
+        const refVM = await newVM();
+        check("the pure reference still loads", refVM.eval(pureSrc).ok);
+        refVM.eval(
+            "func DiffOne cJson\n" +
+            '  cPerr = ""  cCerr = ""  cPval = ""  cCval = ""\n' +
+            "  try  cPval = PureJsonEncode(PureJsonDecode(cJson))  catch  cPerr = cCatchError  done\n" +
+            "  try  cCval = PureJsonEncode(JsonDecode(cJson))      catch  cCerr = cCatchError  done\n" +
+            '  if cPerr != cCerr  return "ERR P<" + cPerr + "> C<" + cCerr + ">"  ok\n' +
+            '  if cPval != cCval  return "VAL"  ok\n' +
+            '  return "SAME"');
+        const diffCases = [
+            '[1.5,{"a":"caf\\u00e9"},null,true,[0.1,1e-7,-0,9007199254740991]]',
+            '"a\\nb\\t\\"c\\\\d\\u0000\\u65e5"',
+            '{', '{"a"}', 'tru', '"ab\\q"', '[1e999]', '[+]', '[--1]', '[.5]',
+        ];
+        let diffBad = "";
+        for (const cse of diffCases) {
+            const q = refVM.eval('? DiffOne("' + cse.split('"').join('" + char(34) + "') + '")');
+            if (!q.ok || q.output.trim() !== "SAME") { diffBad = cse + " -> " + (q.output || q.error); break; }
+        }
+        check("C codec is byte-identical to the pure reference", diffBad === "", diffBad.slice(0, 100));
     },
 
     async io() {

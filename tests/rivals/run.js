@@ -15,9 +15,9 @@
 **     headroom is, not to win.
 **
 ** Known asymmetries, stated up front rather than discovered in a footnote:
-**   · QuickJS's JSON is native C; Ring's and Lua's codecs are written in
-**     the interpreted language itself. That row measures "what a C codec
-**     buys", not parser quality.
+**   · QuickJS's JSON is native C, and since HEADROOM_PLAN P2 Ring's is
+**     too (held byte-identical to the pure ringlib/json.ring reference);
+**     Lua's json.lua stays pure. The row measures what a C codec buys.
 **   · Lua's string ops (gsub, table.concat) are C under the hood too —
 **     stdlib primitives are part of what is being compared.
 **   · wasmoon reports errors by THROWING a JavaScript exception; that is
@@ -377,8 +377,8 @@ function hostileCases() {
             engines.map((e) => r(row[e.lang] === null ? "-" : row[e.lang].toFixed(row[e.lang] < 10 ? 3 : 1), 10)).join("") +
             "   " + (best ? best[0] : "-"));
     }
-    console.log("  * JSON: Ring and Lua run codecs written in the language itself;");
-    console.log("    QuickJS's JSON is native C. That row measures what a C codec buys.");
+    console.log("  * JSON: QuickJS's and (since HEADROOM_PLAN P2) Ring's codecs are");
+    console.log("    native C; Lua's is pure Lua. The row measures what a C codec buys.");
 
     /* ---- endurance: the soak, scaled down */
     const BATCHES = QUICK ? 2 : 4, PER = QUICK ? 800 : 2500;

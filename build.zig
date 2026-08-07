@@ -111,7 +111,7 @@ pub fn build(b: *std.Build) void {
         .flags = &vm_cflags,
     });
     mod.addCSourceFiles(.{
-        .files = &.{"src/wasi_stubs.c"},
+        .files = &.{ "src/wasi_stubs.c", "src/rs_json.c" },
         .flags = &stub_cflags,
     });
 
