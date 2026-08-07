@@ -3,78 +3,107 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tontine ledger — RingScript under load</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<title>Ring vs JavaScript — the same seven tasks, side by side</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
 <style>
   :root {
     --bg:#fff; --fg:#1a1a1a; --dim:#666; --line:#e2e2e2; --card:#fafafa;
-    --ok:#12703a; --bad:#b3261e; --accent:#1a4fa0;
+    --ok:#12703a; --bad:#b3261e; --ring:#1a4fa0; --js:#8a5a00;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#14161a; --fg:#e8e8e8; --dim:#9aa0a6; --line:#2c3038; --card:#1a1d22;
-            --ok:#6fcf97; --bad:#ff7a70; --accent:#7aa7f0; }
+            --ok:#6fcf97; --bad:#ff7a70; --ring:#7aa7f0; --js:#e0b050; }
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg);
          font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width:900px; margin:0 auto; padding:24px 18px 60px; }
-  h1 { font-size:1.5rem; margin:0 0 6px; letter-spacing:-.01em; }
-  .sub { color:var(--dim); margin:0 0 22px; }
+  .wrap { max-width:960px; margin:0 auto; padding:24px 18px 60px; }
+  h1 { font-size:1.6rem; margin:0 0 4px; letter-spacing:-.01em; }
+  .sub { color:var(--dim); margin:0 0 20px; font-size:1.02rem; }
+  h2 { font-size:1.05rem; margin:26px 0 10px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
-          padding:16px; margin:0 0 18px; }
-  label { display:block; font-weight:600; margin:0 0 6px; font-size:.9rem; }
+          padding:16px; margin:0 0 16px; }
+
+  /* the two players */
+  .players { display:flex; gap:12px; flex-wrap:wrap; margin:0 0 18px; }
+  .player { flex:1 1 260px; border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+            background:var(--card); }
+  .player b { display:block; font-size:1.05rem; }
+  .player.r b { color:var(--ring); }
+  .player.j b { color:var(--js); }
+  .player span { color:var(--dim); font-size:.86rem; }
+
   .row { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
-  .row > div { flex:1 1 150px; min-width:0; }
-  select, input { width:100%; padding:9px 10px; font:inherit; color:var(--fg);
-                  background:var(--bg); border:1px solid var(--line); border-radius:7px; }
-  button { padding:11px 20px; font:inherit; font-weight:600; cursor:pointer;
-           background:var(--accent); color:#fff; border:0; border-radius:7px; }
+  .row > div { flex:1 1 160px; min-width:0; }
+  label { display:block; font-weight:600; margin:0 0 6px; font-size:.9rem; }
+  input { width:100%; padding:9px 10px; font:inherit; color:var(--fg);
+          background:var(--bg); border:1px solid var(--line); border-radius:7px; }
+  button { padding:11px 22px; font:inherit; font-weight:600; cursor:pointer;
+           background:var(--ring); color:#fff; border:0; border-radius:7px; }
   button[disabled] { opacity:.5; cursor:default; }
-  .hint { color:var(--dim); font-size:.85rem; margin-top:8px; }
-  .stats { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 0; }
-  .stat { flex:1 1 130px; background:var(--card); border:1px solid var(--line);
-          border-radius:9px; padding:10px 12px; }
-  .stat b { display:block; font-size:1.35rem; font-variant-numeric:tabular-nums; }
-  .stat span { color:var(--dim); font-size:.8rem; }
+  .hint { color:var(--dim); font-size:.86rem; margin-top:8px; }
+
   .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { border-collapse:collapse; width:100%; font-size:.92rem; }
+  th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:left;
+           vertical-align:top; }
+  th { color:var(--dim); font-weight:600; font-size:.82rem; text-transform:uppercase;
+       letter-spacing:.03em; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .task { font-weight:600; }
+  .answer { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.86rem;
+            color:var(--dim); }
+  .rtime { color:var(--ring); font-weight:600; }
+  .jtime { color:var(--js); font-weight:600; }
+  .same { color:var(--ok); font-weight:700; }
+  .diff { color:var(--bad); font-weight:700; }
+  tfoot td { border-top:2px solid var(--line); font-weight:700; }
+
   pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
-        padding:14px; overflow-x:auto; font-size:.85rem; line-height:1.45;
+        padding:14px; overflow-x:auto; font-size:.84rem; line-height:1.45;
         font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .verdict { margin:3px 0; padding-left:22px; text-indent:-22px; }
-  .verdict.p::before { content:"PASS  "; color:var(--ok); font-weight:700; }
-  .verdict.f::before { content:"FAIL  "; color:var(--bad); font-weight:700; }
-  h2 { font-size:1.05rem; margin:22px 0 8px; }
-  code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.88em; }
+  .banner { font-weight:600; padding:12px 14px; border-radius:8px; margin:16px 0 0; }
+  .banner.ok { background:rgba(18,112,58,.12); color:var(--ok); }
+  .banner.no { background:rgba(179,38,30,.12); color:var(--bad); }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<h1>Tontine ledger</h1>
-<p class="sub">A savings circle under load: members, rounds, deposits. The
-whole computation — validate, aggregate, rank, report — is
-<a href="stress.ring">a page of ordinary Ring</a>, running in this tab.
-Every number it produces is re-computed in JavaScript and compared, so
-this is a correctness test that happens to be timed.</p>
+<h1>Ring vs JavaScript, side by side</h1>
+<p class="sub"><b>The question:</b> can Ring — a language with no browser
+runtime of its own — do a real data job inside a web page? The only honest
+way to answer is to give the same job to something that obviously can, and
+show both results.</p>
+
+<div class="players">
+  <div class="player r">
+    <b>Ring 1.27</b>
+    <span>The real Ring VM, compiled to WebAssembly, running in this tab.
+    The code it runs is <a href="stress.ring">stress.ring</a> — plain Ring,
+    nothing browser-specific.</span>
+  </div>
+  <div class="player j">
+    <b>JavaScript</b>
+    <span>The browser's own engine, doing the same seven tasks the same way,
+    in the script on this page. Its answers are the yardstick.</span>
+  </div>
+</div>
 
 <div class="card">
-  <div class="row">
+  <b>The job — a tontine ledger.</b> A savings circle: members put money
+  into numbered rounds. Given a list of deposits from an API, work out what
+  came in, from whom, in which round, who leads — and reject anything that
+  breaks the rule <code>amount must be greater than 0</code>.
+  <div class="row" style="margin-top:14px">
     <div>
-      <label for="n">Deposits</label>
+      <label for="n">How many deposits</label>
       <input id="n" type="number" value="20000" min="100" max="200000" step="1000">
     </div>
-    <div>
-      <label for="shape">Payload shape</label>
-      <select id="shape">
-        <option value="objects">objects — {"id":1,"member":"m03",…}</option>
-        <option value="arrays">arrays — [1,"m03",…]</option>
-      </select>
-    </div>
-    <div style="flex:0 0 auto"><button id="go">Run</button></div>
+    <div style="flex:0 0 auto"><button id="go">Run both</button></div>
   </div>
-  <p class="hint">On a phone start at 20,000. The first run also pays for
-  growing the VM's heap to hold the decoded records — that cost is shown
-  separately, because a page feels it once and never again.</p>
+  <p class="hint">Both players get byte-identical input. Every answer is
+  compared; a single mismatch fails the run.</p>
 </div>
 
 <p class="hint" id="status">idle</p>
@@ -87,20 +116,15 @@ this is a correctness test that happens to be timed.</p>
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var out = $("out"), status = $("status");
-  var ring = null, appSrc = null, fails = 0;
+  var ring = null;
 
   function el(t, c, h) { var n = document.createElement(t); if (c) n.className = c;
                          if (h !== undefined) n.innerHTML = h; return n; }
-  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
-  function verdict(name, ok, detail) {
-    if (!ok) fails++;
-    var v = el("p", "verdict " + (ok ? "p" : "f"));
-    v.textContent = name + (ok || detail === undefined ? "" : "  [" + detail + "]");
-    out.appendChild(v);
-  }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  var num = function (v) { return typeof v === "number" ? v.toLocaleString() : String(v); };
   var breathe = function () { return new Promise(function (r) { setTimeout(r, 0); }); };
 
-  // Deterministic generator — same shape as tests/stress-app.js
+  /* ---------------------------------------------------------- the data */
   function rng(seed) {
     var a = seed >>> 0;
     return function () {
@@ -112,142 +136,243 @@ this is a correctness test that happens to be timed.</p>
     };
   }
   var MEMBERS = 20, ROUNDS = 12, STATUSES = ["STAGED", "AUDITED", "ACTIVE"];
-
   function makeDeposits(n) {
     var rand = rng(20260807), o = [];
     for (var i = 1; i <= n; i++) {
       var m = Math.floor(rand() * MEMBERS) + 1, r = Math.floor(rand() * ROUNDS) + 1;
       var bad = rand() < 0.0025;
-      var amount = bad ? (rand() < 0.5 ? 0 : -Math.floor(rand() * 50) - 1)
-                       : Math.floor(rand() * 500) + 1;
-      o.push({ id: i, member: "m" + String(m).padStart(2, "0"), round: r,
-               amount: amount, status: STATUSES[Math.floor(rand() * 3)] });
+      o.push({ id: i,
+               member: "m" + String(m).padStart(2, "0"),
+               round: r,
+               amount: bad ? (rand() < 0.5 ? 0 : -Math.floor(rand() * 50) - 1)
+                           : Math.floor(rand() * 500) + 1,
+               status: STATUSES[Math.floor(rand() * 3)] });
     }
     return o;
   }
 
-  // The oracle: the same answers, computed a different way.
-  function oracle(deposits) {
-    var members = new Map(), rounds = new Array(ROUNDS).fill(0), statuses = new Map();
-    var bad = [], grand = 0, accepted = 0, rejected = 0;
-    deposits.forEach(function (d) {
-      if (typeof d.amount !== "number" || d.amount <= 0) {
-        rejected++; if (bad.length < 25) bad.push(d.id + ":" + d.member); return;
+  /* ------------------------------------- the JavaScript player, task by task */
+  // Deliberately the SAME seven steps, in the same order, using the same
+  // approach (including the linear scan over 20 members in task 6) so the
+  // comparison is between the two runtimes, not between two algorithms.
+  function javascriptPlayer(payload) {
+    var tasks = [], t;
+
+    t = performance.now();
+    var deposits = JSON.parse(payload);
+    tasks.push(["Parse the JSON payload", performance.now() - t, deposits.length + " deposits"]);
+
+    t = performance.now();
+    var id = [], member = [], round = [], amount = [], status = [];
+    for (var i = 0; i < deposits.length; i++) {
+      var d = deposits[i];
+      id.push(d.id); member.push(d.member); round.push(d.round);
+      amount.push(d.amount); status.push(d.status);
+    }
+    tasks.push(["Read the fields into columns", performance.now() - t, amount.length + " x 5 fields"]);
+
+    t = performance.now();
+    var ok = [], badN = 0, badSample = [];
+    for (i = 0; i < amount.length; i++) {
+      if (typeof amount[i] === "number" && amount[i] > 0) ok.push(i);
+      else {
+        badN++;
+        if (badSample.length < 12) badSample.push("#" + id[i] + " " + member[i] + " (" + amount[i] + ")");
       }
-      accepted++;
-      var m = members.get(d.member);
-      if (!m) { m = { total: 0, count: 0, biggest: 0 }; members.set(d.member, m); }
-      m.total += d.amount; m.count++;
-      if (d.amount > m.biggest) m.biggest = d.amount;
-      rounds[d.round - 1] += d.amount;
-      statuses.set(d.status, (statuses.get(d.status) || 0) + 1);
-      grand += d.amount;
-    });
-    var rank = Array.from(members.entries())
-      .map(function (e) { return [e[1].total, e[0], e[1].count, e[1].biggest]; })
+    }
+    tasks.push(["Reject invalid deposits", performance.now() - t,
+                badN + " rejected, " + ok.length + " kept"]);
+
+    t = performance.now();
+    var grand = 0;
+    for (i = 0; i < ok.length; i++) grand += amount[ok[i]];
+    tasks.push(["Add up all the money", performance.now() - t, String(grand)]);
+
+    t = performance.now();
+    var rounds = [];
+    for (i = 0; i < ok.length; i++) {
+      var r = round[ok[i]];
+      while (rounds.length < r) rounds.push(0);
+      rounds[r - 1] += amount[ok[i]];
+    }
+    tasks.push(["Total each round", performance.now() - t, rounds.length + " rounds"]);
+
+    t = performance.now();
+    var members = [];                       // [name, total, count, biggest]
+    for (i = 0; i < ok.length; i++) {
+      var cm = member[ok[i]], amt = amount[ok[i]], slot = -1;
+      for (var k = 0; k < members.length; k++) {
+        if (members[k][0] === cm) { slot = k; break; }
+      }
+      if (slot < 0) { members.push([cm, 0, 0, 0]); slot = members.length - 1; }
+      members[slot][1] += amt;
+      members[slot][2] += 1;
+      if (amt > members[slot][3]) members[slot][3] = amt;
+    }
+    var rank = members.map(function (m) { return [m[1], m[0], m[2], m[3]]; })
       .sort(function (a, b) { return (a[0] - b[0]) || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0); })
       .reverse();
-    return { grand: grand, accepted: accepted, rejected: rejected, seen: deposits.length,
-             members: members.size, rounds: rounds, rank: rank, bad: bad,
-             statuses: Array.from(statuses.entries()) };
+    tasks.push(["Total each member, rank top 5", performance.now() - t,
+                members.length + " members, leader " + (rank[0] ? rank[0][1] : "-")]);
+
+    t = performance.now();
+    var pad = function (s, w) { s = String(s); while (s.length < w) s += " "; return s; };
+    var rep = "TONTINE LEDGER\n==============\n\n";
+    rep += "deposits received : " + amount.length + "\n";
+    rep += "accepted          : " + ok.length + "\n";
+    rep += "rejected          : " + badN + "\n";
+    rep += "grand total       : " + grand + "\n\n";
+    rep += "MEMBER        TOTAL      DEPOSITS   BIGGEST\n";
+    for (k = 0; k < rank.length; k++) {
+      var line = pad(rank[k][1], 14);
+      line = pad(line + rank[k][0], 25);
+      line = pad(line + rank[k][2], 36);
+      rep += line + rank[k][3] + "\n";
+    }
+    rep += "\nROUND TOTALS\n";
+    for (k = 0; k < rounds.length; k++) rep += pad("  round " + (k + 1), 12) + ": " + rounds[k] + "\n";
+    if (badN > 0) {
+      rep += "\nREJECTED (norm: amount must be > 0)\n";
+      for (k = 0; k < badSample.length; k++) rep += "  " + badSample[k] + "\n";
+      if (badN > badSample.length) rep += "  ... and " + (badN - badSample.length) + " more\n";
+    }
+    tasks.push(["Write the report", performance.now() - t, rep.length + " characters"]);
+
+    return { tasks: tasks, seen: amount.length, accepted: ok.length, rejected: badN,
+             grand: grand, members: members.length, rounds: rounds,
+             top: rank.slice(0, 5).map(function (r) {
+               return { member: r[1], total: r[0], count: r[2], biggest: r[3] }; }),
+             report: rep };
   }
 
+  /* ---------------------------------------------------------------- run */
   async function main() {
-    fails = 0; out.innerHTML = "";
+    out.innerHTML = "";
     var n = Math.max(100, parseInt($("n").value, 10) || 20000);
-    var shape = $("shape").value;
 
     if (!ring) {
-      status.textContent = "loading the runtime…";
-      var resp = await fetch("ringscript.wasm");
-      ring = await RingScript.load(await resp.arrayBuffer(), { onOutput: function () {} });
-      appSrc = await (await fetch("stress.ring")).text();
-      var loaded = ring.eval(appSrc);
-      if (!loaded.ok) { out.appendChild(el("pre", null, esc(loaded.error))); status.textContent = "failed"; return; }
+      status.textContent = "starting the Ring VM…";
+      var wasm = await (await fetch("ringscript.wasm")).arrayBuffer();
+      ring = await RingScript.load(wasm, { onOutput: function () {} });
+      var src = await (await fetch("stress.ring")).text();
+      var loaded = ring.eval(src);
+      if (!loaded.ok) { out.appendChild(el("pre", null, esc(loaded.error)));
+                        status.textContent = "failed"; return; }
     }
 
     status.textContent = "building " + n.toLocaleString() + " deposits…";
     await breathe();
-    var deposits = makeDeposits(n);
-    var want = oracle(deposits);
-    var payload = shape === "arrays"
-      ? JSON.stringify(deposits.map(function (d) { return [d.id, d.member, d.round, d.amount, d.status]; }))
-      : JSON.stringify(deposits);
+    var payload = JSON.stringify(makeDeposits(n));
 
-    if (shape === "arrays") {
-      out.appendChild(el("p", "hint",
-        "The Ring app reads named fields, so it only understands the object " +
-        "shape. Arrays are offered here to show the <b>decode</b> cost of each " +
-        "shape — the ledger itself runs on objects."));
-      status.textContent = "decoding " + (payload.length / 1048576).toFixed(2) + " MB of arrays…";
-      await breathe();
-      ring.eval("func JustDecode c\n  a = JsonDecode(c)\n  return len(a)");
-      var hb = ring.instance.exports.memory.buffer.byteLength;
-      var t = performance.now();
-      var rr = ring.call("JustDecode", payload);
-      var dms = performance.now() - t;
-      var ha = ring.instance.exports.memory.buffer.byteLength;
-      out.appendChild(el("div", "stats",
-        '<div class="stat"><b>' + Number(rr.result).toLocaleString() + '</b><span>records decoded</span></div>' +
-        '<div class="stat"><b>' + dms.toFixed(0) + ' ms</b><span>decode</span></div>' +
-        '<div class="stat"><b>' + (payload.length / 1048576).toFixed(2) + ' MB</b><span>payload</span></div>' +
-        '<div class="stat"><b>+' + ((ha - hb) / 1048576).toFixed(0) + ' MB</b><span>heap growth</span></div>'));
-      status.textContent = "done";
-      return;
-    }
-
-    status.textContent = "running the ledger over " + (payload.length / 1048576).toFixed(2) + " MB…";
+    status.textContent = "JavaScript is working…";
     await breathe();
-    var heapBefore = ring.instance.exports.memory.buffer.byteLength;
+    var js = javascriptPlayer(payload);
+
+    status.textContent = "Ring is working…";
+    await breathe();
     var t0 = performance.now();
-    var res = ring.call("StressRun", payload);
-    var ms = performance.now() - t0;
-    var heapAfter = ring.instance.exports.memory.buffer.byteLength;
-    if (!res.ok) { out.appendChild(el("pre", null, esc(res.error))); status.textContent = "failed"; return; }
-    var got = typeof res.result === "string" ? JSON.parse(res.result) : res.result;
+    var res = ring.call("LedgerRun", payload);
+    var ringWall = performance.now() - t0;
+    if (!res.ok) { out.appendChild(el("pre", null, esc(res.error)));
+                   status.textContent = "failed"; return; }
+    var rg = typeof res.result === "string" ? JSON.parse(res.result) : res.result;
 
-    out.appendChild(el("div", "stats",
-      '<div class="stat"><b>' + got.seen.toLocaleString() + '</b><span>deposits</span></div>' +
-      '<div class="stat"><b>' + got.grand.toLocaleString() + '</b><span>grand total</span></div>' +
-      '<div class="stat"><b>' + got.rejected + '</b><span>rejected by the norm</span></div>' +
-      '<div class="stat"><b>' + ms.toFixed(0) + ' ms</b><span>end to end</span></div>' +
-      '<div class="stat"><b>' + Math.round(n / (ms / 1000)).toLocaleString() + '</b><span>deposits/second</span></div>' +
-      '<div class="stat"><b>+' + ((heapAfter - heapBefore) / 1048576).toFixed(0) + ' MB</b><span>heap growth</span></div>'));
+    // Ring's task list is [name, ms, answer] triples. A list whose items
+    // are 2-element [string, value] pairs would have arrived as a JSON
+    // object; three elements is not a pair, so it stays an array.
+    var rTasks = rg.tasks;
 
-    var ph = Object.keys(got.phases || {}).map(function (k) {
-      return k + " " + got.phases[k].toFixed(0) + " ms"; }).join("   ");
-    out.appendChild(el("p", "hint", "inside Ring: " + ph +
-      "   (the rest is encoding the summary and crossing the bridge)"));
+    /* ---- the table: one row per task, both players side by side ---- */
+    out.appendChild(el("h2", null, "The seven tasks"));
+    var wrap = el("div", "scroll");
+    var tbl = el("table");
+    tbl.innerHTML =
+      "<thead><tr><th>#</th><th>Task</th><th>Answer both produced</th>" +
+      "<th class='num'>Ring</th><th class='num'>JavaScript</th><th class='num'>Same?</th></tr></thead>";
+    var tb = el("tbody");
+    var rSum = 0, jSum = 0, allSame = true;
 
-    out.appendChild(el("h2", null, "Correctness — Ring vs an independent JavaScript computation"));
-    verdict("deposits seen", got.seen === want.seen, got.seen + " vs " + want.seen);
-    verdict("accepted", got.accepted === want.accepted, got.accepted + " vs " + want.accepted);
-    verdict("rejected by the positive_deposit norm", got.rejected === want.rejected,
-      got.rejected + " vs " + want.rejected);
-    verdict("grand total", got.grand === want.grand, got.grand + " vs " + want.grand);
-    verdict("distinct members", got.members === want.members);
-    verdict("per-round totals", JSON.stringify(got.rounds) === JSON.stringify(want.rounds));
-    var wantTop = want.rank.slice(0, 5).map(function (r) {
-      return { member: r[1], total: r[0], count: r[2], biggest: r[3] }; });
-    verdict("top 5 ranking, with tie-breaks",
-      JSON.stringify(got.top) === JSON.stringify(wantTop));
-    verdict("round totals sum to the grand total",
-      got.rounds.reduce(function (a, b) { return a + b; }, 0) === got.grand);
+    for (var i = 0; i < js.tasks.length; i++) {
+      var jName = js.tasks[i][0], jMs = js.tasks[i][1], jAns = js.tasks[i][2];
+      var rMs = 0, rAns = "";
+      if (rTasks[i]) { rMs = rTasks[i][1]; rAns = rTasks[i][2]; }
+      var same = String(rAns) === String(jAns);
+      if (!same) allSame = false;
+      rSum += rMs; jSum += jMs;
+      var tr = el("tr");
+      tr.innerHTML =
+        "<td class='num'>" + (i + 1) + "</td>" +
+        "<td class='task'>" + esc(jName) + "</td>" +
+        "<td class='answer'>" + esc(jAns) + "</td>" +
+        "<td class='num rtime'>" + rMs.toFixed(1) + " ms</td>" +
+        "<td class='num jtime'>" + jMs.toFixed(1) + " ms</td>" +
+        "<td class='num " + (same ? "same'>&#10003;" : "diff'>&#10007; Ring said " + esc(rAns)) + "</td>";
+      tb.appendChild(tr);
+    }
+    tbl.appendChild(tb);
+    var tf = el("tfoot");
+    tf.innerHTML = "<tr><td></td><td>Total</td><td class='answer'></td>" +
+      "<td class='num rtime'>" + rSum.toFixed(0) + " ms</td>" +
+      "<td class='num jtime'>" + jSum.toFixed(0) + " ms</td>" +
+      "<td class='num'>" + (jSum > 0 ? (rSum / jSum).toFixed(0) + "&times;" : "") + "</td></tr>";
+    tbl.appendChild(tf);
+    wrap.appendChild(tbl);
+    out.appendChild(wrap);
+    out.appendChild(el("p", "hint",
+      "Ring's total is its own timing of the seven tasks. End to end, including " +
+      "handing " + (payload.length / 1048576).toFixed(2) + " MB across the bridge and " +
+      "encoding the answer back, the Ring call took <b>" + ringWall.toFixed(0) + " ms</b>."));
 
-    out.appendChild(el("h2", null, "The report Ring rendered"));
-    var pre = el("pre"); pre.textContent = got.report; out.appendChild(pre);
+    /* ---- the final answers, compared item by item ---- */
+    out.appendChild(el("h2", null, "The ledger both players produced"));
+    var w2 = el("div", "scroll");
+    var t2 = el("table");
+    t2.innerHTML = "<thead><tr><th>Result</th><th>Ring</th><th>JavaScript</th><th class='num'>Same?</th></tr></thead>";
+    var tb2 = el("tbody");
+    var rows = [
+      ["deposits received", rg.seen, js.seen],
+      ["accepted", rg.accepted, js.accepted],
+      ["rejected by the norm", rg.rejected, js.rejected],
+      ["grand total", rg.grand, js.grand],
+      ["distinct members", rg.members, js.members],
+      ["round totals", rg.rounds.join(", "), js.rounds.join(", ")],
+      ["leader", rg.top[0] && rg.top[0].member, js.top[0] && js.top[0].member],
+      ["leader's total", rg.top[0] && rg.top[0].total, js.top[0] && js.top[0].total],
+      ["top 5", JSON.stringify(rg.top), JSON.stringify(js.top)],
+      ["report", rg.report.length + " chars", js.report.length + " chars"]
+    ];
+    var answersSame = true;
+    rows.forEach(function (r) {
+      var same = String(r[1]) === String(r[2]);
+      if (!same) answersSame = false;
+      var short = function (v) { v = String(v); return v.length > 46 ? v.slice(0, 46) + "…" : v; };
+      var tr = el("tr");
+      tr.innerHTML = "<td class='task'>" + esc(r[0]) + "</td>" +
+        "<td class='answer'>" + esc(short(r[1])) + "</td>" +
+        "<td class='answer'>" + esc(short(r[2])) + "</td>" +
+        "<td class='num " + (same ? "same'>&#10003;" : "diff'>&#10007;") + "</td>";
+      tb2.appendChild(tr);
+    });
+    t2.appendChild(tb2); w2.appendChild(t2); out.appendChild(w2);
 
-    var b = el("p", "verdict " + (fails ? "f" : "p"));
-    b.textContent = fails ? fails + " check(s) failed on this device."
-                          : "Every answer matches. " + navigator.userAgent;
+    var reportsMatch = rg.report === js.report;
+    var b = el("p", "banner " + (allSame && answersSame && reportsMatch ? "ok" : "no"));
+    b.innerHTML = (allSame && answersSame && reportsMatch)
+      ? "Every answer is identical, down to the last character of the report — "
+        + "Ring took " + (rSum / jSum).toFixed(0) + "&times; longer to get there."
+      : "Something differs. " + (reportsMatch ? "" : "The two reports are not character-identical. ");
     out.appendChild(b);
+
+    out.appendChild(el("h2", null, "The report — written by Ring"));
+    var pre = el("pre"); pre.textContent = rg.report; out.appendChild(pre);
     status.textContent = "done";
   }
 
   $("go").addEventListener("click", async function () {
     var btn = $("go"); btn.disabled = true;
     try { await main(); }
-    catch (e) { out.appendChild(el("pre", null, esc(e && e.message))); status.textContent = "failed"; }
+    catch (e) { out.appendChild(el("pre", null, esc(e && e.message)));
+                status.textContent = "failed"; }
     btn.disabled = false;
   });
 })();

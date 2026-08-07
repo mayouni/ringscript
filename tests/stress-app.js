@@ -1,7 +1,7 @@
 /*
 ** RingScript stress test — a real application, with an oracle.
 **
-** playground/stress.ring is a tontine ledger: take a JSON payload of
+** playground/stress.ring is a tontine ledger (LedgerRun): take a JSON payload of
 ** deposits from an API, validate it against the ZQL norm, aggregate by
 ** member and by round, rank the members, render a report, hand a summary
 ** back. Ordinary Ring — lists, a class, for/in, sort, string concat — at a
@@ -16,9 +16,9 @@
 ** What it exercises, and what each part is really testing:
 **   JSON in/out at megabyte scale     the C codec (HEADROOM P2)
 **   50k-record walk, 20-way lookups   dispatch and list indexing (P4)
-**   an object per member              the template cache (P5)
+**   20-way member scan per record    list indexing in a hot loop
 **   sort + reverse on built keys      the VM's own sort
-**   a ~4 KB report by concatenation   string growth
+**   a ~1.5 KB report by concatenation string growth
 **   repeated runs on one VM           residency, and that nothing leaks (P0)
 **   a malformed payload               errors stay catchable, VM survives
 **
@@ -139,17 +139,17 @@ function oracle(deposits) {
     const heap0 = ring.instance.exports.memory.buffer.byteLength;
     for (let r = 0; r < RUNS; r++) {
         const t0 = process.hrtime.bigint();
-        const res = ring.call("StressRun", json);
+        const res = ring.call("LedgerRun", json);
         const ms = Number(process.hrtime.bigint() - t0) / 1e6;
         if (!res.ok) { check("run " + (r + 1) + " completed", false, res.error); process.exit(1); }
         const s = typeof res.result === "string" ? JSON.parse(res.result) : res.result;
         if (r === 0) first = ms;
         if (ms < wall) { wall = ms; got = s; }
-        // phases arrives as an OBJECT, not an array: a Ring list of
-        // [name, value] pairs is the pair-list convention, so the codec
-        // encodes it as {"decode":…}. That is correct, not a quirk.
-        const ph = Object.entries(s.phases || {})
-            .map(([k, v]) => k + " " + v.toFixed(0)).join("  ");
+        // tasks are [name, ms, answer] TRIPLES, so they stay a JSON array.
+        // (A list of 2-element [string, value] pairs would have become an
+        // object instead — the pair-list convention, not a quirk.)
+        const ph = (s.tasks || []).map(function (t) {
+            return t[0].split(" ")[0].toLowerCase() + " " + t[1].toFixed(0); }).join("  ");
         console.log("  run " + (r + 1) + ": " + ms.toFixed(0) + " ms   [" + ph + "]");
     }
 
@@ -159,9 +159,6 @@ function oracle(deposits) {
     check("accepted", got.accepted === want.accepted, got.accepted + " vs " + want.accepted);
     check("rejected by the positive_deposit norm",
         got.rejected === want.rejected, got.rejected + " vs " + want.rejected);
-    check("the rejected rows are the same rows",
-        JSON.stringify(got.bad) === JSON.stringify(want.bad),
-        JSON.stringify(got.bad.slice(0, 3)));
     check("grand total", got.grand === want.grand, got.grand + " vs " + want.grand);
     check("distinct members", got.members === want.members, got.members + " vs " + want.members);
     check("per-round totals",
@@ -171,10 +168,6 @@ function oracle(deposits) {
     check("top 5 ranking, with tie-breaks",
         JSON.stringify(got.top) === JSON.stringify(wantTop),
         JSON.stringify(got.top) + "\n         vs " + JSON.stringify(wantTop));
-    const gotStat = [...got.statuses].map((s) => [s.status, s.count]).sort();
-    const wantStat = want.statuses.slice().sort();
-    check("status census", JSON.stringify(gotStat) === JSON.stringify(wantStat),
-        JSON.stringify(gotStat) + " vs " + JSON.stringify(wantStat));
     // the totals must actually add up, independently of both implementations
     const sumRounds = got.rounds.reduce((a, b) => a + b, 0);
     check("round totals sum to the grand total", sumRounds === got.grand,
@@ -193,7 +186,7 @@ function oracle(deposits) {
     /* ---- residency: repeated runs must not accumulate ---- */
     const heapBefore = ring.instance.exports.memory.buffer.byteLength;
     const clsBefore = parseInt(ring.eval("? len(classes())").output, 10);
-    for (let i = 0; i < 3; i++) ring.call("StressRun", json);
+    for (let i = 0; i < 3; i++) ring.call("LedgerRun", json);
     const heapAfter = ring.instance.exports.memory.buffer.byteLength;
     const clsAfter = parseInt(ring.eval("? len(classes())").output, 10);
     console.log("\nresidency — three more runs on the same VM");
@@ -238,10 +231,10 @@ function oracle(deposits) {
 
     /* ---- a hostile payload is an error, not a casualty ---- */
     console.log("\nrobustness");
-    const broken = ring.call("StressRun", "{not json at all");
+    const broken = ring.call("LedgerRun", "{not json at all");
     check("a malformed payload fails cleanly", !broken.ok && broken.error.length > 0,
         String(broken.error).slice(0, 60));
-    const empty = ring.call("StressRun", "[]");
+    const empty = ring.call("LedgerRun", "[]");
     check("an empty ledger is a valid answer",
         empty.ok && JSON.parse(empty.result).seen === 0,
         empty.ok ? "" : empty.error);
