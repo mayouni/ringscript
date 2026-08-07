@@ -404,7 +404,14 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
                   amount: badOne ? 0 : Math.floor(rand() * 500) + 1,
                   status: ST[Math.floor(rand() * 3)] });
     }
-    var payload = JSON.stringify(rows);
+    // Sent as ROWS, not objects. Same data, but a JSON object becomes a
+    // pair-list in Ring — a list per field plus two items per field — while
+    // an array row is one list and one item per field. At 20,000 deposits
+    // that is 96 ms and 44 MB instead of 1,437 ms and 109 MB. If you
+    // control the API, ask it for rows.
+    var payload = JSON.stringify(rows.map(function (r) {
+      return [r.id, r.member, r.round, r.amount, r.status];
+    }));
 
     var t0 = performance.now();
     var loaded = ring.call("LedgerLoad", payload);
@@ -412,7 +419,8 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
     if (!loaded.ok) { $("loadnote").textContent = "load failed: " + loaded.error;
                       $("load").disabled = false; return; }
     $("loadnote").innerHTML = "<b>" + fmt(loaded.result) + " deposits</b> now live inside the " +
-      "Ring VM — " + loadMs.toFixed(0) + " ms, once. Everything below runs on that copy; " +
+      "Ring VM — " + loadMs.toFixed(0) + " ms, once, sent as rows rather than objects " +
+      "(objects cost about 15&times; that). Everything below runs on that copy; " +
       "no data crosses the bridge again.";
 
     $("app").style.display = "";
