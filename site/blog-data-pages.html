@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing a fast data page in Ring — RingScript blog</title>
+<meta name="description" content="Five rules and one payload shape for fast Ring pages, each learned by getting it wrong first and each measured. With a live Ring example you can edit and run.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.23">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+    .meta { font-size: .85rem; color: var(--ink-soft); margin: 0 0 1.6rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: .75rem; margin-right: .7rem; }
+
+    .rule { margin: 2.2rem 0; padding-top: 1.3rem; border-top: 1px solid var(--border); }
+    .rule:first-of-type { border-top: 0; }
+    .rule h2 { display: flex; align-items: baseline; gap: .6rem; margin: 0 0 .5rem; }
+    .rule h2 .n {
+        flex: 0 0 auto; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+        background: var(--accent); color: #fff; font-size: .95rem; font-weight: 700;
+        display: inline-grid; place-items: center; transform: translateY(-.05em);
+    }
+    pre {
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: .87rem; line-height: 1.5;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .bad::before  { content: "✗  slower — "; color: #b3261e; font-weight: 700; }
+    .good2::before { content: "✓  faster — "; color: #12703a; font-weight: 700; }
+    @media (prefers-color-scheme: dark) {
+        .bad::before { color: #ff7a70; } .good2::before { color: #6fcf97; }
+    }
+    .bad, .good2 { display: block; font-size: .8rem; margin: 0 0 .3rem; color: var(--ink-soft); }
+
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: .92rem; }
+    table.m th, table.m td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--border); }
+    table.m th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .try { border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem; margin: 2rem 0; }
+    .try h3 { margin: 0 0 .5rem; }
+    .try textarea {
+        width: 100%; min-height: 15.5rem; resize: vertical; box-sizing: border-box;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: .85rem; line-height: 1.5; color: var(--ink);
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
+    }
+    .try .row { display: flex; gap: .8rem; align-items: center; margin: .7rem 0 0; flex-wrap: wrap; }
+    .try button {
+        padding: .55rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer;
+        background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    }
+    .try button[disabled] { opacity: .5; cursor: default; }
+    .try .status { font-size: .85rem; color: var(--ink-soft); }
+    .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
+    .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">Tutorial</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<p class="meta"><span class="label">For app programmers</span> August 2026 · from the RingScript project</p>
+
+<h1>Writing a fast data page in Ring — five rules and one payload shape</h1>
+
+<p class="first">These rules come from building a real application — the
+<a href="data.html">savings-circle register</a> that holds 20,000 records
+in the browser — and every one of them was learned by getting it wrong
+first. None is folklore: each has a measurement behind it, and together
+they took the app from sluggish to instant.</p>
+
+<div class="rule">
+<h2><span class="n">1</span>Index your loops — <code>for in</code> copies every item</h2>
+<p>Ring's <code>for x in aList</code> hands you a <em>copy</em> of each
+item. On a list of records, that is a copy of every record, every pass.
+Index instead, and read through the list directly:</p>
+<span class="bad">copies each record into x</span>
+<pre><code>for x in aDeposits
+    nSum += x[4]
+next</code></pre>
+<span class="good2">reads in place</span>
+<pre><code>nCount = len(aDeposits)
+for i = 1 to nCount
+    nSum += aDeposits[i][4]
+next</code></pre>
+<p>Note the second half of the rule: <code>len()</code> was hoisted out of
+the loop header, because Ring re-evaluates it on every iteration.</p>
+</div>
+
+<div class="rule">
+<h2><span class="n">2</span>Assignment copies too — mutate through the list</h2>
+<p>The same value semantics mean <code>o = aMembers[k]</code> gives you a
+copy; writing to it updates nothing anyone can see. Mutate through the
+list itself:</p>
+<span class="bad">writes vanish into a copy</span>
+<pre><code>oM = aMembers[k]
+oM[2] = oM[2] + nAmount     # the list never changes</code></pre>
+<span class="good2">writes land</span>
+<pre><code>aMembers[k][2] = aMembers[k][2] + nAmount</code></pre>
+</div>
+
+<div class="rule">
+<h2><span class="n">3</span>Helpers that take big values pay for them</h2>
+<p>Arguments copy as well. A tidy <code>FieldOf(aRecord, "amount")</code>
+helper duplicates the whole record on every call — four fields read means
+four copies of the record. In hot loops, read fields inline in one pass
+over the record instead of calling out per field.</p>
+</div>
+
+<div class="rule">
+<h2><span class="n">4</span>Append with <code>+</code></h2>
+<p><code>aList + item</code> is the operator form of append, and it adds a
+sublist as <em>one</em> item — so building rows like
+<code>aMembers + [cName, 0, 0]</code> does what you expect. It measured
+consistently faster than <code>add()</code> in our loops, and reads
+better too.</p>
+</div>
+
+<div class="rule">
+<h2><span class="n">5</span>Functions called from the page take exactly one parameter</h2>
+<p><code>ring.call("MyFunc", arg)</code> always passes one argument — so
+<code>func MyFunc p</code> is the shape, even when you ignore
+<code>p</code>. A zero-parameter function simply errors, and the message
+will not tell you why. And one naming trap: do not shadow a builtin —
+<code>func Load</code> collides with Ring's own <code>load</code> and
+silently fails to define.</p>
+</div>
+
+<div class="rule">
+<h2><span class="n">+</span>The payload shape: ask your API for rows, not objects</h2>
+<p>The single biggest lever is not in a loop at all. A JSON
+<em>object</em> decodes in Ring into a pair-list — one list for the
+record, one list per field, two items per field. A JSON <em>array row</em>
+is one list and one item per field. Same data, very different cost:</p>
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>20,000 records, same data</th><th class="n">Payload</th><th class="n">Load</th><th class="n">Heap</th></tr></thead>
+  <tbody>
+    <tr><td><code>[{"id":1,"member":"m03",…}]</code></td><td class="n">1.31 MB</td><td class="n">1358 ms</td><td class="n">+89 MB</td></tr>
+    <tr><td><code>[[1,"m03",3,250,"ACTIVE"]]</code></td><td class="n">0.55 MB</td><td class="n"><b>71 ms</b></td><td class="n"><b>+23 MB</b></td></tr>
+  </tbody>
+</table>
+</div>
+<p>Fifteen times faster to load, a quarter of the memory. Most of that
+saved second was never parsing — it was first-touching 89&nbsp;MB of heap
+the page immediately threw away. If you control the API, send rows; if
+you might receive either, <a
+href="https://github.com/mayouni/ringscript/blob/main/playground/ledger.ring"
+target="_blank" rel="noopener">the register app shows how to accept
+both</a>.</p>
+</div>
+
+<div class="try">
+<h3>Try it here — live Ring, on this page</h3>
+<p class="status" style="margin:0 0 .6rem">This is the real RingScript
+runtime. Edit the code, press Run — it builds 5,000 rows and filters them
+twice, once against the rules and once with them.</p>
+<textarea id="code" spellcheck="false">
+# 5,000 rows of [id, amount] — then filter amount > 400, two ways.
+nRows = 5000
+aData = []
+for i = 1 to nRows
+    aData + [i, (i * 37) % 500]
+next
+
+# against the rules: for/in (copies every row), add()
+t1 = clock()
+aSlow = []
+for aRow in aData
+    if aRow[2] > 400
+        add(aSlow, aRow[1])
+    ok
+next
+t2 = clock()
+
+# with the rules: indexed loop, hoisted count, + append
+aFast = []
+for i = 1 to nRows
+    if aData[i][2] > 400
+        aFast + aData[i][1]
+    ok
+next
+t3 = clock()
+
+nMsSlow = (t2-t1) / clockspersecond() * 1000
+nMsFast = (t3-t2) / clockspersecond() * 1000
+see "matches: " + len(aSlow) + " vs " + len(aFast) + nl
+see "against the rules : " + nMsSlow + " ms" + nl
+see "with the rules    : " + nMsFast + " ms" + nl
+</textarea>
+<div class="row">
+  <button id="run">Run</button>
+  <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
+</div>
+<pre id="out"></pre>
+</div>
+
+<p>All five rules — plus the two the runtime enforces for you — are
+written at the top of <a
+href="https://github.com/mayouni/ringscript/blob/main/playground/ledger.ring"
+target="_blank" rel="noopener">the register app's source</a>, where the
+next reader meets them before the bug does. For what the finished page
+feels like at 20,000 records, see <a href="data.html">Working with
+data</a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ringscript.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ring = null;
+  var btn = document.getElementById("run");
+  var out = document.getElementById("out");
+  var status = document.getElementById("status");
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    try {
+      if (!ring) {
+        status.textContent = "starting the Ring VM…";
+        var wasm = await (await fetch("playground/ringscript.wasm")).arrayBuffer();
+        ring = await RingScript.load(wasm, { onOutput: function () {} });
+      }
+      status.textContent = "running…";
+      var t0 = performance.now();
+      var r = ring.eval(document.getElementById("code").value);
+      var ms = (performance.now() - t0).toFixed(0);
+      out.textContent = r.ok ? r.output : r.error;
+      status.textContent = r.ok ? "done in " + ms + " ms, inside this page"
+                                : "Ring reported an error — the page is fine";
+    } catch (e) {
+      out.textContent = String(e && e.message || e);
+      status.textContent = "failed";
+    }
+    btn.disabled = false;
+  });
+})();
+</script>
+
+</body>
+</html>

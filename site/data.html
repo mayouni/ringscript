@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Working with data — RingScript at normal application loads</title>
+<meta name="description" content="Can a Ring page carry a normal application data load? A working app with 20,000 records you can filter, sort and total in the browser — every interaction measured, every answer verified.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.23">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+
+    .budgets { list-style: none; padding: 0; margin: 1.4rem 0; }
+    .budgets li {
+        display: flex; gap: .8rem; align-items: baseline;
+        padding: .55rem 0; border-top: 1px solid var(--border);
+    }
+    .budgets li:first-child { border-top: 0; }
+    .budgets b { flex: 0 0 7.5rem; }
+    .budgets .ms { flex: 0 0 5.5rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+    table.perf { width: 100%; border-collapse: collapse; margin: 1.4rem 0; font-size: .95rem; }
+    table.perf th, table.perf td {
+        text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border);
+    }
+    table.perf th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+                    color: var(--ink-soft); font-weight: 600; }
+    table.perf td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .good { color: #12703a; font-weight: 600; }
+    .warn { color: #8a5a00; font-weight: 600; }
+    @media (prefers-color-scheme: dark) {
+        .good { color: #6fcf97; } .warn { color: #e0b050; }
+    }
+    .scroll { overflow-x: auto; }
+    .cta-row { margin: 2rem 0; display: flex; gap: .8rem; flex-wrap: wrap; }
+    .gh { width: 1em; height: 1em; vertical-align: -.12em; margin-left: .35em; fill: currentColor; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">Tutorial</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a class="active" href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>Working with data</h1>
+
+<p class="first">By this point you have seen Ring draw a page and drive a
+clock. The natural next question is the one every application eventually
+asks: <b>can it carry a normal data load?</b> Here is a working answer —
+an app holding twenty thousand records inside the Ring VM, in your
+browser, that you can filter, sort, total and add to.</p>
+
+<div class="cta-row">
+  <a class="btn primary" href="playground/ledger.html" target="_blank" rel="noopener">Open the app <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn ghost" href="https://github.com/mayouni/ringscript/blob/main/docs/ledger-app.md" target="_blank" rel="noopener">The full write-up<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+</div>
+
+<h2>The app: a savings-circle register</h2>
+
+<p>Members of a savings circle put money into numbered rounds — a shape of
+data any business application will recognise: records with an id, a name, a
+number, an amount and a status. The page loads them once into the resident
+VM, and from then on every control calls a Ring function. Filtering as you
+type, sorting on a header click, validating a form, recomputing totals —
+all of it runs in Ring, on data that never leaves the VM. Only the answer
+crosses back.</p>
+
+<h2>Measured the way a user feels it</h2>
+
+<p>A page is not fast or slow in the abstract — it is fast or slow against
+how people perceive delay. So every interaction in the app is measured
+live, against three familiar thresholds:</p>
+
+<ul class="budgets">
+  <li><b class="good">instant</b><span class="ms">&lt; 16 ms</span>
+      inside one animation frame — the result is simply there</li>
+  <li><b class="warn">responsive</b><span class="ms">&lt; 100 ms</span>
+      feels caused by the click</li>
+  <li><b>noticeable</b><span class="ms">&gt; 100 ms</span>
+      the page is visibly thinking</li>
+</ul>
+
+<p>And because a fast wrong answer is worthless, every result is also
+recomputed independently in JavaScript and compared, live, with a check
+mark you can watch. Correctness first, then speed.</p>
+
+<h2>The numbers</h2>
+
+<div class="scroll">
+<table class="perf">
+  <thead><tr><th>Interaction</th><th class="n">20,000 records</th><th class="n">50,000 records</th></tr></thead>
+  <tbody>
+    <tr><td>Draw a page of 25 rows</td><td class="n good">0.2 ms</td><td class="n good">0.4 ms</td></tr>
+    <tr><td>Recompute the totals</td><td class="n good">11 ms</td><td class="n warn">28 ms</td></tr>
+    <tr><td>Filter, on every keystroke</td><td class="n good">15 ms</td><td class="n warn">38 ms</td></tr>
+    <tr><td>Sort a column</td><td class="n warn">53 ms</td><td class="n">130 ms</td></tr>
+    <tr><td>Rebuild the leaderboard</td><td class="n warn">92 ms</td><td class="n">238 ms</td></tr>
+    <tr><td>Load, once at startup</td><td class="n">106 ms</td><td class="n">879 ms</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>At twenty thousand records — a generous size for anything a person
+actually scrolls through — everything the user touches is instant or
+responsive. At fifty thousand, two interactions become noticeable, and the
+app labels them as such rather than hiding it.</p>
+
+<h2>What building it taught us</h2>
+
+<p>Driving this app at full size sharpened the runtime itself and produced
+a short set of rules for writing fast data pages in Ring — the payload
+shape that loads fifteen times faster, the loop forms that avoid hidden
+copies, and more. They are written up where they are most useful:</p>
+
+<ul>
+  <li><a href="blog-data-pages.html">Writing a fast data page in Ring</a> —
+      the practical rules, with runnable examples.</li>
+  <li><a href="blog-two-quadratics.html">A 50,000-row page and two quadratic
+      surprises</a> — the deep technical story, for the curious.</li>
+</ul>
+
+<div class="cta-row">
+  <a class="btn primary" href="playground/ledger.html" target="_blank" rel="noopener">Try it yourself <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn ghost" href="https://github.com/mayouni/ringscript/blob/main/playground/ledger.ring" target="_blank" rel="noopener">The Ring source<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+</div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

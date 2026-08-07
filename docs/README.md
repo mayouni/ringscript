@@ -35,9 +35,10 @@ Read them in order — each builds on the previous one:
 
 Worked examples and measurement:
 
-- [The ledger](ledger-app.md) — a real data page written in Ring: what
-  each interaction costs against how fast a page has to *feel*, and the
-  four things driving it found (two of them VM bugs, now fixed).
+- [Working with data](ledger-app.md) — a real data page written in Ring
+  at 20,000 records: what each interaction costs against how fast a page
+  has to *feel*, and the four things driving it found (two of them VM
+  bugs, now fixed).
 - [RingScript vs its peers](rivals.md) — the same scenarios through Lua
   and QuickJS in wasm, so the absolute numbers have context.
 - [The headroom plan](HEADROOM_PLAN.md) — where the remaining gaps are,

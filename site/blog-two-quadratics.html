@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A 50,000-row page and two quadratic surprises — RingScript blog</title>
+<meta name="description" content="A real app, driven like a user, found two O(n²) behaviours in the Ring VM's list machinery — invisible to every benchmark. The diagnosis, the fixes, and the safety net.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.23">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+    .meta { font-size: .85rem; color: var(--ink-soft); margin: 0 0 1.6rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: .75rem; margin-right: .7rem; }
+    pre {
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: .85rem; line-height: 1.5;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: .92rem; }
+    table.m th, table.m td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--border); }
+    table.m th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hot { color: #b3261e; font-weight: 700; }
+    .cool { color: #12703a; font-weight: 700; }
+    @media (prefers-color-scheme: dark) { .hot { color: #ff7a70; } .cool { color: #6fcf97; } }
+    figure { margin: 2rem 0; }
+    figure svg { width: 100%; height: auto; display: block; }
+    figcaption { font-size: .85rem; color: var(--ink-soft); margin-top: .5rem; text-align: center; }
+    .d-box { fill: none; stroke: currentColor; stroke-width: 1.4; opacity: .8; }
+    .d-line { stroke: currentColor; stroke-width: 1.4; fill: none; opacity: .7; }
+    .d-walk { stroke: #b3261e; stroke-width: 2; fill: none; }
+    .d-jump { stroke: #12703a; stroke-width: 2; fill: none; }
+    @media (prefers-color-scheme: dark) {
+        .d-walk { stroke: #ff7a70; } .d-jump { stroke: #6fcf97; }
+    }
+    .d-t { font: 600 12px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
+    .d-s { font: 11px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .65; }
+    .gh { width: .95em; height: .95em; vertical-align: -.1em; margin-left: .3em; fill: currentColor; }
+    .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">Tutorial</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<p class="meta"><span class="label">Deep technical</span> August 2026 · from the RingScript project</p>
+
+<h1>A 50,000-row page and two quadratic surprises</h1>
+
+<p class="first">We had benchmarks. We had a soak suite running forty
+thousand evaluations, a fuzzer with thousands of hostile inputs, and ~850
+programs verified byte-for-byte against native Ring. Then we drove a real
+application the way a user drives it — and found two O(n²) behaviours in
+the VM's list machinery within minutes. This is the story of both, with
+the diagnosis, the fixes, and why they were invisible until then.</p>
+
+<h2>The setup</h2>
+
+<p>The application is the <a href="data.html">savings-circle register</a>:
+records live inside the resident Ring VM, and each user interaction —
+filter, sort, total, page — is one Ring call. Every call is timed against
+human budgets (16&nbsp;ms for instant, 100&nbsp;ms for responsive), and
+every answer is verified against an independent computation. At 20,000
+rows the first numbers came back… mixed. Sorting a column:
+<span class="hot">217&nbsp;ms</span>. And after sorting, recomputing the
+totals — a plain linear pass — took
+<span class="hot">377&nbsp;ms</span>, and the leaderboard over a second.
+At 50,000 rows the leaderboard took <span class="hot">19.8&nbsp;s</span>.</p>
+
+<p>A linear pass that gets four times slower when the data doubles is not
+linear. Something underneath was quadratic.</p>
+
+<h2>Surprise one: <code>sort(list, nColumn)</code></h2>
+
+<p>Isolating the sort was easy — sort the same 20,000 values twice, once
+as a flat list, once as <code>[key,&nbsp;index]</code> pairs:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>rows</th><th class="n">flat <code>sort(a)</code></th><th class="n">pairs <code>sort(a, 1)</code></th><th class="n">ratio</th></tr></thead>
+  <tbody>
+    <tr><td>2,500</td><td class="n">0.4 ms</td><td class="n">2.3 ms</td><td class="n">6×</td></tr>
+    <tr><td>5,000</td><td class="n">0.6 ms</td><td class="n">8.0 ms</td><td class="n">12×</td></tr>
+    <tr><td>10,000</td><td class="n">1.3 ms</td><td class="n">39 ms</td><td class="n">29×</td></tr>
+    <tr><td>20,000</td><td class="n">4.0 ms</td><td class="n hot">257 ms</td><td class="n hot">65×</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The ratio doubles when the data doubles — the signature of O(n²) hiding
+inside an O(n&nbsp;log&nbsp;n) operation. The algorithm itself was fine:
+Ring extracts the keys, quicksorts an index array, then <em>rebuilds</em>
+the list by reading it at <code>idx[i]</code> — in sorted order. Which is
+to say: in random order. And random access is where surprise two was
+waiting.</p>
+
+<h2>Surprise two: the cursor that walks</h2>
+
+<p>Ring's lists are linked lists with a clever optimisation: a
+<b>cursor</b> that remembers the last position. Ask for item
+<code>k</code> and then <code>k+1</code>, and the second access is O(1) —
+which makes ordinary sequential loops fast, and is why none of our
+benchmarks had ever noticed anything. But ask for items in <em>random</em>
+order and the cursor cannot help; the access falls through to a linear
+walk from whichever end is closer, and nothing remembers the work.</p>
+
+<figure>
+<svg viewBox="0 0 660 236" role="img" aria-label="Diagram: a linked-list walk to reach item k versus a direct jump through an items array">
+  <text class="d-t" x="20" y="24">Before: reach item 7 by walking</text>
+  <g>
+    <rect class="d-box" x="20"  y="40" width="52" height="34" rx="6"/>
+    <rect class="d-box" x="92"  y="40" width="52" height="34" rx="6"/>
+    <rect class="d-box" x="164" y="40" width="52" height="34" rx="6"/>
+    <rect class="d-box" x="236" y="40" width="52" height="34" rx="6"/>
+    <rect class="d-box" x="308" y="40" width="52" height="34" rx="6"/>
+    <rect class="d-box" x="380" y="40" width="52" height="34" rx="6"/>
+    <rect class="d-box" x="452" y="40" width="52" height="34" rx="6"/>
+    <text class="d-s" x="38" y="62">1</text><text class="d-s" x="110" y="62">2</text>
+    <text class="d-s" x="182" y="62">3</text><text class="d-s" x="254" y="62">4</text>
+    <text class="d-s" x="326" y="62">5</text><text class="d-s" x="398" y="62">6</text>
+    <text class="d-s" x="470" y="62">7</text>
+    <path class="d-walk" d="M46 88 C 60 104, 78 104, 92 90"/>
+    <path class="d-walk" d="M118 88 C 132 104, 150 104, 164 90"/>
+    <path class="d-walk" d="M190 88 C 204 104, 222 104, 236 90"/>
+    <path class="d-walk" d="M262 88 C 276 104, 294 104, 308 90"/>
+    <path class="d-walk" d="M334 88 C 348 104, 366 104, 380 90"/>
+    <path class="d-walk" d="M406 88 C 420 104, 438 104, 452 90"/>
+    <text class="d-s" x="524" y="62">…every single time</text>
+  </g>
+  <text class="d-t" x="20" y="150">After: the items array, built once on the first random access</text>
+  <g>
+    <rect class="d-box" x="20" y="164" width="484" height="30" rx="6"/>
+    <text class="d-s" x="34" y="184">ptr 1</text><text class="d-s" x="102" y="184">ptr 2</text>
+    <text class="d-s" x="170" y="184">ptr 3</text><text class="d-s" x="238" y="184">ptr 4</text>
+    <text class="d-s" x="306" y="184">ptr 5</text><text class="d-s" x="374" y="184">ptr 6</text>
+    <text class="d-s" x="442" y="184">ptr 7</text>
+    <path class="d-jump" d="M34 214 C 180 232, 320 232, 452 200"/>
+    <text class="d-s" x="524" y="184">one jump, O(1)</text>
+  </g>
+</svg>
+<figcaption>The cursor is a sequential-access device. A sorted view reads
+the list in permuted order — the exact shape the cursor cannot serve.</figcaption>
+</figure>
+
+<p>Now consider what every data page on earth does: <em>sort the table,
+then total the visible rows</em>. The sorted view is a permuted index into
+the data. Every read walks. One aggregate pass over 50,000 rows became
+50,000 walks — <span class="hot">19.8 seconds</span> for work that should
+take milliseconds. And no benchmark had ever caught it, because benchmarks
+iterate forward.</p>
+
+<h2>The fixes</h2>
+
+<p>Ring already has the right tool: an <b>items array</b> —
+<code>pItemsArray</code> — a flat array of item pointers that makes any
+access O(1). It just was not being built on these paths. Two small,
+surgical patches:</p>
+
+<p><b>In the sort</b> (<code>ring_list_sortnum_gc</code> /
+<code>sortstr_gc</code> in <code>rlist.c</code>): generate the items array
+before the rebuild, so reading the list in sorted order stops walking.
+Column sort at 20,000 rows: <span class="hot">257&nbsp;ms</span> →
+<span class="cool">16&nbsp;ms</span>.</p>
+
+<p><b>In the accessor itself</b> (<code>ring_list_getitem_gc</code>): when
+a random access falls past the cursor into the walk — and the list is big
+enough for it to matter — build the items array once and answer from it.
+Every structural mutation already frees the array, so it cannot go stale;
+the walk was pure waste.</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>after sorting the view</th><th class="n">before</th><th class="n">after</th><th class="n"></th></tr></thead>
+  <tbody>
+    <tr><td>totals over 20,000 rows</td><td class="n">377 ms</td><td class="n cool">11 ms</td><td class="n">33×</td></tr>
+    <tr><td>leaderboard over 20,000 rows</td><td class="n">1,162 ms</td><td class="n cool">96 ms</td><td class="n">12×</td></tr>
+    <tr><td>totals over 50,000 rows</td><td class="n">5,751 ms</td><td class="n cool">31 ms</td><td class="n">184×</td></tr>
+    <tr><td>leaderboard over 50,000 rows</td><td class="n">19,758 ms</td><td class="n cool">277 ms</td><td class="n">71×</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Why it was safe to touch</h2>
+
+<p><code>ring_list_getitem</code> is the most-used accessor in the entire
+VM — everything reads lists. The reason we could patch it with confidence
+is the safety net this project maintains for exactly this purpose: Ring's
+own sample corpus plus every runnable example in its documentation — about
+850 programs — run through the modified VM and compared
+<b>byte-for-byte</b> against native <code>ring.exe</code>, alongside the
+soak, the fuzzer, and the permanent gates. All of it green, twice: once
+per patch. When the diff touches the hot core, the oracle is the
+review.</p>
+
+<h2>The lesson we keep relearning</h2>
+
+<p>Both behaviours were invisible to every benchmark we had, because
+benchmarks iterate forward and real pages read sideways. The application
+found in minutes what the suites had missed for weeks — which is why the
+register app is now part of how this project tests itself, and why the
+next performance question will start the same way: build the real thing,
+drive it like a user, and believe what it shows you.</p>
+
+<p>The full trail, for the source-inclined:
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/VENDOR_PATCHES.md" target="_blank" rel="noopener">VENDOR_PATCHES.md<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+(patches 7 and 8),
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/ledger-app.md" target="_blank" rel="noopener">the app write-up<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>,
+and <a href="https://github.com/mayouni/ringscript/blob/main/tests/samples-sweep.js" target="_blank" rel="noopener">the oracle that guards it all<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

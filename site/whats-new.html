@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's new — RingScript</title>
+<meta name="description" content="What has landed in RingScript, in the order it happened: the runtime, the hardening, the performance work, the data app, and the fixes contributed back to Ring.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.23">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+
+    .entry { margin: 2.2rem 0; padding-top: 1.4rem; border-top: 1px solid var(--border); }
+    .entry:first-of-type { border-top: 0; padding-top: 0; }
+    .entry .date {
+        font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
+        color: var(--ink-soft); font-variant-numeric: tabular-nums;
+    }
+    .entry h2 { margin: .25rem 0 .5rem; font-size: 1.25rem; }
+    .entry p { margin: .4rem 0; }
+    .entry .links { margin-top: .5rem; font-size: .92rem; }
+    .entry .links a { margin-right: 1.1rem; }
+    .num { font-variant-numeric: tabular-nums; }
+    .gh { width: .95em; height: .95em; vertical-align: -.1em; margin-left: .3em; fill: currentColor; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">Tutorial</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a href="blog.html">Blog</a>
+    <a class="active" href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>What's new</h1>
+
+<p class="first">RingScript moves quickly, and everything it claims is
+measured. This page keeps the short version of what has landed, newest
+first — each entry links to the code, the documents or the pages behind
+it.</p>
+
+<div class="entry">
+  <p class="date">August 7, 2026</p>
+  <h2>Working with data: a real app, and what it sharpened</h2>
+  <p>A working savings-circle register now runs on the site: 20,000 records
+  living inside the Ring VM, filtered, sorted and totalled live — every
+  interaction timed against how a page has to <em>feel</em>, every answer
+  verified against an independent computation. Driving it at full size made
+  the runtime better: sorting rows by a column went from
+  <span class="num">257&nbsp;ms to 16&nbsp;ms</span> at 20,000 rows,
+  aggregating over a sorted view went from
+  <span class="num">19.8&nbsp;s to 0.28&nbsp;s</span> at 50,000, and a
+  payload-shape rule cut first load from
+  <span class="num">7.9&nbsp;s to 0.88&nbsp;s</span>.</p>
+  <p class="links">
+    <a href="data.html">Working with data</a>
+    <a href="playground/ledger.html" target="_blank" rel="noopener">Open the app <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="blog-two-quadratics.html">The technical story</a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 7, 2026</p>
+  <h2>Measured against Lua and QuickJS — honestly</h2>
+  <p>The same scenarios, the same measurement discipline, three
+  interpreters compiled to WebAssembly. The headline is robustness parity:
+  10,000 evaluations with errors mixed in grow nobody's heap, and 1,200
+  hostile inputs kill nobody. On speed, Ring now wins string building,
+  sorting, JSON encoding — ahead of QuickJS's native codec — and the
+  one-megabyte round trip outright; the remaining gaps are named, with
+  their causes.</p>
+  <p class="links">
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/rivals.md" target="_blank" rel="noopener">The scoreboard<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 7, 2026</p>
+  <h2>A performance program, executed in one day</h2>
+  <p>Six items, each traced to a root cause in the VM source before any
+  code moved. A fresh VM instance now starts in
+  <span class="num">3.2&nbsp;ms</span> (was 6.7) by stamping memory from a
+  snapshot instead of re-initialising. The JSON codec moved to C — held
+  byte-identical to the pure-Ring reference by a permanent test — making
+  encoding <span class="num">55×</span> faster and a one-megabyte round
+  trip cost <span class="num">6&nbsp;ms</span>. Object creation, dispatch
+  and the per-call overhead each took their own measured cut.</p>
+  <p class="links">
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/HEADROOM_PLAN.md" target="_blank" rel="noopener">The plan, with results<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 6, 2026</p>
+  <h2>The hardening pass</h2>
+  <p>A week's worth of "what could go wrong" made executable: the page
+  calling Ring back mid-run is now refused safely instead of corrupting the
+  outer program; <code>boot()</code> downloads scripts in parallel and
+  answers clicks that arrive before it finishes; a malformed megabyte of
+  JSON went from freezing the tab for four minutes to an ordinary error;
+  and an endurance page lets you soak the runtime on the phone in your
+  pocket, with a build whose heap can refuse growth on purpose.</p>
+  <p class="links">
+    <a href="playground/soak.html" target="_blank" rel="noopener">The endurance page <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/architecture.md" target="_blank" rel="noopener">Architecture<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 5, 2026</p>
+  <h2>The resident VM earned its name</h2>
+  <p>The core promise — one VM living for the whole page — met its two
+  hardest tests. A leak that grew the heap by one class per evaluation
+  (invisible in short runs, fatal over a long session) was found by
+  profiling and fixed; memory exhaustion stopped taking the page down and
+  became an ordinary, recoverable error. Two new suites — a 40,000-eval
+  soak and a 4,000-case fuzzer — now stand guard so neither can return.</p>
+  <p class="links">
+    <a href="https://github.com/mayouni/ringscript/blob/main/tests/soak.js" target="_blank" rel="noopener">The soak suite<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 3–4, 2026</p>
+  <h2>The starter kit, the tutorial, and this site</h2>
+  <p>Getting started became one download and one double-click: a zip with
+  the runtime, a tiny web server for Windows, macOS and Linux, and a
+  working app structure a desktop programmer can read in one sitting. The
+  analog-clock tutorial builds a real page from nothing in six steps, and
+  this site went live to hold it all.</p>
+  <p class="links">
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">The tutorial</a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 2, 2026</p>
+  <h2>Two fixes contributed back to Ring</h2>
+  <p>Hardening RingScript surfaced two bugs in the Ring VM itself — a crash
+  when <code>eval()</code> defines a class with a <code>private</code>
+  section, and a portability slip that broke string-to-number comparison on
+  musl-based systems. Both were reported upstream with one-line fixes, in
+  the spirit this project intends to keep: what we learn goes back to
+  Ring.</p>
+  <p class="links">
+    <a href="https://github.com/ring-lang/ring/pull/1639" target="_blank" rel="noopener">The upstream PR<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </p>
+</div>
+
+<div class="entry">
+  <p class="date">August 1, 2026</p>
+  <h2>RingScript 0.9 — the Ring VM, in the browser, verified</h2>
+  <p>The announcement that started this site: the real Ring 1.27 virtual
+  machine compiled to WebAssembly — not a transpiler, not a look-alike —
+  producing output verified program by program against native
+  <code>ring.exe</code> across Ring's own samples and every runnable
+  example in its documentation. One resident VM per page, ~380&nbsp;KB,
+  offline by design.</p>
+  <p class="links">
+    <a href="story.html">The story</a>
+    <a href="playground/" target="_blank" rel="noopener">The Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </p>
+</div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

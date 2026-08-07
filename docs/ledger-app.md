@@ -1,6 +1,6 @@
-# The ledger — what a real Ring page costs
+# Working with data — the register app, measured
 
-*A working tontine ledger, running inside RingScript:
+*A working savings-circle register, running inside RingScript:
 [playground/ledger.html](../playground/ledger.html), with its Ring source
 in [playground/ledger.ring](../playground/ledger.ring). It exists to answer
 one question honestly, and it found four things worth fixing while doing
@@ -8,12 +8,10 @@ so — two of them bugs in the Ring VM.*
 
 ## The question it asks
 
-Not "is Ring faster than JavaScript". That comparison is easy to rig, hard
-to make fair, and answers nothing a page author needs. This asks something
-narrower and more useful:
+The question every application eventually asks of its platform:
 
-> **If you write an ordinary data-driven page in Ring, does it feel right
-> to use?**
+> **Can a Ring page carry a normal application data load — and feel right
+> to use while doing it?**
 
 "Feels right" is not an opinion here. It is three thresholds that come from
 how people perceive delay, and they do not care what language you chose:
@@ -26,9 +24,8 @@ how people perceive delay, and they do not care what language you chose:
 
 So every interaction is measured against those, and the page labels each
 one. JavaScript is present, but only as a **referee**: it recomputes every
-answer from the same data and marks it ✓ or ✗. It has no timing column,
-because "is Ring correct" is the question worth asking of it and "is Ring
-faster" is not.
+answer from the same data and marks it ✓ or ✗. It has no timing column —
+"is Ring correct" is the question worth asking of it.
 
 ## The shape of the app — and why the shape is the point
 

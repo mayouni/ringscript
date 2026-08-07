@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local-first is not a luxury — RingScript blog</title>
+<meta name="description" content="The applications behind RingScript run in a bank in Niger, a high school, a restaurant in France. What building for places where the connection is a guest teaches about software.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.23">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: 1.2rem; color: var(--ink); }
+    .meta { font-size: .85rem; color: var(--ink-soft); margin: 0 0 1.6rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: .75rem; margin-right: .7rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: 1.05rem; color: var(--ink);
+    }
+    figure { margin: 2rem 0; }
+    figure svg { width: 100%; height: auto; display: block; }
+    figcaption { font-size: .85rem; color: var(--ink-soft); margin-top: .5rem; text-align: center; }
+    .d-line { stroke: currentColor; stroke-width: 1.5; fill: none; opacity: .75; }
+    .d-dash { stroke: currentColor; stroke-width: 1.5; fill: none; opacity: .45; stroke-dasharray: 5 5; }
+    .d-box { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: .8; rx: 8; }
+    .d-accent { stroke: var(--accent); fill: none; stroke-width: 2; }
+    .d-t { font: 600 13px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
+    .d-s { font: 11px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .65; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="tutorial-clock.html">Tutorial</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<p class="meta"><span class="label">Vision &amp; direction</span> August 2026 · Mansour Ayouni</p>
+
+<h1>Local-first is not a luxury</h1>
+
+<p class="first">In much of the software industry, "offline support" is a
+feature — something added late, tested rarely, and quietly dropped when the
+deadline arrives. The applications that led to RingScript were built the
+other way around, because they had no choice.</p>
+
+<h2>Software with real users, in real places</h2>
+
+<p>The applications came first, and they were never demos: in
+<b>Niger</b>, for a bank and for a high school; in <b>France</b>, for a
+restaurant. Different countries, different trades, one shared reality —
+the rules of the business matter, the connection is not guaranteed, and
+the software has to keep working long after the excitement of building it
+has passed.</p>
+
+<p>A teacher entering grades does not care whether the fibre link to the
+capital is up. A branch clerk recording a deposit cannot tell a customer
+to come back when the network does. In these settings, an application that
+needs the cloud to think is not an application — it is a promise that
+breaks at the worst moment.</p>
+
+<figure>
+<svg viewBox="0 0 640 190" role="img" aria-label="Diagram: the application and its data live on the device; the connection is used when it is available">
+  <rect class="d-box" x="20" y="30" width="270" height="130" rx="10"/>
+  <text class="d-t" x="40" y="58">The device</text>
+  <rect class="d-accent" x="40" y="74" width="110" height="34" rx="6"/>
+  <text class="d-t" x="55" y="96">the app</text>
+  <rect class="d-accent" x="40" y="116" width="110" height="34" rx="6"/>
+  <text class="d-t" x="55" y="138">the data</text>
+  <path class="d-line" d="M150 91 h60 M150 133 h60"/>
+  <text class="d-s" x="216" y="96">works</text>
+  <text class="d-s" x="216" y="138">answers</text>
+  <path class="d-dash" d="M290 95 C 360 95, 380 95, 450 95"/>
+  <text class="d-s" x="315" y="84">when the connection allows</text>
+  <rect class="d-box" x="450" y="60" width="170" height="70" rx="10"/>
+  <text class="d-t" x="478" y="90">the server</text>
+  <text class="d-s" x="478" y="110">sync, backup, share</text>
+</svg>
+<figcaption>The local-first shape: the connection is a guest, not a
+foundation. When it visits, you synchronise. When it leaves, nothing
+stops.</figcaption>
+</figure>
+
+<h2>The tontine test</h2>
+
+<p>A good way to check whether software respects its users is to ask
+whether it could run a <b>tontine</b> — the rotating savings circle that
+finances real life across Africa and well beyond it. A tontine has strict
+rules (who paid, which round, whose turn), real money, and members who
+meet in places with no promise of coverage. It has run flawlessly for
+centuries on a notebook and trust.</p>
+
+<p>Digitising it is only an improvement if the digital version is as
+dependable as the notebook. That is a high bar: the notebook never shows a
+spinner. This is why the <a href="data.html">data application on this
+site</a> is a savings-circle register and not a to-do list — it is the
+honest test.</p>
+
+<h2>Why the browser, then?</h2>
+
+<p>It may seem contradictory to preach local-first and then build for the
+browser, the most connected place there is. But the browser has quietly
+become the best <em>local</em> runtime we have: it is already installed on
+every device, it runs the same everywhere, it needs no administrator to
+deploy into, and — with WebAssembly — it executes real compiled code. A
+page loaded once from a local file or a tiny local server keeps running
+with the network cable out of the wall.</p>
+
+<blockquote>The browser is not the cloud. It is the last universally
+available computer, and it works offline if the software is built to.</blockquote>
+
+<p>What was missing was the language. The applications above are written
+in Ring; their server side is Ring; their rules are Ring. Only the page
+demanded a second language and a second way of thinking. Putting the Ring
+VM itself in the browser — the actual virtual machine, verified program by
+program against native Ring — closed the gap. That is RingScript.</p>
+
+<h2>One stack, one set of ideas</h2>
+
+<p>RingScript is one piece of a deliberately small stack, all of it built
+under the <a href="https://github.com/mayouni/stzlib" target="_blank"
+rel="noopener">Softanza</a> project: Softanza gives Ring code its
+expressiveness; <b>StzWeb</b>, coming soon, is an opinionated, deliberately
+simple web framework for business applications built on plain web
+standards and made to run offline; RingScript is the runtime that lets the
+whole thing live in a page. The goal is that a desktop programmer — the
+kind who builds the bank's and the school's software today — can build for
+the web and mobile using Ring, Softanza, and the strict minimum of the
+target platform's concepts. No build pipelines, no framework treadmill, no
+second language.</p>
+
+<h2>What this asks of us</h2>
+
+<p>Local-first is not a slogan here; it is a set of engineering
+obligations this project tries to honour visibly:</p>
+
+<p><b>Reliability over benchmarks.</b> The runtime is soak-tested across
+tens of thousands of evaluations and fuzzed with thousands of hostile
+inputs, because an application that must run for years cannot leak by a
+little. <b>Verification over claims.</b> Every Ring program the runtime
+ships is checked byte-for-byte against native Ring. <b>Smallness over
+features.</b> The whole runtime is ~380&nbsp;KB, loads in milliseconds,
+and carries no dependencies — because every dependency is a promise
+someone else has to keep.</p>
+
+<p>If you write software for people who need it to work — offline,
+predictably, for years — this stack is being built for you, and
+<a href="start.html">you can start with one folder and one click</a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>
