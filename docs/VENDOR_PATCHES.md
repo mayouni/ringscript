@@ -85,3 +85,40 @@ Ineligible classes (defaults, private sections, parents, executable
 statements) never leave the stock path. Held identical by the gates'
 oop phase (written against the unpatched VM first) and the full oracle
 battery, which caught and now guards the conflict rule.
+
+## 7. `ringvm/src/rlist.c` — `sort(list, nColumn)` was O(n²)
+
+`ring_list_sortnum_gc` / `ring_list_sortstr_gc` extract keys, quicksort an
+index array, then rebuild the list by reading `pList` at `idx[i]` — in
+sorted order, which is to say randomly. Without the items array,
+`ring_list_getitem` walks the linked list, so the rebuild is quadratic.
+
+Measured on stock Ring, sorting `[key, index]` pairs: **2.3 / 8 / 39 /
+257 ms** at 2.5k / 5k / 10k / 20k rows — quadrupling per doubling — while
+sorting the same values as a flat list stayed linearithmic (0.4 / 0.6 /
+1.3 / 4.0 ms). The patch calls `ring_list_genarray_gc()` before the
+rebuild when `nColumn != 0`. After it: **0.9 / 2.1 / 6.0 / 16.4 ms**.
+Sorting rows by a column is what every data table does; worth upstreaming.
+
+## 8. `ringvm/src/rlist.c` — random list access built the array instead of walking
+
+The list cache (`pLastItem` / `nNextItem`) is a **cursor**: it makes
+sequential access O(1) and does nothing for random access, which falls
+through to a linear walk. So any pass over a large list through a
+permuted index — exactly what "sort the table, then total the visible
+rows" produces — is O(n²).
+
+Measured on a ledger app, after sorting: one aggregate pass over 20,000
+rows took **1.16 s**, and over 50,000 rows **19.8 s**. The patch makes
+the fallback build the items array once (above
+`RING_LIST_ARRAYONRANDOMACCESS`, 64 items) and answer from it, instead of
+walking. Every structural mutation already calls
+`ring_list_clearcache_gc`, which frees the array, so it cannot go stale;
+`ring_list_genarray_gc` does not call back into the accessor, so there is
+no recursion.
+
+After: **11.3 ms** at 20,000 rows (33×) and **31.3 ms** at 50,000 (184×);
+the leaderboard pass went 1162 → 96 ms and 19,758 → 277 ms. Cost is one
+n-pointer allocation on the first random access, repaid on the second.
+Held by the full oracle battery — ~850 programs still byte-exact — since
+this is the VM's most-used accessor.

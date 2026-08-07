@@ -301,6 +301,29 @@ RING_API Item *ring_list_getitem_gc(void *pState, List *pList, unsigned int nInd
 				return pItem;
 			}
 		}
+		/*
+		**  RINGSCRIPT PATCH: reaching here means a LINEAR WALK of a list
+		**  the cursor cache could not serve — i.e. random access. The
+		**  cursor is a sequential-access device; against a permuted index
+		**  (the shape every "sort a table, then read the rows" produces)
+		**  every access walks, and a single pass over n rows becomes
+		**  O(n^2). Measured on a 20,000-row ledger: after sorting, one
+		**  aggregate pass took 1.16 s, and at 50,000 rows 19.8 s.
+		**
+		**  Build the items array once and answer from it instead. Every
+		**  structural mutation already calls ring_list_clearcache_gc,
+		**  which frees it, so it cannot go stale; genarray does not call
+		**  back into this function, so there is no recursion. The cost is
+		**  one n-pointer allocation on the first random access, repaid on
+		**  the second. Small lists keep walking — an allocation would cost
+		**  more than the walk saves.
+		*/
+		if (lUseListCache && pList->nSize > RING_LIST_ARRAYONRANDOMACCESS) {
+			ring_list_genarray_gc(pState, pList);
+			if (pList->pItemsArray != NULL) {
+				return pList->pItemsArray[nIndex - 1];
+			}
+		}
 		if (nIndex < (pList->nSize - nIndex)) {
 			/* Linear Search  From Start */
 			pItems = pList->pFirst;
@@ -903,6 +926,20 @@ RING_API void ring_list_sortnum_gc(void *pState, List *pList, long low, long hig
 	}
 	/* Sort index array */
 	ring_list_general_quicksortnum(keys, idx, 0, count - 1);
+	/*
+	**  RINGSCRIPT PATCH: the rebuild below reads pList at idx[i] in SORTED
+	**  order, i.e. randomly. Without the items array ring_list_getitem()
+	**  walks the linked list, so a column sort is O(n^2): measured on
+	**  stock Ring, sorting [key,index] pairs cost 2.3 / 8 / 39 / 257 ms at
+	**  2.5k / 5k / 10k / 20k rows — quadrupling per doubling — while
+	**  sorting the same values as a flat list stayed linearithmic (0.4 /
+	**  0.6 / 1.3 / 4.0 ms). Generating the array first makes every access
+	**  O(1). Sorting rows by a column is what every data table does, so
+	**  this is worth upstreaming.
+	*/
+	if (nColumn != 0) {
+		ring_list_genarray_gc(pState, pList);
+	}
 	pList2 = ring_list_new_gc(pState, 0);
 	for (i = 0; i < count; i++) {
 		if (nColumn == 0) {
@@ -941,6 +978,11 @@ RING_API void ring_list_sortstr_gc(void *pState, List *pList, long low, long hig
 	}
 	/* Sort index array */
 	ring_list_general_quicksortstr(keys, idx, 0, count - 1);
+	/* RINGSCRIPT PATCH: see ring_list_sortnum_gc — the same random-access
+	** rebuild, and the same O(n^2) without the items array. */
+	if (nColumn != 0) {
+		ring_list_genarray_gc(pState, pList);
+	}
 	pList2 = ring_list_new_gc(pState, 0);
 	for (i = 0; i < count; i++) {
 		if (nColumn == 0) {

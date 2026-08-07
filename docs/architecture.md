@@ -14,7 +14,7 @@ way around the repository, and change the runtime with confidence.*
 │  · boot()/load() API    │               │  · embedded ringlib map      │
 └─────────────────────────┘               │  Ring VM (vendored C, 1.27)  │
                                           │  · compiler + VM, unmodified │
-                                          │    except 6 marked patches   │
+                                          │    except 8 marked patches   │
                                           └──────────────────────────────┘
 ```
 
@@ -106,8 +106,8 @@ Three layers, three languages, each doing the one thing it is best at:
   later eval for the life of the page.
 - **8 MB wasm stack.** Deep parser recursion and deeply nested lists
   (2000 levels verified) need more than the 1 MB default.
-- **Vendor purity with six exceptions.** The Ring source is compiled
-  as-is, plus six small patches each marked `RINGSCRIPT PATCH` in
+- **Vendor purity with eight exceptions.** The Ring source is compiled
+  as-is, plus eight small patches each marked `RINGSCRIPT PATCH` in
   place and documented in [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — two
   of them fix upstream bugs that were contributed back
   ([ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639)).
@@ -143,7 +143,7 @@ ringscript/
 │       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
 │
-├── ringvm/                      vendored Ring 1.27 (src + include) + 6 patches
+├── ringvm/                      vendored Ring 1.27 (src + include) + 8 patches
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
@@ -217,7 +217,7 @@ contract that makes them portable into the browser unchanged.
 ### Upgrading the vendored Ring
 
 Replace `ringvm/` with the new version's `ringvm/src` +
-`ringvm/include`, re-apply the six patches from
+`ringvm/include`, re-apply the eight patches from
 [VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and run the full test
 battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 1.26 → 1.27 upgrades in this repository's history each took minutes.

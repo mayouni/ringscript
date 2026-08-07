@@ -233,7 +233,7 @@ ringscript/
 │       └── stzzql_smoke.ring    its test suite — runs inside the browser
 │
 ├── ringvm/                      vendored Ring 1.27 VM (src + include only),
-│                                with 6 marked patches → docs/VENDOR_PATCHES.md
+│                                with 8 marked patches → docs/VENDOR_PATCHES.md
 │
 ├── playground/                  the site — and the two files you deploy
 │   ├── index.html               the Playground — the project's single page

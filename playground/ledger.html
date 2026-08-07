@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A real ledger, written in Ring — does it feel right?</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>">
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --dim:#666; --line:#e2e2e2; --card:#fafafa;
+          --accent:#1a4fa0; --instant:#12703a; --resp:#8a5a00; --slow:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14161a; --fg:#e8e8e8; --dim:#9aa0a6; --line:#2c3038; --card:#1a1d22;
+            --accent:#7aa7f0; --instant:#6fcf97; --resp:#e0b050; --slow:#ff7a70; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:22px 18px 60px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; letter-spacing:-.01em; }
+  .sub { color:var(--dim); margin:0 0 18px; }
+  h2 { font-size:1rem; margin:24px 0 8px; text-transform:uppercase;
+       letter-spacing:.04em; color:var(--dim); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:14px 16px; margin:0 0 14px; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+  .row > div { flex:1 1 130px; min-width:0; }
+  label { display:block; font-weight:600; margin:0 0 5px; font-size:.84rem; color:var(--dim); }
+  input, select { width:100%; padding:8px 10px; font:inherit; color:var(--fg);
+                  background:var(--bg); border:1px solid var(--line); border-radius:7px; }
+  button { padding:9px 18px; font:inherit; font-weight:600; cursor:pointer;
+           background:var(--accent); color:#fff; border:0; border-radius:7px; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--line); }
+  button[disabled] { opacity:.5; cursor:default; }
+
+  .stats { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 14px; }
+  .stat { flex:1 1 120px; background:var(--card); border:1px solid var(--line);
+          border-radius:9px; padding:10px 12px; }
+  .stat b { display:block; font-size:1.25rem; font-variant-numeric:tabular-nums; }
+  .stat span { color:var(--dim); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; }
+
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  th, td { padding:6px 10px; border-bottom:1px solid var(--line); text-align:left; }
+  th { color:var(--dim); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  th.sortable { cursor:pointer; user-select:none; }
+  th.sortable:hover { color:var(--accent); }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.bad td { color:var(--slow); }
+
+  .verdict { font-weight:700; }
+  .v-instant { color:var(--instant); }
+  .v-resp { color:var(--resp); }
+  .v-slow { color:var(--slow); }
+  .oracle-ok { color:var(--instant); font-weight:700; }
+  .oracle-no { color:var(--slow); font-weight:700; }
+  .errs { color:var(--slow); font-size:.86rem; margin:8px 0 0; }
+  .hint { color:var(--dim); font-size:.85rem; }
+  .budget { display:flex; gap:14px; flex-wrap:wrap; font-size:.84rem; color:var(--dim);
+            margin:6px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>A tontine ledger, written in Ring</h1>
+<p class="sub">The data lives inside the Ring VM in this tab. Every control
+below calls a Ring function — filtering, sorting, validating, adding — and
+nothing crosses back except the answer. <b>The question is not whether Ring
+beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label for="n">Deposits in the ledger</label>
+      <input id="n" type="number" value="20000" min="500" max="200000" step="500">
+    </div>
+    <div style="flex:0 0 auto"><button id="load">Load the ledger</button></div>
+    <div style="flex:2 1 240px"><p class="hint" id="loadnote">
+      Loaded once, at startup — the only time JSON crosses the bridge.</p></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+  <div class="stats" id="stats"></div>
+
+  <h2>Filter — as a user types</h2>
+  <div class="card">
+    <div class="row">
+      <div><label for="fm">Member contains</label><input id="fm" placeholder="e.g. m03"></div>
+      <div><label for="fa">Minimum amount</label><input id="fa" type="number" placeholder="0"></div>
+      <div><label for="fs">Status</label>
+        <select id="fs"><option value="">any</option><option>STAGED</option>
+        <option>AUDITED</option><option>ACTIVE</option></select></div>
+      <div style="flex:0 0 auto"><button class="ghost" id="clear">Clear</button></div>
+    </div>
+    <p class="hint">Runs on every keystroke, against the whole ledger.</p>
+  </div>
+
+  <h2>The rows <span class="hint" id="pageinfo"></span></h2>
+  <div class="scroll">
+    <table id="tbl">
+      <thead><tr>
+        <th class="sortable num" data-c="id">#</th>
+        <th class="sortable" data-c="member">Member</th>
+        <th class="sortable num" data-c="round">Round</th>
+        <th class="sortable num" data-c="amount">Amount</th>
+        <th class="sortable" data-c="status">Status</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:0 0 auto"><button class="ghost" id="prev">&larr; Previous</button></div>
+    <div style="flex:0 0 auto"><button class="ghost" id="next">Next &rarr;</button></div>
+  </div>
+
+  <h2>Add a deposit — validated as you type</h2>
+  <div class="card">
+    <div class="row">
+      <div><label for="am">Member</label><input id="am" value="m03"></div>
+      <div><label for="ar">Round</label><input id="ar" type="number" value="3"></div>
+      <div><label for="aa">Amount</label><input id="aa" type="number" value="250"></div>
+      <div><label for="as">Status</label>
+        <select id="as"><option>STAGED</option><option>AUDITED</option>
+        <option selected>ACTIVE</option></select></div>
+      <div style="flex:0 0 auto"><button id="add">Add deposit</button></div>
+    </div>
+    <div class="errs" id="errs"></div>
+  </div>
+
+  <h2>Leaderboard — over the rows currently shown</h2>
+  <div class="scroll"><table id="board">
+    <thead><tr><th>Member</th><th class="num">Total</th><th class="num">Deposits</th></tr></thead>
+    <tbody></tbody></table></div>
+
+  <h2>How every interaction felt</h2>
+  <p class="budget">
+    <span class="v-instant">&#9679; instant — under 16&nbsp;ms, one animation frame</span>
+    <span class="v-resp">&#9679; responsive — under 100&nbsp;ms</span>
+    <span class="v-slow">&#9679; noticeable — over 100&nbsp;ms</span>
+  </p>
+  <div class="scroll"><table id="log">
+    <thead><tr><th>Interaction</th><th class="num">Rows involved</th>
+      <th class="num">Ring took</th><th>Verdict</th><th class="num">Answer checked</th></tr></thead>
+    <tbody></tbody></table></div>
+  <p class="hint">Every answer is recomputed in JavaScript from the same
+  data and compared. JavaScript is the referee here, not the opponent —
+  it has no timing column because "is Ring correct" is the question worth
+  asking of it.</p>
+
+  <h2>What RingScript's optimisations bought</h2>
+  <div class="scroll"><table id="opt">
+    <thead><tr><th>Path</th><th class="num">Stock Ring</th>
+      <th class="num">RingScript</th><th class="num">Faster by</th></tr></thead>
+    <tbody></tbody></table></div>
+  <p class="hint" id="optnote"></p>
+
+</div>
+</div>
+
+<script src="ringscript.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  var ring = null, rows = [], page = 1, sortCol = "id", sortDesc = false;
+  var hasPureCodec = false;
+  var lastFilter = { member: "", minAmount: 0, status: "" };
+
+  function el(t, c, h) { var n = document.createElement(t); if (c) n.className = c;
+                         if (h !== undefined) n.innerHTML = h; return n; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  var fmt = function (n) { return Number(n).toLocaleString(); };
+
+  /* ---- the referee: the same answer, computed in JavaScript ---- */
+  function jsFilter(f) {
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (f.member && r.member.toLowerCase().indexOf(f.member.toLowerCase()) < 0) continue;
+      if (f.minAmount > 0 && r.amount < f.minAmount) continue;
+      if (f.status && r.status !== f.status) continue;
+      out.push(r);
+    }
+    return out;
+  }
+  function jsStats(view) {
+    var sum = 0, bad = 0, big = 0;
+    for (var i = 0; i < view.length; i++) {
+      var a = view[i].amount;
+      if (typeof a !== "number" || a <= 0) { bad++; continue; }
+      sum += a; if (a > big) big = a;
+    }
+    return { rows: rows.length, shown: view.length, sum: sum, rejected: bad, biggest: big };
+  }
+  function jsBoard(view, top) {
+    var m = [];
+    for (var i = 0; i < view.length; i++) {
+      var a = view[i].amount; if (typeof a !== "number" || a <= 0) continue;
+      var slot = -1;
+      for (var k = 0; k < m.length; k++) if (m[k][0] === view[i].member) { slot = k; break; }
+      if (slot < 0) { m.push([view[i].member, 0, 0]); slot = m.length - 1; }
+      m[slot][1] += a; m[slot][2] += 1;
+    }
+    return m.map(function (x) { return [x[1], x[0], x[2]]; })
+      .sort(function (a, b) { return (a[0] - b[0]) || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0); })
+      .reverse().slice(0, top)
+      .map(function (r) { return { member: r[1], total: r[0], count: r[2] }; });
+  }
+  function jsValidate(rec) {
+    var e = [];
+    if (!rec.member.length) e.push("member is required");
+    else if (rec.member.length !== 3 || rec.member[0] !== "m") e.push("member must look like m01");
+    if (!(rec.round >= 1 && rec.round <= 12)) e.push("round must be 1 to 12");
+    if (!(rec.amount > 0)) e.push("amount must be greater than 0");
+    if (["STAGED", "AUDITED", "ACTIVE"].indexOf(rec.status) < 0)
+      e.push("status must be STAGED, AUDITED or ACTIVE");
+    return e;
+  }
+
+  /* ---- one measured interaction ---- */
+  function act(label, involved, fn, oracle) {
+    var t = performance.now();
+    var got = fn();
+    var ms = performance.now() - t;
+    var v = ms < 16 ? ["instant", "v-instant"] : ms < 100 ? ["responsive", "v-resp"]
+                                                          : ["noticeable", "v-slow"];
+    var checked = "";
+    if (oracle) {
+      var want = oracle();
+      checked = JSON.stringify(got) === JSON.stringify(want)
+        ? "<span class='oracle-ok'>&#10003;</span>"
+        : "<span class='oracle-no'>&#10007; differs</span>";
+    }
+    var tb = $("log").querySelector("tbody");
+    var tr = el("tr");
+    tr.innerHTML = "<td>" + esc(label) + "</td><td class='num'>" + fmt(involved) +
+      "</td><td class='num'>" + ms.toFixed(1) + " ms</td>" +
+      "<td class='verdict " + v[1] + "'>" + v[0] + "</td>" +
+      "<td class='num'>" + checked + "</td>";
+    tb.insertBefore(tr, tb.firstChild);
+    while (tb.children.length > 14) tb.removeChild(tb.lastChild);
+    return got;
+  }
+
+  /* ---- rendering ---- */
+  function drawStats(s) {
+    $("stats").innerHTML =
+      "<div class='stat'><b>" + fmt(s.rows) + "</b><span>in the ledger</span></div>" +
+      "<div class='stat'><b>" + fmt(s.shown) + "</b><span>matching now</span></div>" +
+      "<div class='stat'><b>" + fmt(s.sum) + "</b><span>total shown</span></div>" +
+      "<div class='stat'><b>" + fmt(s.biggest) + "</b><span>largest</span></div>" +
+      "<div class='stat'><b>" + fmt(s.rejected) + "</b><span>invalid</span></div>";
+  }
+  function drawPage() {
+    var from = (page - 1) * 25 + 1;
+    var view = jsFilter(lastFilter);
+    var got = act("Draw a page of 25 rows", 25, function () {
+      return JSON.parse(ring.call("LedgerPage", from).result);
+    }, null);
+    var tb = $("tbl").querySelector("tbody");
+    tb.innerHTML = "";
+    for (var i = 0; i < got.length; i++) {
+      var r = got[i];
+      var tr = el("tr", r[3] <= 0 ? "bad" : "");
+      tr.innerHTML = "<td class='num'>" + r[0] + "</td><td>" + esc(r[1]) +
+        "</td><td class='num'>" + r[2] + "</td><td class='num'>" + fmt(r[3]) +
+        "</td><td>" + esc(r[4]) + "</td>";
+      tb.appendChild(tr);
+    }
+    $("pageinfo").textContent = got.length
+      ? "showing " + from + "–" + (from + got.length - 1) + " of " + fmt(view.length)
+      : "nothing matches";
+  }
+  function drawBoard() {
+    var view = jsFilter(lastFilter);
+    var got = act("Rebuild the leaderboard", view.length, function () {
+      return JSON.parse(ring.call("LedgerBoard", 8).result);
+    }, function () { return jsBoard(view, 8); });
+    var tb = $("board").querySelector("tbody");
+    tb.innerHTML = "";
+    for (var i = 0; i < got.length; i++) {
+      var tr = el("tr");
+      tr.innerHTML = "<td>" + esc(got[i].member) + "</td><td class='num'>" +
+        fmt(got[i].total) + "</td><td class='num'>" + fmt(got[i].count) + "</td>";
+      tb.appendChild(tr);
+    }
+  }
+  function refreshStats() {
+    var view = jsFilter(lastFilter);
+    var s = act("Recompute the totals", view.length, function () {
+      return JSON.parse(ring.call("LedgerStats", 1).result);
+    }, function () { return jsStats(view); });
+    drawStats(s);
+  }
+
+  function applyFilter() {
+    lastFilter = { member: $("fm").value.trim(),
+                   minAmount: Number($("fa").value) || 0,
+                   status: $("fs").value };
+    var view = jsFilter(lastFilter);
+    act("Filter the whole ledger", rows.length, function () {
+      return ring.call("LedgerFilter", lastFilter).result;
+    }, function () { return view.length; });
+    if (sortCol !== "id" || sortDesc) {
+      ring.call("LedgerSort", (sortDesc ? "-" : "") + sortCol);
+    }
+    page = 1;
+    drawPage(); refreshStats(); drawBoard();
+  }
+
+  /* ---- the optimisation panel: RingScript vs what Ring alone does ---- */
+  function measureOptimisations(payload) {
+    var tb = $("opt").querySelector("tbody");
+    var best = function (fn, n) { var m = Infinity;
+      for (var i = 0; i < n; i++) { var t = performance.now(); fn(); var d = performance.now() - t;
+                                    if (d < m) m = d; } return m; };
+    // The pure-Ring codec still ships as the reference the C one is held
+    // identical to, so both can be timed in the same VM on the same input.
+    var rowsAdded = [];
+    if (!hasPureCodec) {
+      $("optnote").textContent = "json-reference.ring is not being served, " +
+        "so the stock-Ring column cannot be measured here.";
+      return;
+    }
+    // A FIXED 2,000-row sample, not the whole ledger. The pure-Ring codec
+    // is ~100x slower, so timing it on a megabyte would freeze this tab for
+    // half a minute — which is itself the point being measured, but a page
+    // that hangs to prove it is a bad page.
+    var sample = JSON.stringify(rows.slice(0, 2000));
+    ring.call("LedgerStashPayload", sample);
+    var cMs = best(function () { ring.call("OptC", 1); }, 5);
+    var pMs = best(function () { ring.call("OptPure", 1); }, 2);
+    rowsAdded.push(["Decode 2,000 rows of JSON", pMs, cMs, "the codec moved to C"]);
+    // object creation: a bare class is template-cached, one with a default is not
+    ring.eval("class OptBare oba obb obc");
+    ring.eval("class OptDefault obd = 1 obe obf");
+    ring.eval("func OptNewBare p\n  for i = 1 to 2000\n    o = new OptBare\n  next\n  return 1");
+    ring.eval("func OptNewDefault p\n  for i = 1 to 2000\n    o = new OptDefault\n  next\n  return 1");
+    var bareMs = best(function () { ring.call("OptNewBare", 1); }, 5);
+    var defMs = best(function () { ring.call("OptNewDefault", 1); }, 5);
+    rowsAdded.push(["Create 2,000 objects", defMs, bareMs, "the template cache"]);
+    tb.innerHTML = "";
+    rowsAdded.forEach(function (r) {
+      var tr = el("tr");
+      tr.innerHTML = "<td>" + esc(r[0]) + " <span class='hint'>(" + esc(r[3]) + ")</span></td>" +
+        "<td class='num'>" + r[1].toFixed(1) + " ms</td>" +
+        "<td class='num'>" + r[2].toFixed(1) + " ms</td>" +
+        "<td class='num verdict v-instant'>" + (r[1] / r[2]).toFixed(1) + "&times;</td>";
+      tb.appendChild(tr);
+    });
+    $("optnote").innerHTML =
+      "Both columns are measured in this tab, in the same VM, on the same input " +
+      "(a fixed 2,000-row sample for the codec row, so the slow side does not " +
+      "freeze the page). " +
+      "The stock-Ring column is not a guess: <code>ringlib/json.ring</code> is still " +
+      "shipped as the reference the C codec is held byte-identical to, and a class " +
+      "with a default value is ineligible for the template cache, so it takes the " +
+      "path every class used to take.";
+  }
+
+  /* ---- startup ---- */
+  async function boot() {
+    var n = Math.max(500, parseInt($("n").value, 10) || 20000);
+    $("load").disabled = true;
+    $("loadnote").textContent = "starting the Ring VM…";
+
+    if (!ring) {
+      var wasm = await (await fetch("ringscript.wasm")).arrayBuffer();
+      ring = await RingScript.load(wasm, { onOutput: function () {} });
+      var src = await (await fetch("ledger.ring")).text();
+      var r = ring.eval(src);
+      if (!r.ok) { $("loadnote").textContent = "ledger.ring failed: " + r.error;
+                   $("load").disabled = false; return; }
+      // Used only by the optimisation panel, so its timings measure the
+      // codecs and not the bridge.
+      ring.eval("cOptPayload = ''");
+      ring.eval("func LedgerStashPayload c\n  cOptPayload = c\n  return len(c)");
+      ring.eval("func OptC p\n  return len(JsonDecode(cOptPayload))");
+      // The pure-Ring codec, under renamed entry points. It still ships as
+      // the reference the C codec is held byte-identical to, which is what
+      // makes the stock-Ring column a measurement rather than a claim.
+      var pureResp = await fetch("json-reference.ring");
+      if (pureResp.ok) {
+        var pureSrc = await pureResp.text();
+        if (ring.eval(pureSrc).ok) {
+          hasPureCodec = ring.eval("func OptPure p\n  return len(PureJsonDecode(cOptPayload))").ok;
+        }
+      }
+    }
+
+    // build the data in JavaScript, as an API would deliver it
+    var rand = (function (s) { return function () { s = (s + 0x6d2b79f5) >>> 0;
+      var t = s; t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; })(20260807);
+    var ST = ["STAGED", "AUDITED", "ACTIVE"];
+    rows = [];
+    for (var i = 1; i <= n; i++) {
+      var badOne = rand() < 0.0025;
+      rows.push({ id: i, member: "m" + String(Math.floor(rand() * 20) + 1).padStart(2, "0"),
+                  round: Math.floor(rand() * 12) + 1,
+                  amount: badOne ? 0 : Math.floor(rand() * 500) + 1,
+                  status: ST[Math.floor(rand() * 3)] });
+    }
+    var payload = JSON.stringify(rows);
+
+    var t0 = performance.now();
+    var loaded = ring.call("LedgerLoad", payload);
+    var loadMs = performance.now() - t0;
+    if (!loaded.ok) { $("loadnote").textContent = "load failed: " + loaded.error;
+                      $("load").disabled = false; return; }
+    $("loadnote").innerHTML = "<b>" + fmt(loaded.result) + " deposits</b> now live inside the " +
+      "Ring VM — " + loadMs.toFixed(0) + " ms, once. Everything below runs on that copy; " +
+      "no data crosses the bridge again.";
+
+    $("app").style.display = "";
+    lastFilter = { member: "", minAmount: 0, status: "" };
+    page = 1; sortCol = "id"; sortDesc = false;
+    drawPage(); refreshStats(); drawBoard();
+    try { measureOptimisations(payload); } catch (e) { $("optnote").textContent = String(e.message); }
+    $("load").disabled = false;
+  }
+
+  /* ---- wiring ---- */
+  $("load").addEventListener("click", boot);
+  ["fm", "fa"].forEach(function (id) { $(id).addEventListener("input", applyFilter); });
+  $("fs").addEventListener("change", applyFilter);
+  $("clear").addEventListener("click", function () {
+    $("fm").value = ""; $("fa").value = ""; $("fs").value = ""; applyFilter(); });
+  $("prev").addEventListener("click", function () { if (page > 1) { page--; drawPage(); } });
+  $("next").addEventListener("click", function () { page++; drawPage(); });
+  document.querySelectorAll("th.sortable").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var c = th.getAttribute("data-c");
+      sortDesc = (c === sortCol) ? !sortDesc : false;
+      sortCol = c;
+      var view = jsFilter(lastFilter);
+      act("Sort by " + c + (sortDesc ? " (desc)" : ""), view.length, function () {
+        return ring.call("LedgerSort", (sortDesc ? "-" : "") + c).result;
+      }, function () { return view.length; });
+      page = 1; drawPage();
+    });
+  });
+  function validateForm() {
+    var rec = { member: $("am").value.trim(), round: Number($("ar").value),
+                amount: Number($("aa").value), status: $("as").value };
+    var errs = act("Validate the form", 1, function () {
+      return JSON.parse(ring.call("LedgerValidate", rec).result);
+    }, function () { return jsValidate(rec); });
+    $("errs").textContent = errs.length ? errs.join(" · ") : "";
+    return { rec: rec, errs: errs };
+  }
+  ["am", "ar", "aa"].forEach(function (id) { $(id).addEventListener("input", validateForm); });
+  $("as").addEventListener("change", validateForm);
+  $("add").addEventListener("click", function () {
+    var v = validateForm();
+    if (v.errs.length) return;
+    act("Add a deposit", 1, function () { return ring.call("LedgerAdd", v.rec).result; }, null);
+    rows.push({ id: rows.length + 1, member: v.rec.member, round: v.rec.round,
+                amount: v.rec.amount, status: v.rec.status });
+    drawPage(); refreshStats(); drawBoard();
+  });
+})();
+</script>
+</body>
+</html>

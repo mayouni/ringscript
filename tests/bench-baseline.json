@@ -3,65 +3,65 @@
   "machine": "Intel(R) Core(TM) 5 210H",
   "node": "22.20.0",
   "platform": "win32",
-  "wasmBytes": 396030,
+  "wasmBytes": 396935,
   "calibration": {
-    "min": 0.723
+    "min": 0.7162
   },
   "results": {
     "startup": {
-      "min": 3.2406,
-      "median": 3.8193,
-      "n": 177
+      "min": 3.2271,
+      "median": 3.7191,
+      "n": 181
     },
     "eval-min": {
-      "min": 0.0427,
-      "median": 0.0474,
-      "n": 5792
+      "min": 0.0426,
+      "median": 0.0467,
+      "n": 5700
     },
     "loop-10k": {
-      "min": 0.6399,
-      "median": 0.7385,
-      "n": 385
+      "min": 0.6868,
+      "median": 0.7865,
+      "n": 370
     },
     "string-2k": {
-      "min": 0.2099,
-      "median": 0.23,
-      "n": 1224
+      "min": 0.2098,
+      "median": 0.2458,
+      "n": 1154
     },
     "sort-2k": {
-      "min": 0.1954,
-      "median": 0.2257,
-      "n": 1248
+      "min": 0.2086,
+      "median": 0.2454,
+      "n": 1114
     },
     "objects-2k": {
-      "min": 3.1593,
-      "median": 3.5838,
-      "n": 84
+      "min": 3.1584,
+      "median": 3.6786,
+      "n": 82
     },
     "output-1k": {
-      "min": 0.7679,
-      "median": 0.8135,
-      "n": 339
+      "min": 0.781,
+      "median": 0.8168,
+      "n": 343
     },
     "json-encode": {
-      "min": 0.1329,
-      "median": 0.141,
-      "n": 1966
+      "min": 0.1334,
+      "median": 0.1392,
+      "n": 1963
     },
     "json-decode": {
-      "min": 0.6566,
-      "median": 0.7252,
-      "n": 396
+      "min": 0.6404,
+      "median": 0.7168,
+      "n": 388
     },
     "call-bridge": {
       "min": 0.0533,
-      "median": 0.0583,
-      "n": 4652
+      "median": 0.0604,
+      "n": 4169
     },
     "zql-parse": {
-      "min": 1.3832,
-      "median": 1.5186,
-      "n": 248
+      "min": 1.3943,
+      "median": 1.5247,
+      "n": 243
     }
   }
 }

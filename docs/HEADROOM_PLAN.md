@@ -8,7 +8,7 @@ markers are updated as items land.*
 ## The constraint that shapes everything
 
 RingScript's crown jewel is **byte-exact conformance** — ~850 programs
-identical to native `ring.exe`, held by a 6-patch vendor discipline.
+identical to native `ring.exe`, held by an 8-patch vendor discipline.
 Speed bought with semantic drift is a loss. So every intervention is
 ranked by *where* it lives:
 
