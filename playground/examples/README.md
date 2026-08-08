@@ -11,13 +11,13 @@ file here and add one line there.
 
 ## Where they come from
 
-**12 of these 24 were written by Mahmoud Fayed**, the creator of the Ring
-language, for [Try Ring Online](https://github.com/ring-lang/ring/tree/master/tools/tryringonline)
-— his own WebAssembly playground for Ring, built on RingQt. They are used here
-with thanks. RingScript takes a different route into the browser (the Ring VM
-compiled straight to wasm, no Qt), but the samples make the same points, and
-starting from a set the Ring community already recognises was the right place
-to begin.
+**12 of these 24 come from the Ring project's own
+[Try Ring Online](https://github.com/ring-lang/ring/tree/master/tools/tryringonline)**
+— the Ring team's WebAssembly playground, built on RingQt. They are used here
+with thanks to the Ring team. RingScript takes a different route into the
+browser (the Ring VM compiled straight to wasm, no Qt), but the samples make
+the same points, and starting from a set the Ring community already recognises
+was the right place to begin.
 
 The rest were added later, while hardening the runtime, drawn from Ring's own
 documentation and sample programs to cover ground the first set did not:

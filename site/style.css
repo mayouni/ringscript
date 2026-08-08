@@ -236,14 +236,25 @@ pre.code .f { color: var(--f); }
    would trade one bad layout for another.
 
    The author owes the other half of this rule: lines are written to fit the
-   column, so the widening stays exceptional rather than routine. */
+   column, so the widening stays exceptional rather than routine.
+
+   It grows to the RIGHT, into the empty column, rather than centring on
+   itself: an article is left-aligned inside a wider wrap, so a block
+   centred on the article's own middle reaches past the LEFT edge of the
+   page — where it is clipped rather than scrolled, because a document's
+   scroll width does not count overflow to the left. (That is exactly how
+   this went wrong the first time: the live example's output was cut off
+   mid-word with no scrollbar to recover it.) Growing rightwards keeps the
+   reading line exactly where it was, which is what the rule actually asks
+   for, and it can never leave the page. */
 article pre, article .scroll {
     width: max-content;
     min-width: 100%;
-    max-width: min(62rem, calc(100vw - 2.5rem));
-    margin-left: 50%;
-    transform: translateX(-50%);
+    max-width: min(60rem, calc(100vw - 2.5rem));
 }
+/* ...but never a block that lives inside a panel of its own: it belongs to
+   the panel's width, not the page's. */
+article .runner pre, article .runner .scroll { max-width: 100%; width: auto; }
 
 /* A diagram cannot reflow. Squeeze one into a phone column and its labels
    drop under the reading floor — the same defect as small text, arrived at
@@ -254,6 +265,101 @@ article pre, article .scroll {
    future diagram can forget it. */
 article figure { overflow-x: auto; }
 article figure svg { min-width: 41.25rem; }
+
+/* ------------------------------------------------------------- runner
+   The live Ring panel used by the blog posts: a program you can edit, a
+   button that runs it in the real runtime, and the output it produced.
+   Three parts, each with its own label and its own box, because the first
+   version ran them together and you could not tell where the program
+   stopped and the answer began.
+
+   It takes the page's spare width for the same reason a code block does
+   (rule 114) — code has lines, prose has sentences — and it grows to the
+   right, so the reading line does not move. Everything inside it belongs
+   to the panel: nothing widens past its border, nothing floats. */
+.runner {
+    width: min(60rem, calc(100vw - 2.5rem));
+    margin: 2.2rem 0;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--panel);
+    overflow: hidden;               /* the border is the panel's promise */
+}
+.runner-head {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    padding: .8rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--accent-soft);
+}
+.runner-head h3 { margin: 0; font-size: var(--read); }
+.runner-head p { margin: 0; flex: 1 1 18rem; font-size: var(--floor); color: var(--ink-soft); }
+
+/* Each part says what it is. Uppercase, so set at the floor and tracked
+   out — the optical-parity deviation rule 107 allows, not a size step. */
+.runner-label {
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: .7rem 1.1rem .35rem;
+    font-size: var(--floor); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-soft);
+}
+/* The keyboard contract, stated where it applies. Not uppercase — it is a
+   sentence, not a label — and never below the floor. */
+.runner-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.runner-code {
+    display: block; width: 100%; box-sizing: border-box;
+    border: 0; border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--code-bg); color: var(--code-ink);
+    font: var(--mono-size)/1.65 var(--mono);
+    tab-size: 4;
+    padding: .9rem 1.1rem;
+    resize: vertical; outline-offset: -3px;
+    /* height is set from the program's own length on load, so the reader
+       meets the whole example rather than the middle of it */
+    min-height: 6rem;
+}
+.runner-bar {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    padding: .9rem 1.1rem;
+}
+/* Rule 106: the label says what the click does. Rule 79: an example you
+   can edit owes you a way back, so "restore" is always reachable. */
+.runner button {
+    font: inherit; font-weight: 600; font-size: var(--floor);
+    padding: .5rem 1.3rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--accent);
+    background: var(--accent); color: var(--accent-ink);
+}
+.runner button.quiet { background: transparent; color: var(--accent); }
+/* A disabled control is dimmed by CONVENTION, and the convention is
+   opacity — which took this button to 1.99:1 and made it unreadable. Rule
+   105 allows secondary things to be quieter in weight or colour, never in
+   legibility, so the disabled state is a real colour pair that still
+   clears 4.5:1 rather than a faded one. */
+.runner button:disabled {
+    background: var(--muted); border-color: var(--muted); color: #fff;
+    cursor: default;
+}
+.runner .runner-status { font-size: var(--floor); color: var(--ink-soft); }
+.runner .runner-status.bad { color: var(--error); }
+/* The output owns its own box. It keeps every newline and every leading
+   space — it is program output, not prose — but a line longer than the
+   panel wraps rather than hiding behind a horizontal scrollbar: a Ring
+   error message is one long sentence, and making the reader drag it into
+   view is the defect rule 114 is about. Only the vertical axis scrolls. */
+.runner-out {
+    margin: 0; padding: .9rem 1.1rem;
+    border-top: 1px solid var(--border);
+    background: var(--code-bg); color: var(--code-ink);
+    font: var(--mono-size)/1.6 var(--mono);
+    white-space: pre-wrap; overflow-wrap: anywhere;
+    overflow-x: hidden; overflow-y: auto;
+    min-height: 3.2rem; max-height: 26rem;
+}
+.runner-out:empty::before {
+    content: "nothing yet — press Run";
+    color: var(--muted); font-style: italic;
+}
 
 /* Links inside prose and cards: the site's green, underlined on hover —
    never the browser default blue. Buttons keep their own styling. */

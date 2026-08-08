@@ -31,23 +31,6 @@
                  color: var(--ink-soft); font-weight: 600; }
     .scroll { overflow-x: auto; }
 
-    .try { border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem; margin: 2rem 0; }
-    .try h3 { margin: 0 0 .5rem; }
-    .try textarea {
-        width: 100%; min-height: 17rem; resize: vertical; box-sizing: border-box;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: var(--mono-size); line-height: 1.5; color: var(--ink);
-        background: var(--code-bg, rgba(127,127,127,.08));
-        border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
-    }
-    .try .row { display: flex; gap: .8rem; align-items: center; margin: .7rem 0 0; flex-wrap: wrap; }
-    .try button {
-        padding: .55rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer;
-        background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-    }
-    .try button[disabled] { opacity: .5; cursor: default; }
-    .try .status { font-size: var(--floor); color: var(--ink-soft); }
-    .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
 </style>
 </head>
 <body>
@@ -168,12 +151,11 @@ browser's own offset before handing the time to Ring, which is why
 corner of the screen. It is a small thing that would have been a
 long-running bug report.</p>
 
-<div class="try">
-<h3>See it for yourself — live, on this page</h3>
-<p class="status" style="margin:0 0 .6rem">Every line below runs in the
-real runtime. Watch a missing capability come back as an ordinary caught
-error while everything after it keeps working.</p>
-<textarea id="code" spellcheck="false">
+<div class="runner"
+     data-title="See it for yourself — live, on this page"
+     data-note="Every line below runs in the real runtime. Watch a missing capability come back as an ordinary caught error while everything after it keeps working."
+     data-run="Run the checks">
+<textarea class="runner-code" spellcheck="false">
 see "-- what is here --" + nl
 see "date and time : " + date() + " " + time() + nl
 see "an embedded file exists : " + fexists("ringlib/json.ring") + nl
@@ -200,11 +182,6 @@ cOut = ""
 for i = 1 to 8  cOut += "" + (i * i) + " "  next
 see "still computing squares: " + cOut + nl
 </textarea>
-<div class="row">
-  <button id="run">Run the checks</button>
-  <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
-</div>
-<pre id="out"></pre>
 </div>
 
 <h2>Shipping your own library into the page</h2>
@@ -260,36 +237,7 @@ target="_blank" rel="noopener">docs/api.md</a>.</p>
 </footer>
 
 <script src="playground/ringscript.js"></script>
-<script>
-(function () {
-  "use strict";
-  var ring = null;
-  var btn = document.getElementById("run");
-  var out = document.getElementById("out");
-  var status = document.getElementById("status");
-  btn.addEventListener("click", async function () {
-    btn.disabled = true;
-    try {
-      if (!ring) {
-        status.textContent = "starting the Ring VM…";
-        var wasm = await (await fetch("playground/ringscript.wasm")).arrayBuffer();
-        ring = await RingScript.load(wasm, { onOutput: function () {} });
-      }
-      status.textContent = "running…";
-      var t0 = performance.now();
-      var r = ring.eval(document.getElementById("code").value);
-      var ms = (performance.now() - t0).toFixed(0);
-      out.textContent = r.ok ? r.output : r.error;
-      status.textContent = r.ok ? "done in " + ms + " ms, inside this page"
-                                : "Ring reported an error — the page is fine";
-    } catch (e) {
-      out.textContent = String(e && e.message || e);
-      status.textContent = "failed";
-    }
-    btn.disabled = false;
-  });
-})();
-</script>
+<script src="runner.js"></script>
 
 </body>
 </html>

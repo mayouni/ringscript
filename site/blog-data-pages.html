@@ -42,23 +42,6 @@
                  color: var(--ink-soft); font-weight: 600; }
     table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-    .try { border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem; margin: 2rem 0; }
-    .try h3 { margin: 0 0 .5rem; }
-    .try textarea {
-        width: 100%; min-height: 15.5rem; resize: vertical; box-sizing: border-box;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: var(--mono-size); line-height: 1.5; color: var(--ink);
-        background: var(--code-bg, rgba(127,127,127,.08));
-        border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
-    }
-    .try .row { display: flex; gap: .8rem; align-items: center; margin: .7rem 0 0; flex-wrap: wrap; }
-    .try button {
-        padding: .55rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer;
-        background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-    }
-    .try button[disabled] { opacity: .5; cursor: default; }
-    .try .status { font-size: var(--floor); color: var(--ink-soft); }
-    .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
     .scroll { overflow-x: auto; }
 </style>
 </head>
@@ -176,12 +159,11 @@ target="_blank" rel="noopener">the register app shows how to accept
 both</a>.</p>
 </div>
 
-<div class="try">
-<h3>Try it here — live Ring, on this page</h3>
-<p class="status" style="margin:0 0 .6rem">This is the real RingScript
-runtime. Edit the code, press Run — it builds 5,000 rows and filters them
-twice, once against the rules and once with them.</p>
-<textarea id="code" spellcheck="false">
+<div class="runner"
+     data-title="Try it here — live Ring, on this page"
+     data-note="The real RingScript runtime. It builds 5,000 rows and filters them twice: once against the rules, once with them."
+     data-run="Run both loops">
+<textarea class="runner-code" spellcheck="false">
 # 5,000 rows of [id, amount] — then filter amount > 400, two ways.
 nRows = 5000
 aData = []
@@ -193,32 +175,22 @@ next
 t1 = clock()
 aSlow = []
 for aRow in aData
-    if aRow[2] > 400
-        add(aSlow, aRow[1])
-    ok
+    if aRow[2] > 400  add(aSlow, aRow[1])  ok
 next
 t2 = clock()
 
 # with the rules: indexed loop, hoisted count, + append
 aFast = []
 for i = 1 to nRows
-    if aData[i][2] > 400
-        aFast + aData[i][1]
-    ok
+    if aData[i][2] > 400  aFast + aData[i][1]  ok
 next
 t3 = clock()
-
 nMsSlow = (t2-t1) / clockspersecond() * 1000
 nMsFast = (t3-t2) / clockspersecond() * 1000
 see "matches: " + len(aSlow) + " vs " + len(aFast) + nl
 see "against the rules : " + nMsSlow + " ms" + nl
 see "with the rules    : " + nMsFast + " ms" + nl
 </textarea>
-<div class="row">
-  <button id="run">Run both loops</button>
-  <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
-</div>
-<pre id="out"></pre>
 </div>
 
 <p>All five rules — plus the two the runtime enforces for you — are
@@ -244,36 +216,7 @@ data</a>.</p>
 </footer>
 
 <script src="playground/ringscript.js"></script>
-<script>
-(function () {
-  "use strict";
-  var ring = null;
-  var btn = document.getElementById("run");
-  var out = document.getElementById("out");
-  var status = document.getElementById("status");
-  btn.addEventListener("click", async function () {
-    btn.disabled = true;
-    try {
-      if (!ring) {
-        status.textContent = "starting the Ring VM…";
-        var wasm = await (await fetch("playground/ringscript.wasm")).arrayBuffer();
-        ring = await RingScript.load(wasm, { onOutput: function () {} });
-      }
-      status.textContent = "running…";
-      var t0 = performance.now();
-      var r = ring.eval(document.getElementById("code").value);
-      var ms = (performance.now() - t0).toFixed(0);
-      out.textContent = r.ok ? r.output : r.error;
-      status.textContent = r.ok ? "done in " + ms + " ms, inside this page"
-                                : "Ring reported an error — the page is fine";
-    } catch (e) {
-      out.textContent = String(e && e.message || e);
-      status.textContent = "failed";
-    }
-    btn.disabled = false;
-  });
-})();
-</script>
+<script src="runner.js"></script>
 
 </body>
 </html>

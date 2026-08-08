@@ -40,23 +40,6 @@
     table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .scroll { overflow-x: auto; }
 
-    .try { border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem; margin: 2rem 0; }
-    .try h3 { margin: 0 0 .5rem; }
-    .try textarea {
-        width: 100%; min-height: 16rem; resize: vertical; box-sizing: border-box;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: var(--mono-size); line-height: 1.5; color: var(--ink);
-        background: var(--code-bg, rgba(127,127,127,.08));
-        border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
-    }
-    .try .row { display: flex; gap: .8rem; align-items: center; margin: .7rem 0 0; flex-wrap: wrap; }
-    .try button {
-        padding: .55rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer;
-        background: var(--accent); color: #fff; border: 0; border-radius: 7px;
-    }
-    .try button[disabled] { opacity: .5; cursor: default; }
-    .try .status { font-size: var(--floor); color: var(--ink-soft); }
-    .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
 </style>
 </head>
 <body>
@@ -230,13 +213,11 @@ at compile time to an embedded, read-only map. Not <em>guarded</em> —
 absent. The strongest security property is the one you cannot switch
 off.</p>
 
-<div class="try">
-<h3>Try it here — parse a declaration, live</h3>
-<p class="status" style="margin:0 0 .6rem">The ZQL engine is embedded in
-the runtime this page loads. Edit the declaration, press Run: it parses,
-describes what it found, evaluates the norm both ways, and shows what
-happens when you ask for a verb the grammar does not have.</p>
-<textarea id="code" spellcheck="false">
+<div class="runner"
+     data-title="Try it here — parse a declaration, live"
+     data-note="The ZQL engine is embedded in the runtime this page loads. Edit the declaration and run it: it parses, describes what it found, evaluates the norm both ways, and shows what happens when you ask for a verb the grammar does not have."
+     data-run="Run the declaration">
+<textarea class="runner-code" spellcheck="false">
 load "ringlib/stzZql.ring"
 
 cSrc = '
@@ -255,26 +236,13 @@ DEFINE FLOW collect (
 '
 
 o = StzZqlQ(cSrc)
-see "parsed: " + o.CountEntities() + " entity, " +
-    o.CountNorms() + " norm, " + o.CountFlows() + " flow" + nl + nl
 see o.Describe() + nl
-
 see "-- the norm, both ways --" + nl
 see "amount 5000 -> " + o.EvalNorm("positive_deposit", [ :amount = 5000 ]) + nl
 see "amount    0 -> " + o.EvalNorm("positive_deposit", [ :amount = 0 ]) + nl + nl
-
 see "-- a verb the grammar does not have --" + nl
-try
-    StzZqlQ("DROP TABLE users")
-catch
-    see cCatchError + nl
-done
+try  StzZqlQ("DROP TABLE users")  catch  see cCatchError + nl  done
 </textarea>
-<div class="row">
-  <button id="run">Run the declaration</button>
-  <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
-</div>
-<pre id="out"></pre>
 </div>
 
 <h2>What this is really about</h2>
@@ -315,36 +283,7 @@ gate.</p>
 </footer>
 
 <script src="playground/ringscript.js"></script>
-<script>
-(function () {
-  "use strict";
-  var ring = null;
-  var btn = document.getElementById("run");
-  var out = document.getElementById("out");
-  var status = document.getElementById("status");
-  btn.addEventListener("click", async function () {
-    btn.disabled = true;
-    try {
-      if (!ring) {
-        status.textContent = "starting the Ring VM…";
-        var wasm = await (await fetch("playground/ringscript.wasm")).arrayBuffer();
-        ring = await RingScript.load(wasm, { onOutput: function () {} });
-      }
-      status.textContent = "running…";
-      var t0 = performance.now();
-      var r = ring.eval(document.getElementById("code").value);
-      var ms = (performance.now() - t0).toFixed(0);
-      out.textContent = r.ok ? r.output : r.error;
-      status.textContent = r.ok ? "parsed and run in " + ms + " ms, inside this page"
-                                : "Ring reported an error — the page is fine";
-    } catch (e) {
-      out.textContent = String(e && e.message || e);
-      status.textContent = "failed";
-    }
-    btn.disabled = false;
-  });
-})();
-</script>
+<script src="runner.js"></script>
 
 </body>
 </html>

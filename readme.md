@@ -60,7 +60,7 @@ assuming no web experience. Full walkthrough with screenshots:
 > **What it is not.** RingScript runs Ring *inside a web page*. It is not a way
 > to run Ring programs you already have: a desktop program using RingQt or
 > GUILib reaches Qt by loading a native library, and RingScript carries no Qt at
-> all. There *is* a road for those — Mahmoud Fayed's *Try Ring Online*, which is
+> all. There *is* a road for those — the Ring team's *Try Ring Online*, which is
 > RingQt compiled for WebAssembly — and the
 > [Q&A](https://mayouni.github.io/ringscript/faq.html) compares the two: 22.7 MB
 > against RingScript's 0.35 MB, because a web page is not a desktop application.
@@ -337,11 +337,10 @@ that Ring can serve as an alternative frontend scripting language in the
 same business declaration is evaluated by StzWeb's JavaScript runtime and
 by Ring-on-wasm side by side, with identical verdicts.
 
-Half of the Playground's examples were written by **Mahmoud Fayed**, the
-creator of the Ring language, for
+Half of the Playground's examples come from the Ring project's own
 [Try Ring Online](https://github.com/ring-lang/ring/tree/master/tools/tryringonline)
-— his own WebAssembly playground for Ring, built on RingQt. They are used
-here with thanks; see
+— the Ring team's WebAssembly playground, built on RingQt. They are used
+here with thanks to the Ring team; see
 [playground/examples/README.md](playground/examples/README.md) for which
 ones, and where the rest came from.
 
