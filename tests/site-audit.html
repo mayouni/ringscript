@@ -40,6 +40,13 @@ own audit: <b>rule 105</b> (the legibility floor — 16&nbsp;px, 4.5:1),
 <b>rule 107</b> (hierarchy is not miniaturization) and <b>rule 114</b>
 (room before scrollbars). Nothing leaves the browser; no dependencies.</p>
 
+<p>The data application (<code>playground/ledger.html</code>) is not in
+this list: it links the site's stylesheet as <code>../style.css</code>,
+which resolves in the deployed layout — where the site is at <code>/</code>
+and the Playground at <code>/playground/</code> — but not in the repository,
+where the two are siblings. Auditing it here would measure the missing
+stylesheet rather than the page. Check it against a deployed copy.</p>
+
 <p>Serve the repository root and open this file, e.g.
 <code>python -m http.server 8399</code> then
 <code>localhost:8399/tests/site-audit.html</code>. Check the widths that

@@ -3,28 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A real ledger, written in Ring — does it feel right?</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"><text y='.9em' font-size='90'>📒</text></svg>">
+<title>A savings-circle register, written in Ring — does it feel right to use?</title>
+<meta name="description" content="A working savings-circle register running on the real Ring virtual machine inside your browser. Filter, sort and total 20,000 records, with every interaction timed against how people perceive delay and every answer checked by JavaScript.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css?v=0.9.25">
 <style>
-  :root { --bg:#fff; --fg:#1a1a1a; --dim:#666; --line:#e2e2e2; --card:#fafafa;
-          --accent:#1a4fa0; --instant:#12703a; --resp:#8a5a00; --slow:#b3261e; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#14161a; --fg:#e8e8e8; --dim:#9aa0a6; --line:#2c3038; --card:#1a1d22;
-            --accent:#7aa7f0; --instant:#6fcf97; --resp:#e0b050; --slow:#ff7a70; }
+  /* This page is part of the site, and now looks it: the site's stylesheet
+     carries the palette, the type scale and the menu, and the names the app
+     already used are mapped onto the site's tokens rather than redefined.
+     Only the things a data application needs that a prose page does not —
+     the dense table, the verdict colours, the timing log — are local. */
+  :root {
+    --fg: var(--ink); --dim: var(--muted); --line: var(--border); --card: var(--code-bg);
+    --instant:#12703a; --resp:#8a5a00; --slow:#b3261e;
   }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg);
-         font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width:1000px; margin:0 auto; padding:22px 18px 60px; }
-  h1 { font-size:1.5rem; margin:0 0 4px; letter-spacing:-.01em; }
-  .sub { color:var(--dim); margin:0 0 18px; }
-  h2 { font-size:1rem; margin:24px 0 8px; text-transform:uppercase;
-       letter-spacing:.04em; color:var(--dim); }
+  .wrap { max-width:64rem; padding-bottom:4rem; }
+  h1 { margin:0 0 .3rem; }
+  .sub { color:var(--ink-soft); margin:0 0 1rem; max-width:44rem; }
+  h2 { font-size:var(--floor); margin:2rem 0 .6rem; text-transform:uppercase;
+       letter-spacing:.05em; color:var(--ink-soft); font-weight:700; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
           padding:14px 16px; margin:0 0 14px; }
   .row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
   .row > div { flex:1 1 130px; min-width:0; }
-  label { display:block; font-weight:600; margin:0 0 5px; font-size:.84rem; color:var(--dim); }
+  label { display:block; font-weight:600; margin:0 0 5px; font-size:var(--floor); color:var(--ink-soft); }
   input, select { width:100%; padding:8px 10px; font:inherit; color:var(--fg);
                   background:var(--bg); border:1px solid var(--line); border-radius:7px; }
   button { padding:9px 18px; font:inherit; font-weight:600; cursor:pointer;
@@ -57,13 +59,13 @@
   .stats { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 14px; }
   .stat { flex:1 1 120px; background:var(--card); border:1px solid var(--line);
           border-radius:9px; padding:10px 12px; }
-  .stat b { display:block; font-size:1.25rem; font-variant-numeric:tabular-nums; }
-  .stat span { color:var(--dim); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; }
+  .stat b { display:block; font-size:1.5rem; font-variant-numeric:tabular-nums; }
+  .stat span { color:var(--dim); font-size:var(--floor); text-transform:uppercase; letter-spacing:.04em; }
 
   .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  table { border-collapse:collapse; width:100%; font-size:var(--floor); }
   th, td { padding:6px 10px; border-bottom:1px solid var(--line); text-align:left; }
-  th { color:var(--dim); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  th { color:var(--dim); font-size:var(--floor); text-transform:uppercase; letter-spacing:.03em; }
   th.sortable { cursor:pointer; user-select:none; }
   th.sortable:hover { color:var(--accent); }
   td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
@@ -75,28 +77,73 @@
   .v-slow { color:var(--slow); }
   .oracle-ok { color:var(--instant); font-weight:700; }
   .oracle-no { color:var(--slow); font-weight:700; }
-  .errs { color:var(--slow); font-size:.86rem; margin:8px 0 0; }
-  .hint { color:var(--dim); font-size:.85rem; }
-  .budget { display:flex; gap:14px; flex-wrap:wrap; font-size:.84rem; color:var(--dim);
+  .errs { color:var(--slow); font-size:var(--floor); margin:8px 0 0; }
+  .hint { color:var(--dim); font-size:var(--floor); }
+  .budget { display:flex; gap:14px; flex-wrap:wrap; font-size:var(--floor); color:var(--dim);
             margin:6px 0 0; }
 </style>
 </head>
 <body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="../index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="../start.html">Start here</a>
+    <a href="../story.html">The story</a>
+    <a href="../why-ring.html">Why Ring?</a>
+    <a class="active" href="../data.html">Working with data</a>
+    <a href="../faq.html">Q&amp;A</a>
+    <a href="../blog.html">Blog</a>
+    <a href="../whats-new.html">What's new</a>
+    <a class="cta" href="./">Playground</a>
+  </div>
+</nav>
+
 <div class="wrap">
 
-<h1>A tontine ledger, written in Ring</h1>
-<p class="sub">The data lives inside the Ring VM in this tab. Every control
-below calls a Ring function — filtering, sorting, validating, adding — and
-nothing crosses back except the answer. <b>The question is not whether Ring
-beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p>
+<h1>A savings-circle register, running in this page</h1>
+
+<p class="sub"><b>Everything below is written in Ring</b> — a programming
+language that normally runs on a server or a desktop, executing here inside
+your browser tab. Not compiled to JavaScript: the actual Ring virtual
+machine, compiled to WebAssembly, holding the data in its own memory while
+you work with it.</p>
+
+<p class="sub">The application is a <b>tontine</b> register — a savings
+circle, where members put money into numbered rounds and someone has to
+keep the books. It was chosen because it is ordinary: a table of records,
+a filter box, sortable columns, a form that validates as you type, a
+running total. Whatever you build, it probably does these same things.</p>
+
+<p class="sub"><b>What this page is for.</b> It answers one question a
+programmer is right to ask before trusting a new runtime with real work:
+<em>can a page written this way carry a normal amount of data and still
+feel responsive?</em> So every interaction is timed and judged against how
+people actually perceive delay — under 16 ms is <b>instant</b>, under
+100 ms still feels <b>caused by your click</b>, and past that the page is
+visibly thinking. The log at the bottom fills in as you go.</p>
+
+<p class="sub">JavaScript is here too, but only as a <b>referee</b>: it
+recomputes every answer independently and marks it ✓ or ✗. It has no timing
+column, because the question being asked of it is whether Ring is
+<em>right</em>, not whether it is faster.</p>
+
+<p class="sub"><b>Try it:</b> press <em>Load the register</em> below — 20,000
+deposits is a realistic size — then type in the filter box, click a column
+heading to sort, page through the rows, add a deposit. Watch the log.
+Then set it to 50,000 and do it again; two of the interactions will cross
+the line, and the page says so rather than hiding it.
+<a href="../data.html">The full write-up is here</a>, and
+<a href="https://github.com/mayouni/ringscript/blob/main/playground/ledger.ring"
+target="_blank" rel="noopener">the Ring source is one readable file</a>.</p>
 
 <div class="card">
   <div class="row">
     <div>
-      <label for="n">Deposits in the ledger</label>
+      <label for="n">Deposits in the register</label>
       <input id="n" type="number" value="20000" min="500" max="200000" step="500">
     </div>
-    <div style="flex:0 0 auto"><button id="load">Load the ledger</button></div>
+    <div style="flex:0 0 auto"><button id="load">Load the register</button></div>
     <div style="flex:0 0 auto"><span id="busy" hidden><span class="spin" aria-hidden="true"></span><span id="busy-what"></span>&hellip;</span></div>
     <div style="flex:2 1 240px"><p class="hint" id="loadnote">
       Loaded once, at startup — the only time JSON crosses the bridge.</p></div>
@@ -287,7 +334,27 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
     requestAnimationFrame(function () { requestAnimationFrame(once); });
     setTimeout(once, 60);
   }
-  function slow(key) { return (lastCost[key] || 0) > 100; }
+  /* Which actions announce themselves is DECLARED, not learned. Learning
+     it from the last run was a mistake: the first click on a 50,000-row
+     sort is exactly the one that surprises somebody, and it was the one
+     that got no feedback — the history was still empty. Loading was worse:
+     it is always slow and was never wrapped at all.
+
+     These four are heavy by construction at any interesting size, so they
+     always pay the one frame it takes to say so; a frame is ~16 ms against
+     hundreds, which nobody can perceive. The learned rule stays as a net
+     under everything else: an action that turns out slow starts announcing
+     itself from then on. */
+  var ALWAYS_ANNOUNCE = {
+    "loading the register": 1,
+    "applying the filter": 1,
+    "rebuilding the leaderboard": 1
+  };
+  function slow(key) {
+    return ALWAYS_ANNOUNCE[key] === 1 ||
+           /^sorting by /.test(key) ||
+           (lastCost[key] || 0) > 100;
+  }
 
   /* Run `work` with the busy state up if this action has been slow before.
      Always returns a promise so callers read the same either way. */
@@ -337,7 +404,7 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
   /* ---- rendering ---- */
   function drawStats(s) {
     $("stats").innerHTML =
-      "<div class='stat'><b>" + fmt(s.rows) + "</b><span>in the ledger</span></div>" +
+      "<div class='stat'><b>" + fmt(s.rows) + "</b><span>in the register</span></div>" +
       "<div class='stat'><b>" + fmt(s.shown) + "</b><span>matching now</span></div>" +
       "<div class='stat'><b>" + fmt(s.sum) + "</b><span>total shown</span></div>" +
       "<div class='stat'><b>" + fmt(s.biggest) + "</b><span>largest</span></div>" +
@@ -505,9 +572,15 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
       return [r.id, r.member, r.round, r.amount, r.status];
     }));
 
+    /* The heaviest moment on the page: decoding the payload and building
+       the columns inside the VM. It blocks this thread, so the busy state
+       has to be painted BEFORE it starts or it is never seen at all. */
+    showBusy("loading the register");
+    await new Promise(function (r) { afterPaint(r); });
     var t0 = performance.now();
     var loaded = ring.call("LedgerLoad", payload);
     var loadMs = performance.now() - t0;
+    hideBusy();
     if (!loaded.ok) { $("loadnote").textContent = "load failed: " + loaded.error;
                       $("load").disabled = false; return; }
     $("loadnote").innerHTML = "<b>" + fmt(loaded.result) + " deposits</b> now live inside the " +
