@@ -74,8 +74,14 @@ nav {
 nav .wrap { display: flex; align-items: center; gap: 1.4rem; padding-top: .7rem; padding-bottom: .7rem; }
 /* Seven stops and one call to action — rule 27 caps a horizontal menu at
    eight, and a menu that wraps has stopped orienting anybody. The tutorial
-   is reached from Start here, whose path names it (rule 116: the menu tells
-   the truth about the tree; it does not grow by promotion). */
+   is not one of them: it belongs inside Start here, which links it, and a
+   menu does not grow by promotion (rule 116).
+
+   There is no breadcrumb trail, deliberately. Rules 108 and 115 ask every
+   page to show its path — written for applications with real depth. This
+   site is eight flat pages under one menu that already names them all, so
+   a trail here repeats the menu one line lower and adds a step to every
+   read for nothing. Reported back to the constitution as evidence. */
 nav a { color: var(--ink-soft); text-decoration: none; font-size: var(--floor); }
 nav a:hover { color: var(--ink); }
 nav a.active { color: var(--accent); font-weight: 600; }
@@ -152,29 +158,6 @@ a:hover .newtab { opacity: 1; }
     nav a { padding-top: .4rem; padding-bottom: .4rem; }
 }
 
-/* ------------------------------------------------------------- the path
-   Two branches on this site go a level deep — Start here → the tutorial,
-   and Blog → its posts — and the menu deliberately names only their tops
-   (rule 116). The path is what shows the rest, so it is drawn on every
-   page of those branches and reads the SAME at each step: only the
-   highlight moves (rule 115). Everything else is one level deep, where
-   the menu already says all there is to say. */
-nav[aria-label="Breadcrumb"] {
-    position: static; background: none; border: 0;
-    padding-top: 1.7rem; padding-bottom: 0;
-}
-.crumbs { margin: 0; font-size: var(--floor); color: var(--muted); }
-.crumbs a { color: var(--ink-soft); text-decoration: none; }
-.crumbs a:hover { text-decoration: underline; }
-/* The current position is marked by colour alone, and is never a link to
-   itself; hover stays unstyled, so no step is ever painted as a place the
-   reader is not (rule 115). */
-.crumbs .here-crumb { color: var(--accent); font-weight: 700; }
-.crumbs .sep { padding: 0 .5rem; opacity: .6; }
-/* The trail belongs to the page under it, not to the bar above it: without
-   this, a section's own 4.5rem of top padding leaves it stranded between
-   the two and it reads as chrome rather than as position. */
-nav[aria-label="Breadcrumb"] + section { padding-top: 1.5rem; }
 
 /* -------------------------------------------------------------- cards */
 /* Sections breathe: a clear gap from whatever sits above them. */
@@ -246,15 +229,34 @@ pre.code .f { color: var(--f); }
    this went wrong the first time: the live example's output was cut off
    mid-word with no scrollbar to recover it.) Growing rightwards keeps the
    reading line exactly where it was, which is what the rule actually asks
-   for, and it can never leave the page. */
-article pre, article .scroll {
+   for, and it can never leave the page.
+
+   And it is for CODE ONLY. A code block cannot reflow — a line is a line,
+   and breaking it changes the program. A table can: its second column is
+   prose and wraps like prose. Widening a table to avoid a scrollbar it was
+   never going to have just drags the grid out past the text it belongs to
+   and makes the page look broken. So a table keeps the reading column and
+   wraps inside it; `.scroll` stays on it as the last resort, for the rare
+   grid too wide even for that. */
+article pre {
     width: max-content;
     min-width: 100%;
     max-width: min(60rem, calc(100vw - 2.5rem));
 }
 /* ...but never a block that lives inside a panel of its own: it belongs to
    the panel's width, not the page's. */
-article .runner pre, article .runner .scroll { max-width: 100%; width: auto; }
+article .runner pre { max-width: 100%; width: auto; }
+
+/* A numeric table has a floor: its figures do not wrap, so below a certain
+   width the columns simply cannot give any more. Measured on a 375px
+   phone, the widest three-column tables missed by 6px — so the cells give
+   up some of their side padding there rather than hand the reader a
+   scrollbar for six pixels. */
+@media (max-width: 480px) {
+    article .scroll table th, article .scroll table td {
+        padding-left: .4rem; padding-right: .4rem;
+    }
+}
 
 /* A diagram cannot reflow. Squeeze one into a phone column and its labels
    drop under the reading floor — the same defect as small text, arrived at
