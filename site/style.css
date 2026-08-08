@@ -525,7 +525,12 @@ p code, li code, td code {
 .race .num { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); }
 
 figure { margin: 0; }
-figure img { width: 100%; border: 1px solid var(--border); border-radius: 12px; display: block; }
+/* height:auto is not optional beside width:100%. An image SHOULD carry
+   its intrinsic width and height so the page reserves its space and
+   nothing jumps when it lands (Zui rule 38) — and without this line
+   that honest height attribute is exactly what squashes it. */
+figure img { width: 100%; height: auto; border: 1px solid var(--border);
+             border-radius: 12px; display: block; }
 figcaption { font-size: var(--read); color: var(--ink-soft); text-align: center; margin-top: .9rem; line-height: 1.6; }
 
 footer { border-top: 1px solid var(--border); margin-top: 2rem; padding: 2rem 0 3rem; color: var(--ink-soft); font-size: var(--floor); }

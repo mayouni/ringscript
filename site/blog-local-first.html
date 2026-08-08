@@ -6,7 +6,7 @@
 <title>Local-first is not a luxury — RingScript blog</title>
 <meta name="description" content="The applications behind RingScript run in a bank in Niger, a high school, a restaurant in France. What building for places where the connection is a guest teaches about software.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.25">
+<link rel="stylesheet" href="style.css?v=0.9.26">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
@@ -18,15 +18,10 @@
         margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
         border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
     }
+    /* The diagram carries its own caption in the artwork, so there is no
+       figcaption to repeat it — the sentence lives in the alt text instead,
+       where a reader who cannot see the picture will actually meet it. */
     figure { margin: 2rem 0; }
-    figure svg { width: 100%; height: auto; display: block; }
-    figcaption { font-size: var(--floor); color: var(--ink-soft); margin-top: .5rem; text-align: center; }
-    .d-line { stroke: currentColor; stroke-width: 1.5; fill: none; opacity: .75; }
-    .d-dash { stroke: currentColor; stroke-width: 1.5; fill: none; opacity: .45; stroke-dasharray: 5 5; }
-    .d-box { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: .8; rx: 8; }
-    .d-accent { stroke: var(--accent); fill: none; stroke-width: 2; }
-    .d-t { font: 600 17px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
-    .d-s { font: 16px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .65; }
 </style>
 </head>
 <body>
@@ -73,25 +68,16 @@ needs the cloud to think is not an application — it is a promise that
 breaks at the worst moment.</p>
 
 <figure>
-<svg viewBox="0 0 640 190" role="img" aria-label="Diagram: the application and its data live on the device; the connection is used when it is available">
-  <rect class="d-box" x="20" y="30" width="270" height="130" rx="10"/>
-  <text class="d-t" x="40" y="58">The device</text>
-  <rect class="d-accent" x="40" y="74" width="110" height="34" rx="6"/>
-  <text class="d-t" x="55" y="96">the app</text>
-  <rect class="d-accent" x="40" y="116" width="110" height="34" rx="6"/>
-  <text class="d-t" x="55" y="138">the data</text>
-  <path class="d-line" d="M150 91 h60 M150 133 h60"/>
-  <text class="d-s" x="216" y="96">works</text>
-  <text class="d-s" x="216" y="138">answers</text>
-  <path class="d-dash" d="M290 95 C 360 95, 380 95, 450 95"/>
-  <text class="d-s" x="315" y="84">when the connection allows</text>
-  <rect class="d-box" x="450" y="60" width="170" height="70" rx="10"/>
-  <text class="d-t" x="478" y="90">the server</text>
-  <text class="d-s" x="478" y="110">sync, backup, share</text>
-</svg>
-<figcaption>The local-first shape: the connection is a guest, not a
-foundation. When it visits, you synchronise. When it leaves, nothing
-stops.</figcaption>
+<img src="local-first-diagram-1.jpg" width="1024" height="420" loading="lazy"
+     alt="The local-first shape. A tablet labelled &quot;The device&quot; contains
+          two things joined to each other: the app, drawn as a phone screen, and
+          the data, drawn as a database cylinder marked &quot;Local Database
+          (persistent)&quot;. The app works; the data answers. A visitor stands on
+          the device. Outside it, across the widest gap in the picture, a cloud
+          labelled &quot;The server&quot; offers sync, backup and share — and it is
+          reached by a dashed line, the only dashed thing here, labelled &quot;when
+          the connection allows&quot;. The connection is a guest, not a foundation:
+          when it visits, you synchronise; when it leaves, nothing stops.">
 </figure>
 
 <h2>The tontine test</h2>
