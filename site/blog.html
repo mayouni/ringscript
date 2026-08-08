@@ -6,7 +6,7 @@
 <title>Blog — RingScript</title>
 <meta name="description" content="Writing from the RingScript project: why local-first software matters, how to write fast Ring pages, what a browser cannot give a Ring program, and the deep technical work behind the runtime.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.24">
+<link rel="stylesheet" href="style.css?v=0.9.25">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
@@ -155,6 +155,15 @@ page you are reading.</p>
   <p class="label">Deep technical</p>
   <p class="why">How the runtime actually works, and how it is held
   correct. For readers who want the source, not the summary.</p>
+
+  <div class="post">
+    <h2><a href="blog-measured-against.html">Measured against Lua and QuickJS</a></h2>
+    <p>The same scenarios through two other C interpreters compiled to
+    WebAssembly. Robustness parity is the headline; Ring wins four rows of
+    nine, including JSON encode ahead of QuickJS's native codec. Every loss
+    is published with its cause — and those causes became the work list
+    that produced the wins.</p>
+  </div>
 
   <div class="post">
     <h2><a href="blog-zig-not-emscripten.html">Zig instead of Emscripten</a></h2>

@@ -510,6 +510,20 @@ p code, li code, td code {
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; background: var(--accent-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; text-align: center; }
 .stats .num { font-size: 1.9rem; font-weight: 700; color: var(--accent); }
 .stats .what { font-size: var(--read); color: var(--ink-soft); }
+/* The race panel on the front page: what was won on the left, what was
+   lost on the right, at the same size and the same weight. A comparison
+   that shrinks its own losses is an advertisement. */
+.race { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.6rem 0; }
+@media (max-width: 767px) { .race { grid-template-columns: 1fr; } }
+.race > div { border-radius: 12px; padding: 1.2rem 1.3rem; border: 1px solid var(--border); }
+.race .won { background: var(--accent-soft); border-color: transparent; }
+.race .cap { margin: 0 0 .7rem; font-weight: 700; color: var(--ink); }
+.race .won .cap { color: var(--accent); }
+.race ul { margin: 0; padding-left: 1.1rem; }
+.race li { color: var(--ink-soft); margin-bottom: .55rem; }
+.race li:last-child { margin-bottom: 0; }
+.race .num { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); }
+
 figure { margin: 0; }
 figure img { width: 100%; border: 1px solid var(--border); border-radius: 12px; display: block; }
 figcaption { font-size: var(--read); color: var(--ink-soft); text-align: center; margin-top: .9rem; line-height: 1.6; }

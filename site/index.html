@@ -6,7 +6,7 @@
 <title>RingScript — script the frontend in Ring, not JavaScript</title>
 <meta name="description" content="RingScript runs the real Ring VM in the browser via WebAssembly. Script your pages in a calm, readable language — two static files, no build step, no npm, no framework churn.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.24">
+<link rel="stylesheet" href="style.css?v=0.9.25">
 </head>
 <body>
 
@@ -179,6 +179,46 @@
     <div><div class="num">0</div><div class="what">mismatches across both corpora</div></div>
     <div><div class="num">36</div><div class="what">gates on state, errors, memory, I/O, bridge</div></div>
     <div><div class="num">1.27</div><div class="what">Ring version inside the wasm</div></div>
+  </div>
+</section>
+
+<section class="wrap">
+  <h2>And it races the fastest small interpreters there are</h2>
+  <p class="lead">The same scenarios, run through <b>Lua 5.4</b> and
+  <b>QuickJS</b> — two C interpreters compiled to WebAssembly, same weight
+  class, same architecture — under the same measurement discipline. The
+  point was never to win; it was to find out where the headroom was. Every
+  loss is published with its cause, and the causes became the work.</p>
+
+  <div class="race">
+    <div class="won">
+      <p class="cap">Ring wins four of the nine scenarios</p>
+      <ul>
+        <li><b>JSON encode</b> 8.7&nbsp;KB — <span class="num">0.134&nbsp;ms</span>,
+            ahead of QuickJS's <em>native</em> codec (0.433) and Lua (0.726)</li>
+        <li><b>1&nbsp;MB through JSON</b> — <span class="num">1.53&nbsp;ms</span>
+            against 14.2 and 154.7; it cost 944&nbsp;ms a day earlier</li>
+        <li><b>Building a 2,000-char string</b> — <span class="num">0.217&nbsp;ms</span> against 0.304 and 0.691</li>
+        <li><b>Copy and sort 2,000 numbers</b> — <span class="num">0.229&nbsp;ms</span> against 0.375 and 0.882</li>
+      </ul>
+    </div>
+    <div class="lost">
+      <p class="cap">And loses the other five, on the record</p>
+      <ul>
+        <li>Lua's loop dispatch is a design generation ahead — it is 7× faster than <em>QuickJS</em> on that row too</li>
+        <li>Creating objects still costs 18× a Lua table: hot-path data in lists, objects in the domain model</li>
+        <li>Starting a fresh VM takes 3.3&nbsp;ms against 0.15 — once per page, and down from 6.7</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="lead">The row that matters most has no winner at all:
+  <b>10,000 evaluations with errors mixed in grow nobody's heap, and 1,200
+  hostile inputs kill nobody</b> — for all three engines. That parity is
+  what a year of running unattended in a branch office actually needs.</p>
+
+  <div class="actions" style="justify-content:flex-start">
+    <a class="btn primary" href="blog-measured-against.html">Read the full scoreboard</a>
   </div>
 </section>
 

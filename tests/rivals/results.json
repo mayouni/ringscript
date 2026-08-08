@@ -1,13 +1,13 @@
 {
-  "date": "2026-08-07",
+  "date": "2026-08-08",
   "quick": false,
   "engines": {
     "ring": {
       "name": "Ring 1.27 (RingScript)",
-      "wasmBytes": 378719,
+      "wasmBytes": 396935,
       "fresh": {
-        "min": 3.336,
-        "median": 3.937
+        "min": 3.322,
+        "median": 3.946
       },
       "soak": {
         "evals": 10000,
@@ -28,8 +28,8 @@
       "name": "Lua 5.4 (wasmoon)",
       "wasmBytes": 271581,
       "fresh": {
-        "min": 0.15,
-        "median": 0.178
+        "min": 0.148,
+        "median": 0.195
       },
       "soak": {
         "evals": 10000,
@@ -50,8 +50,8 @@
       "name": "QuickJS (quickjs-emscripten)",
       "wasmBytes": 518880,
       "fresh": {
-        "min": 0.134,
-        "median": 0.154
+        "min": 0.137,
+        "median": 0.163
       },
       "soak": {
         "evals": 10000,
@@ -70,43 +70,43 @@
     }
   },
   "eval-min": {
-    "ring": 0.094,
+    "ring": 0.04,
     "lua": 0.002,
-    "js": 0.003
+    "js": 0.002
   },
   "loop-10k": {
-    "ring": 0.719,
+    "ring": 0.65,
     "lua": 0.058,
-    "js": 0.403
+    "js": 0.416
   },
   "string-2k": {
-    "ring": 0.279,
-    "lua": 0.301,
-    "js": 0.667
+    "ring": 0.217,
+    "lua": 0.304,
+    "js": 0.691
   },
   "sort-2k": {
-    "ring": 0.286,
-    "lua": 0.37,
-    "js": 0.835
+    "ring": 0.229,
+    "lua": 0.375,
+    "js": 0.882
   },
   "objects-2k": {
-    "ring": 6.12,
-    "lua": 0.205,
-    "js": 0.612
+    "ring": 3.729,
+    "lua": 0.203,
+    "js": 0.646
   },
   "json-encode": {
-    "ring": 0.185,
-    "lua": 0.723,
-    "js": 0.42
+    "ring": 0.134,
+    "lua": 0.726,
+    "js": 0.433
   },
   "json-decode": {
-    "ring": 0.719,
-    "lua": 1.153,
-    "js": 0.198
+    "ring": 0.76,
+    "lua": 1.183,
+    "js": 0.197
   },
   "json-1mb": {
-    "ring": 1.542,
-    "lua": 76.419,
-    "js": 7.999
+    "ring": 1.53,
+    "lua": 154.707,
+    "js": 14.212
   }
 }

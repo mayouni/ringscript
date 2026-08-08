@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measured against Lua and QuickJS — RingScript blog</title>
+<meta name="description" content="The same scenarios through three C interpreters compiled to WebAssembly. Robustness parity, four wins out of nine, and every loss published with its cause.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.25">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+
+    table.board { width: 100%; border-collapse: collapse; margin: 1.4rem 0; font-size: var(--read); }
+    table.board th, table.board td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--border); }
+    table.board th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                     color: var(--ink-soft); font-weight: 600; }
+    table.board td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    /* Rule 117: exactly one column carries colour — the one that answers
+       "who won this row?". Every other number stays plain text. */
+    table.board td.who { font-weight: 700; }
+    table.board tr.ring-wins td.who { color: var(--accent); }
+    table.board tr.ring-wins td.ring { font-weight: 700; color: var(--ink); }
+    .scroll { overflow-x: auto; }
+
+    .headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+                gap: 1rem; margin: 1.8rem 0; }
+    .headline div { background: var(--accent-soft); border-radius: 12px; padding: 1.1rem 1.2rem; }
+    .headline b { display: block; font-size: 1.9rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+    .headline span { color: var(--ink-soft); font-size: var(--floor); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>Measured against Lua and QuickJS</h1>
+
+<p class="meta"><span class="label">Deep technical</span> August 2026 · from the RingScript project</p>
+
+<p class="first">Every other number on this site is absolute — so many
+milliseconds, so many rows. This one gives them context: the same
+scenarios run through two other C interpreters compiled to WebAssembly,
+under the same measurement discipline. It exists to find the headroom, not
+to win, so the losses are published beside the wins.</p>
+
+<h2>The rules, before the numbers</h2>
+
+<p>A comparison page is marketing unless it binds itself first. Two
+rules:</p>
+
+<p><b>Each language gets idiomatic code.</b> The same algorithm, written
+the way that language's programmer would actually write it — not Ring
+written as if it were Lua. <b>Losses are published with the wins.</b> Four
+of the nine rows below go to somebody else, and each one says why.</p>
+
+<h2>The contenders</h2>
+
+<div class="scroll">
+<table class="board">
+  <thead><tr><th>Engine</th><th class="n">wasm size</th><th>Errors arrive as</th></tr></thead>
+  <tbody>
+    <tr><td><b>Ring 1.27</b> — RingScript</td><td class="n">397 KB</td><td>a returned <code>{ok:false}</code></td></tr>
+    <tr><td><b>Lua 5.4</b> — wasmoon</td><td class="n">272 KB</td><td>a thrown exception (its contract)</td></tr>
+    <tr><td><b>QuickJS</b> — quickjs-emscripten</td><td class="n">519 KB</td><td>a returned handle</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Same weight class, same architecture: a C interpreter compiled to wasm,
+holding resident state between evaluations. Lua is the closest structural
+twin. QuickJS is the strongest small interpreter in the business, so it
+marks the ceiling rather than the average.</p>
+
+<h2>The headline is not speed</h2>
+
+<p>It is that nothing breaks. Both suites this project takes most
+seriously, run through all three engines:</p>
+
+<div class="headline">
+  <div><b>+0.00 MB</b><span>heap growth over 10,000 evaluations with errors mixed in — for all three engines</span></div>
+  <div><b>0</b><span>deaths across 1,200 hostile inputs each — all three still answering afterwards</span></div>
+</div>
+
+<p>Nobody leaks on the page workload, nobody dies on garbage, everybody
+keeps working. That is an unremarkable-looking table and it is the one
+that matters: it is the difference between a demo and something you would
+leave running in a branch office for a year.</p>
+
+<p>It was not always true here. Before this project's hardening work,
+RingScript would have <em>failed the endurance row</em> — it leaked a class
+per evaluation, which is precisely this shape of defect. That table is what
+the work bought: a seat at a table where mature interpreters sit.</p>
+
+<blockquote>Ring does accept more garbage than the others — 22 of 1,200
+against 3 and 7 — because its grammar treats more stray text as a valid
+program. Accepting garbage quietly is not a crash, but it is worth
+knowing.</blockquote>
+
+<h2>The scoreboard</h2>
+
+<p>Minimum of many runs, Intel Core 5 210H, Node 22. This is one recorded
+run — the table and
+<a href="https://github.com/mayouni/ringscript/blob/main/tests/rivals/results.json"
+target="_blank" rel="noopener">the data file behind it</a> are the same
+run, so neither can drift from the other.</p>
+
+<div class="scroll">
+<table class="board">
+  <thead><tr><th>Scenario (min ms)</th><th class="n">ring</th><th class="n">lua</th><th class="n">js</th><th>Winner</th></tr></thead>
+  <tbody>
+    <tr><td>fresh evaluator</td><td class="n">3.32</td><td class="n">0.15</td><td class="n">0.14</td><td class="who">peers</td></tr>
+    <tr><td>assign a global</td><td class="n">0.040</td><td class="n">0.002</td><td class="n">0.002</td><td class="who">lua</td></tr>
+    <tr><td>10,000-iteration loop</td><td class="n">0.650</td><td class="n">0.058</td><td class="n">0.416</td><td class="who">lua</td></tr>
+    <tr class="ring-wins"><td>build a 2,000-char string</td><td class="n ring">0.217</td><td class="n">0.304</td><td class="n">0.691</td><td class="who">ring</td></tr>
+    <tr class="ring-wins"><td>copy + sort 2,000 numbers</td><td class="n ring">0.229</td><td class="n">0.375</td><td class="n">0.882</td><td class="who">ring</td></tr>
+    <tr><td>create 2,000 objects</td><td class="n">3.729</td><td class="n">0.203</td><td class="n">0.646</td><td class="who">lua</td></tr>
+    <tr class="ring-wins"><td>JSON encode ~8.7 KB</td><td class="n ring">0.134</td><td class="n">0.726</td><td class="n">0.433</td><td class="who">ring</td></tr>
+    <tr><td>JSON decode ~8.7 KB</td><td class="n">0.760</td><td class="n">1.183</td><td class="n">0.197</td><td class="who">js</td></tr>
+    <tr class="ring-wins"><td>1 MB through JSON</td><td class="n ring">1.53</td><td class="n">154.7</td><td class="n">14.2</td><td class="who">ring</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>Four rows of nine.</b> A day earlier it was two — the difference is
+one day of executing a plan that had been written from the first run of
+this same harness.</p>
+
+<h2>Why Ring wins where it wins</h2>
+
+<p>The pattern behind every win is the same sentence: <b>when the work
+lands in the vendored C, Ring is competitive with anyone.</b></p>
+
+<p><b>String building.</b> Ring's append is amortised — the JSON hardening
+measured this directly, and appends are linear. Lua's strings are
+immutable, so every concatenation pays a fresh allocation.</p>
+
+<p><b>Sorting.</b> <code>sort()</code> lands in the VM's own C sort, and
+that sort is good.</p>
+
+<p><b>JSON.</b> This is the one worth pausing on, because it is the clearest
+case of a design decision paying off. The codec used to be written in Ring
+itself — 10.4 ms to encode 8.7 KB, and <b>944 ms</b> for a megabyte round
+trip. It is C now, held <em>byte-identical to the pure-Ring reference by a
+permanent test</em>, so the same file still runs on native Ring and any
+divergence fails the build. Encoding went to <b>0.134 ms</b> — ahead of
+QuickJS's own native codec — and the megabyte round trip to <b>1.53 ms</b>,
+which is a <b>617×</b> improvement and the widest margin on the board.</p>
+
+<h2>Why it loses where it loses</h2>
+
+<p><b>A fresh evaluator: 3.3 ms against 0.15.</b> Mostly not interpreter
+quality. The peers compile their wasm once and instantiate many; RingScript
+now does too, stamping each new instance from a post-initialisation memory
+snapshot — which is what took this row from 6.7 ms to 3.3. The remainder is
+Ring parsing its embedded library at startup. For a page that creates one
+VM, 3 ms is not a number anyone will feel.</p>
+
+<p><b>Assigning one global: 20× slower.</b> This is overhead, not
+execution — everything wrapped around your code: a keyword scan, the
+try/catch shim that routes through Ring's own <code>eval()</code>, the
+auto-<code>main</code> check. For a page calling into Ring on a click,
+0.04 ms is nothing. For anything calling it in a tight loop it dominates
+before your code runs a single statement, and the answer is to batch the
+work into one call.</p>
+
+<p><b>The loop: Lua is 11× faster.</b> True, and context matters — Lua is
+also <b>7× faster than QuickJS</b> on the same row. Register-based dispatch
+with a fused loop opcode is a different design generation. Ring sits within
+about 1.5× of QuickJS here, which is a respectable place for an interpreter
+that has never had a bytecode redesign.</p>
+
+<p><b>Creating objects: 18× a Lua table.</b> The single largest
+interpreter-side gap, and it was 31× before an object template cache
+landed. The honest guidance stands: <b>hot-path data in lists, objects in
+the domain model</b>.</p>
+
+<h2>What this is for</h2>
+
+<p>The scoreboard is not the product. What it produced is: every one of
+those losses came with a cause, the causes became a work list, and the work
+list was executed — snapshot instancing, a C JSON codec, computed-goto
+dispatch, an <code>-O2</code> hot core, an object template cache. Two wins
+became four in a day, and <em>no correctness was traded for any of it</em>:
+the same ~850 programs still match native <code>ring.exe</code> byte for
+byte.</p>
+
+<blockquote>Racing the fastest small interpreters in the business is not
+about beating them. It is the only reliable way to find out where your own
+next multiple is hiding.</blockquote>
+
+<p>What the page is not: a single machine, Node rather than a browser, and
+three engines that made different trade-offs — Lua ships no JSON at all,
+QuickJS ships a C one, Ring ships a pure-Ring one so the same file runs
+natively. Read it as a map of where the headroom is, not as a league
+table.</p>
+
+<h2>Run it yourself</h2>
+
+<pre><code>cd tests/rivals
+npm install        # wasmoon + quickjs-emscripten, ~10 packages
+node run.js --json=results.json</code></pre>
+
+<p>It is deliberately <em>not</em> part of CI: it needs npm dependencies the
+runtime itself must never grow, and its numbers are for learning rather
+than gating — <a
+href="https://github.com/mayouni/ringscript/blob/main/tests/bench.js"
+target="_blank" rel="noopener">tests/bench.js</a> remains the regression
+gate, calibrated against a fixed workload so a millisecond means the same
+thing on your machine as on mine.</p>
+
+<p>The full page, including the before-picture and every caveat:
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/rivals.md"
+target="_blank" rel="noopener">docs/rivals.md</a>. The plan the first run
+produced: <a
+href="https://github.com/mayouni/ringscript/blob/main/docs/HEADROOM_PLAN.md"
+target="_blank" rel="noopener">docs/HEADROOM_PLAN.md</a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+
+</body>
+</html>

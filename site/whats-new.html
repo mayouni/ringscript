@@ -6,7 +6,7 @@
 <title>What's new — RingScript</title>
 <meta name="description" content="What has landed in RingScript, in the order it happened: the runtime, the hardening, the performance work, the data app, and the fixes contributed back to Ring.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.24">
+<link rel="stylesheet" href="style.css?v=0.9.25">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
@@ -51,6 +51,28 @@
 measured. This page keeps the short version of what has landed, newest
 first — each entry links to the code, the documents or the pages behind
 it.</p>
+
+<div class="entry">
+  <p class="date">August 8, 2026</p>
+  <h2>The scoreboard comes to the site</h2>
+  <p>RingScript is measured against <b>Lua 5.4</b> and <b>QuickJS</b> — two
+  C interpreters compiled to WebAssembly, same weight class — and the
+  result now has a home here rather than only in the repository. Ring wins
+  <b>four of the nine scenarios</b>, including JSON encode at
+  <span class="num">0.134&nbsp;ms</span>, ahead of QuickJS's <em>native</em>
+  codec, and a megabyte through JSON at <span class="num">1.53&nbsp;ms</span>
+  against 14.2 and 154.7. The five it loses are published with their causes,
+  because those causes are what produced the wins.</p>
+  <p>The whole table was re-measured for this, in one recorded run that also
+  rewrites <code>results.json</code> — the published numbers and the data
+  file behind them are now the same run. They had drifted: the file still
+  held a mid-day snapshot saying objects cost 6.12&nbsp;ms while the page
+  said 3.05.</p>
+  <p class="links">
+    <a href="blog-measured-against.html">The full scoreboard</a>
+    <a href="index.html">See it on the front page</a>
+  </p>
+</div>
 
 <div class="entry">
   <p class="date">August 8, 2026</p>

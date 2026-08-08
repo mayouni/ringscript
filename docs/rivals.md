@@ -16,26 +16,37 @@ Two honesty rules, or a page like this is marketing:
 ## The scoreboard, kept current
 
 The first run of this harness (August 7, 2026, morning) became the
-work list in [HEADROOM_PLAN.md](HEADROOM_PLAN.md); the numbers below
-are the re-run after P1 (snapshot instancing) and P2 (the C JSON
-codec) landed the same day. The original table further down is kept
-verbatim as the before-picture.
+work list in [HEADROOM_PLAN.md](HEADROOM_PLAN.md). The table below is a
+full re-run on **August 8, 2026**, after all of P1–P5 landed, and it is
+the run recorded in
+[`results.json`](../tests/rivals/results.json) — the published numbers
+and the data file are the same run, so neither can drift from the
+other. The original table further down is kept verbatim as the
+before-picture.
 
 | scenario (min ms) | ring | lua | js | winner | was (ring) |
 |---|---|---|---|---|---|
-| fresh evaluator | 3.34 | 0.15 | 0.13 | peers | 6.70 |
-| assign a global | 0.046¹ | 0.002 | 0.003 | lua | 0.095 |
-| 10,000-iteration loop | 0.654² | 0.058 | 0.403 | lua | 0.738 |
-| build a 2,000-char string | **0.203²** | 0.301 | 0.667 | **ring** | 0.282 |
-| copy + sort 2,000 numbers | **0.212²** | 0.370 | 0.835 | **ring** | 0.294 |
-| create 2,000 objects | 3.051³ | 0.205 | 0.612 | lua | 6.262 |
-| JSON encode ~8.7 KB | **0.185** | 0.723 | 0.420 | **ring** | 10.4 |
-| JSON decode ~8.7 KB | 0.719 | 1.153 | 0.198 | js | 32.7 |
-| 1 MB through JSON | **1.542** | 76.4 | 8.0 | **ring** | 944.6 |
+| fresh evaluator | 3.32 | 0.15 | 0.14 | peers | 6.70 |
+| assign a global | 0.040 | 0.002 | 0.002 | lua | 0.095 |
+| 10,000-iteration loop | 0.650 | 0.058 | 0.416 | lua | 0.738 |
+| build a 2,000-char string | **0.217** | 0.304 | 0.691 | **ring** | 0.282 |
+| copy + sort 2,000 numbers | **0.229** | 0.375 | 0.882 | **ring** | 0.294 |
+| create 2,000 objects | 3.729 | 0.203 | 0.646 | lua | 6.262 |
+| JSON encode ~8.7 KB | **0.134** | 0.726 | 0.433 | **ring** | 10.4 |
+| JSON decode ~8.7 KB | 0.760 | 1.183 | 0.197 | js | 32.7 |
+| 1 MB through JSON | **1.53** | 154.7 | 14.2 | **ring** | 944.6 |
 
-¹ 0.046 after P3 (the auto-main skip); 0.043 after P4.
-² After P4 (computed-goto dispatch + `-O2` VM core), same day.
-³ After P5 (the object template cache), same day.
+Two notes on reading this honestly. The **1 MB row moves a lot for the
+peers** — Lua measured 76 ms in one run and 155 ms in the next, QuickJS
+8 ms and 14 ms — because a megabyte through a codec is dominated by
+allocation, which is exactly the thing a machine's other processes
+disturb. Ring's own figure sat between 1.46 and 1.53 across every run,
+so the *conclusion* (Ring wins that row outright) is robust even though
+the peers' exact numbers are not. And a **note on the earlier
+scoreboard**: for a day this page carried numbers from three different
+mid-day runs, and `results.json` held a snapshot taken before P3–P5 —
+so the file said objects cost 6.12 ms while the page said 3.05. One
+recorded run now backs the whole table.
 
 Ring's wins went from two rows to **four of nine** in one day of
 executing the plan — including JSON encode, where Ring now beats
