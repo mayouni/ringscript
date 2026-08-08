@@ -64,7 +64,11 @@ aPackageInfo = [
 		"playground/examples/packages.ring",
 		"playground/examples/reflection.ring",
 		"playground/site.css",
-		"playground/favicon.ico",
+		"playground/favicon.svg",
+		# The shared Ring highlighter. index.html loads it and calls into it
+		# immediately, so leaving it out does not degrade the Playground —
+		# it stops the whole editor script on the first line.
+		"playground/ring-highlight.js",
 
 		# Scaffolding template used by `ring main.ring new <folder>`
 		"cli/starter.html",
