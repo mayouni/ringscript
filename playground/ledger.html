@@ -17,9 +17,14 @@
     --fg: var(--ink); --dim: var(--muted); --line: var(--border); --card: var(--code-bg);
     --instant:#12703a; --resp:#8a5a00; --slow:#b3261e;
   }
-  .wrap { max-width:64rem; padding-bottom:4rem; }
-  h1 { margin:0 0 .3rem; }
-  .sub { color:var(--ink-soft); margin:0 0 1rem; max-width:44rem; }
+  /* This page hangs its content on a bare .wrap rather than a <section>,
+     so it never inherited the section's top padding and the title sat
+     jammed against the menu. The spacing is written here instead. */
+  .wrap { max-width:64rem; padding-top:3rem; padding-bottom:4rem; }
+  h1 { margin:0 0 1.2rem; max-width:44rem; }
+  .sub { color:var(--ink-soft); margin:0 0 1.1rem; max-width:44rem; }
+  /* the last line of the introduction, before the controls begin */
+  .sub:last-of-type { margin-bottom:2rem; }
   h2 { font-size:var(--floor); margin:2rem 0 .6rem; text-transform:uppercase;
        letter-spacing:.05em; color:var(--ink-soft); font-weight:700; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
