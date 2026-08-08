@@ -6,23 +6,23 @@
 <title>A 50,000-row page and two quadratic surprises — RingScript blog</title>
 <meta name="description" content="A real app, driven like a user, found two O(n²) behaviours in the Ring VM's list machinery — invisible to every benchmark. The diagnosis, the fixes, and the safety net.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
-    .meta { font-size: .85rem; color: var(--ink-soft); margin: 0 0 1.6rem; }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
     .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
-                   letter-spacing: .05em; font-size: .75rem; margin-right: .7rem; }
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
     pre {
         background: var(--code-bg, rgba(127,127,127,.08));
         border: 1px solid var(--border); border-radius: 9px;
-        padding: .9rem 1rem; overflow-x: auto; font-size: .85rem; line-height: 1.5;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
     }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: .92rem; }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
     table.m th, table.m td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--border); }
-    table.m th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
                  color: var(--ink-soft); font-weight: 600; }
     table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .hot { color: #b3261e; font-weight: 700; }
@@ -30,7 +30,7 @@
     @media (prefers-color-scheme: dark) { .hot { color: #ff7a70; } .cool { color: #6fcf97; } }
     figure { margin: 2rem 0; }
     figure svg { width: 100%; height: auto; display: block; }
-    figcaption { font-size: .85rem; color: var(--ink-soft); margin-top: .5rem; text-align: center; }
+    figcaption { font-size: var(--floor); color: var(--ink-soft); margin-top: .5rem; text-align: center; }
     .d-box { fill: none; stroke: currentColor; stroke-width: 1.4; opacity: .8; }
     .d-line { stroke: currentColor; stroke-width: 1.4; fill: none; opacity: .7; }
     .d-walk { stroke: #b3261e; stroke-width: 2; fill: none; }
@@ -38,8 +38,8 @@
     @media (prefers-color-scheme: dark) {
         .d-walk { stroke: #ff7a70; } .d-jump { stroke: #6fcf97; }
     }
-    .d-t { font: 600 12px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
-    .d-s { font: 11px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .65; }
+    .d-t { font: 600 17px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
+    .d-s { font: 16px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .65; }
     .gh { width: .95em; height: .95em; vertical-align: -.1em; margin-left: .3em; fill: currentColor; }
     .scroll { overflow-x: auto; }
 </style>
@@ -50,7 +50,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>
@@ -61,12 +60,16 @@
   </div>
 </nav>
 
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><a href="blog.html">Blog</a><span class="sep">&rsaquo;</span><span class="here-crumb">A 50,000-row page and two quadratic surprises</span></p>
+</nav>
+
 <section class="wrap">
 <article>
 
-<p class="meta"><span class="label">Deep technical</span> August 2026 · from the RingScript project</p>
-
 <h1>A 50,000-row page and two quadratic surprises</h1>
+
+<p class="meta"><span class="label">Deep technical</span> August 2026 · from the RingScript project</p>
 
 <p class="first">We had benchmarks. We had a soak suite running forty
 thousand evaluations, a fuzzer with thousands of hostile inputs, and ~850

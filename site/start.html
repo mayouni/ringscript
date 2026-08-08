@@ -6,19 +6,19 @@
 <title>Start here — RingScript</title>
 <meta name="description" content="Download one folder, double-click one file, and a web page written in Ring is running. No installation, no web experience needed.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
 
     /* the one thing this page exists to make obvious */
     .get {
         background: var(--accent-soft); border-radius: 14px;
         padding: 1.8rem 1.6rem; margin: 2rem 0; text-align: center;
     }
-    .get .btn { font-size: 1.08rem; padding: .8rem 2rem; }
-    .get .meta { color: var(--ink-soft); font-size: 1rem; margin: .9rem 0 0; }
+    .get .btn { font-size: var(--read); padding: .8rem 2rem; }
+    .get .meta { color: var(--ink-soft); font-size: var(--read); margin: .9rem 0 0; }
 
     /* numbered walkthrough */
     .walk { counter-reset: w; list-style: none; padding: 0; margin: 1.6rem 0; }
@@ -30,7 +30,7 @@
         content: counter(w); position: absolute; left: 0; top: -.1rem;
         width: 2.2rem; height: 2.2rem; border-radius: 50%;
         background: var(--accent); color: #fff;
-        font-weight: 700; font-size: 1.05rem; display: grid; place-items: center;
+        font-weight: 700; font-size: var(--floor); display: grid; place-items: center;
     }
     .walk li b { color: var(--ink); }
 
@@ -45,15 +45,15 @@
     .walk figure.term img { max-width: 460px; }
     .walk figure.page img { max-width: 340px; }
     .walk figcaption {
-        font-size: .98rem; color: var(--muted);
+        font-size: var(--floor); color: var(--muted);
         text-align: left; margin-top: .5rem;
     }
 
     /* what it is / is not */
     .isnot { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
     .isnot div { border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem; }
-    .isnot h3 { margin: 0 0 .5rem; font-size: 1.1rem; }
-    .isnot p { margin: 0 0 .5rem; font-size: 1.03rem; }
+    .isnot h3 { margin: 0 0 .5rem; }
+    .isnot p { margin: 0 0 .5rem; }
     .isnot p:last-child { margin-bottom: 0; }
     .isnot .yes h3 { color: var(--accent); }
     .isnot .no  h3 { color: #a2231a; }
@@ -61,7 +61,7 @@
     .tree {
         background: var(--code-bg); border: 1px solid var(--code-border);
         border-radius: 10px; padding: 1.1rem 1.2rem; margin: 1.4rem 0;
-        font-family: var(--mono); font-size: 15px; line-height: 1.8;
+        font-family: var(--mono); font-size: var(--mono-size); line-height: 1.8;
         overflow-x: auto; color: var(--code-ink);
         /* A div collapses newlines and runs the whole tree into one
            paragraph. The drawing IS the line breaks, so keep them. */
@@ -76,7 +76,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a class="active" href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>
@@ -85,6 +84,10 @@
     <a href="whats-new.html">What's new</a>
     <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
   </div>
+</nav>
+
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><span class="here-crumb">Start here</span><span class="sep">&rsaquo;</span><a href="tutorial-clock.html">Build an analog clock</a></p>
 </nav>
 
 <section class="wrap">

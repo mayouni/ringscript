@@ -6,17 +6,17 @@
 <title>Questions and answers — RingScript</title>
 <meta name="description" content="Does load &quot;myfile.ring&quot; work in the browser? How do I split a program across files, read input, call Ring from a button? Plain answers for Ring developers.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
 
     /* Each question is a self-contained block: the heading is the question,
        and the first line of the answer is the answer. No hunting. */
     .qa { margin: 0 0 2.6rem; }
     .qa h3 {
-        font-size: 1.22rem; color: var(--ink); line-height: 1.4;
+        font-size: var(--read); color: var(--ink); line-height: 1.4;
         margin: 0 0 .6rem;
     }
     .qa p { margin: 0 0 .9rem; }
@@ -27,7 +27,7 @@
     .verdict {
         display: inline-block; margin: 0 0 .6rem;
         padding: .15em .8em; border-radius: 100px;
-        font-size: 1rem; font-weight: 600;
+        font-size: var(--floor); font-weight: 600;
     }
     .verdict.no  { background: #fdecea; color: #a2231a; }
     .verdict.yes { background: var(--accent-soft); color: var(--accent); }
@@ -44,7 +44,7 @@
         background: #fdecea; border: 1px solid #f5c6c0; border-radius: 10px;
         color: #7d1c14; padding: 1rem 1.2rem; margin: 1rem 0;
         font-family: var(--mono);
-        font-size: 15px; line-height: 1.7; overflow-x: auto;
+        font-size: var(--mono-size); line-height: 1.7; overflow-x: auto;
     }
 
     .note {
@@ -56,9 +56,9 @@
     /* Two runtimes side by side. Scrolls inside itself on a phone rather
        than widening the page. */
     .vs { overflow-x: auto; margin: 1.3rem 0; }
-    .vs table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: 1.02rem; }
+    .vs table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: var(--read); }
     .vs th, .vs td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-    .vs thead th { color: var(--ink); font-size: 1.05rem; }
+    .vs thead th { color: var(--ink); }
     .vs tbody th { color: var(--ink-soft); font-weight: 400; white-space: nowrap; }
     .vs td { color: var(--ink-soft); }
     .vs .big { font-weight: 700; color: var(--ink); white-space: nowrap; }
@@ -70,7 +70,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>

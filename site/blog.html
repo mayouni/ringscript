@@ -4,32 +4,34 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blog — RingScript</title>
-<meta name="description" content="Writing from the RingScript project: why local-first software matters, how to write fast Ring pages, and the deep technical work behind the runtime.">
+<meta name="description" content="Writing from the RingScript project: why local-first software matters, one grammar read by three runtimes, how to write fast Ring pages, and the deep technical work behind the runtime.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
 
-    .cat { margin: 2.4rem 0 0; padding-top: 1.4rem; border-top: 1px solid var(--border); }
-    .cat:first-of-type { border-top: 0; padding-top: 0; }
+    .cat { margin: 2.8rem 0 0; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .cat:first-of-type { border-top: 0; padding-top: 0; margin-top: 2rem; }
     .cat > .label {
-        font-size: .78rem; text-transform: uppercase; letter-spacing: .06em;
+        font-size: var(--floor); text-transform: uppercase; letter-spacing: .06em;
         color: var(--accent); font-weight: 700; margin: 0 0 .2rem;
     }
-    .cat > .why { margin: 0 0 1rem; font-size: .95rem; }
+    .cat > .why { margin: 0 0 1.4rem; }
 
-    .post {
-        display: block; text-decoration: none; color: inherit;
-        border: 1px solid var(--border); border-radius: 10px;
-        padding: 1rem 1.2rem; margin: .8rem 0;
+    /* A post is a heading and a summary, not a tile you press. The link is
+       the title, which is the honest affordance (Zui rule 119). */
+    .post { margin: 0 0 1.7rem; padding-left: 1rem; border-left: 3px solid var(--border); }
+    .post:hover { border-left-color: var(--accent); }
+    .post h2 { margin: 0 0 .35rem; }
+    .post h2 a { color: var(--ink); text-decoration: none; font-weight: 700; }
+    .post h2 a:hover { color: var(--accent); text-decoration: underline; }
+    .post p { margin: 0; }
+    .post .tag {
+        display: inline-block; margin-top: .5rem; font-size: var(--floor);
+        color: var(--accent); font-weight: 600;
     }
-    .post:hover { border-color: var(--accent); }
-    .post h2 { margin: 0 0 .35rem; font-size: 1.15rem; color: var(--ink); }
-    .post p { margin: 0; font-size: .95rem; }
-    .post .read { display: inline-block; margin-top: .55rem; color: var(--accent);
-                  font-weight: 600; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -38,7 +40,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>
@@ -49,6 +50,10 @@
   </div>
 </nav>
 
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><span class="here-crumb">Blog</span></p>
+</nav>
+
 <section class="wrap">
 <article>
 
@@ -56,47 +61,77 @@
 
 <p class="first">Writing from the work itself — no filler. Three kinds of
 posts: where this project is going and why, how to build things with it
-today, and the deep technical decisions underneath, with links into the
-real source and design documents.</p>
+today, and the decisions underneath, with links into the real source and
+the design documents they came from. Three of them run live Ring inside the
+page you are reading.</p>
 
 <div class="cat">
   <p class="label">Vision &amp; direction</p>
   <p class="why">Why this software exists, and for whom.</p>
-  <a class="post" href="blog-local-first.html">
-    <h2>Local-first is not a luxury</h2>
+
+  <div class="post">
+    <h2><a href="blog-local-first.html">Local-first is not a luxury</a></h2>
     <p>The applications behind RingScript run in a bank in Niger, a high
     school, a restaurant in France. What building for places where the
     connection is a guest — not a given — teaches about how software
     should be made.</p>
-    <span class="read">Read &rarr;</span>
-  </a>
+  </div>
+
+  <div class="post">
+    <h2><a href="blog-one-grammar.html">One grammar, three runtimes</a></h2>
+    <p>The rules of a savings circle, written once as a declaration and
+    read by three engines — a Zig CLI, a JavaScript page runtime, and Ring
+    in the browser. Why a closed verb set is a stronger guarantee than a
+    permission check, and why the parser written in Ring turned out to be
+    19&nbsp;KB smaller than the same parser in Zig.</p>
+    <span class="tag">with a live example you can edit and run</span>
+  </div>
 </div>
 
 <div class="cat">
   <p class="label">For app programmers</p>
   <p class="why">Practical, tested, copy-paste-able. The fastest path to
   building well with Ring in the browser.</p>
-  <a class="post" href="blog-data-pages.html">
-    <h2>Writing a fast data page in Ring — five rules and one payload shape</h2>
-    <p>Each rule was learned by getting it wrong first, and each is
-    measured. Includes a live Ring example you can edit and run on this
-    page.</p>
-    <span class="read">Read &rarr;</span>
-  </a>
+
+  <div class="post">
+    <h2><a href="blog-data-pages.html">Writing a fast data page in Ring — five rules and one payload shape</a></h2>
+    <p>Each rule was learned by getting it wrong first, and each has a
+    measurement behind it. Together they took a 20,000-record page from
+    sluggish to instant.</p>
+    <span class="tag">with a live example you can edit and run</span>
+  </div>
+
+  <div class="post">
+    <h2><a href="blog-browser-limits.html">What a browser cannot give you — and why that is an error, not a crash</a></h2>
+    <p>Files, directories, processes: the practical map of what a Ring
+    program loses inside a page, exactly how each loss behaves, the two
+    traps worth knowing before they bite, and how to ship your own Ring
+    library into the browser unchanged.</p>
+    <span class="tag">with a live example you can edit and run</span>
+  </div>
 </div>
 
 <div class="cat">
   <p class="label">Deep technical</p>
   <p class="why">How the runtime actually works, and how it is held
   correct. For readers who want the source, not the summary.</p>
-  <a class="post" href="blog-two-quadratics.html">
-    <h2>A 50,000-row page and two quadratic surprises</h2>
+
+  <div class="post">
+    <h2><a href="blog-zig-not-emscripten.html">Zig instead of Emscripten</a></h2>
+    <p>There was already a working Emscripten build. Replacing it was
+    decided in half a day, from five greps over the vendored C rather than
+    from taste — and the evidence was not unanimous. What replaced each
+    Emscripten convenience, the fallback that was never needed, and what
+    the choice cost.</p>
+  </div>
+
+  <div class="post">
+    <h2><a href="blog-two-quadratics.html">A 50,000-row page and two quadratic surprises</a></h2>
     <p>A real app, driven like a user, found two O(n²) behaviours in the
     Ring VM's list machinery within minutes — invisible to every benchmark
     we had. The diagnosis, the fixes, and the safety net that made
     touching the VM's most-used code path safe.</p>
-    <span class="read">Read &rarr;</span>
-  </a>
+  </div>
 </div>
 
 </article>

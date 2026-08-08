@@ -6,23 +6,23 @@
 <title>How RingScript started — the story</title>
 <meta name="description" content="Necessity is the mother of invention: how business applications in Niger and France, the Softanza engine and the StzWeb framework led to Ring running in the browser.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 44rem; }
     article h2 { margin-top: 3rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
     .proverb {
         margin: 2rem 0; padding: 1.2rem 1.4rem;
         background: var(--accent-soft); border-radius: 12px;
         text-align: center;
     }
     .proverb .ar { font-size: 1.5rem; color: var(--ink); direction: rtl; display: block; margin-bottom: .3rem; }
-    .proverb .en { color: var(--ink-soft); font-size: 1.05rem; }
+    .proverb .en { color: var(--ink-soft); }
     .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
     .pair div { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem; }
     .pair h3 { margin-bottom: .35rem; }
-    .pair p { margin: 0; font-size: 1.05rem; }
+    .pair p { margin: 0; }
     figure.shot { margin: 2rem 0; }
     /* signature */
     .signature {
@@ -36,8 +36,8 @@
         border: 3px solid var(--accent-soft);
     }
     .signature .who { line-height: 1.5; }
-    .signature .name { font-weight: 700; color: var(--ink); font-size: 1.1rem; }
-    .signature .role { color: var(--ink-soft); font-size: 1.02rem; }
+    .signature .name { font-weight: 700; color: var(--ink); }
+    .signature .role { color: var(--ink-soft); }
     @media (max-width: 520px) { .signature { flex-direction: column; align-items: flex-start; } }
 </style>
 </head>
@@ -47,7 +47,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a class="active" href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>

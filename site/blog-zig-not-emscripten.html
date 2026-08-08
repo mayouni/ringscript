@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zig instead of Emscripten — RingScript blog</title>
+<meta name="description" content="The 2025 build of Ring for the browser used Emscripten and worked. The rebuild used Zig and a hand-written WASI shim instead. How that decision was made from evidence in half a day, and what it cost.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.24">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    pre {
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    figure { margin: 2rem 0; }
+    figure svg { width: 100%; height: auto; display: block; }
+    figcaption { font-size: var(--floor); color: var(--ink-soft); margin-top: .6rem; text-align: center; }
+    .d-line { stroke: currentColor; stroke-width: 1.5; fill: none; opacity: .75; }
+    .d-box { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: .8; }
+    .d-accent { stroke: var(--accent); fill: none; stroke-width: 2; }
+    .d-t { font: 600 17px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
+    .d-s { font: 16px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .7; }
+
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border);
+                             vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><a href="blog.html">Blog</a><span class="sep">&rsaquo;</span><span class="here-crumb">Zig instead of Emscripten</span></p>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>Zig instead of Emscripten</h1>
+
+<p class="meta"><span class="label">Deep technical</span> August 2026 · from the RingScript project</p>
+
+<p class="first">There was already a working answer. A 2025 attempt had
+compiled the Ring virtual machine to WebAssembly with Emscripten, and it
+ran — <code>see 1+2</code> printed <code>3</code> in a browser. Replacing a
+toolchain that works is the kind of decision that eats a week and produces
+a rewrite of the same thing. Here is how it got made in half a day, from
+evidence rather than taste, and what it actually cost.</p>
+
+<h2>Why the question was reopened at all</h2>
+
+<p>Not because Emscripten was slow or wrong. Because of what the old build
+was: a REPL demo with four structural defects, none of them fixable without
+rewriting the bridge anyway.</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>Defect</th><th>What it meant</th></tr></thead>
+  <tbody>
+    <tr><td><b>Batch, not resident</b></td>
+        <td>every call created and destroyed a whole <code>RingState</code> — no variable, class or loaded library survived a call</td></tr>
+    <tr><td><b>One-way, string-only</b></td>
+        <td>output escaped through an intercepted <code>see</code> into a fixed 512&nbsp;KB static buffer, silently truncated; no structured return values, no way for Ring to call out</td></tr>
+    <tr><td><b>No <code>load</code>, no files</b></td>
+        <td>multi-file Ring could not be loaded at all — the browser has no filesystem</td></tr>
+    <tr><td><b>Fragile failure</b></td>
+        <td>a VM error could abort the whole wasm instance</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Since the bridge had to be rebuilt regardless, the toolchain was
+genuinely open — and every neighbouring project in the same family had
+moved to Zig: the CLI, the compiler, the engine, the packaging, and a
+vendored 9&nbsp;MB SQLite amalgamation that Zig had compiled without a
+complaint. Zig 0.15 was installed on the machine. The Emscripten SDK was
+not.</p>
+
+<h2>The evidence, gathered by grep</h2>
+
+<p>Emscripten exists for good reasons, and the classic ones are specific:
+<code>setjmp</code>/<code>longjmp</code>, pthreads, signals, and a POSIX
+surface too wide for wasi-libc. The question was not <em>"is Zig nicer"</em>
+but <em>"does this particular C source need any of that?"</em> — and 44
+files of vendored VM source can simply be asked. These are the actual
+commands, with the counts they still return today:</p>
+
+<pre><code>grep -rn  "setjmp\|longjmp"      ringvm/src/   # 0
+grep -rn  "pthread"             ringvm/src/   # 0
+grep -rn  "signal("             ringvm/src/   # 1  — state.c, a SIGSEGV handler
+grep -rln "dlopen\|LoadLibrary" ringvm/       # 1  — include/dll_e.h
+grep -rln "fopen"               ringvm/src/   # 4  files</code></pre>
+
+<p>Not a clean sweep, and that is the interesting part. The two hard
+blockers are genuinely absent. The two remaining hits are both in the
+corner a browser runtime does not use: a crash handler, and the macro that
+opens a dynamic library. Neither needed a workaround — one is emulated by a
+wasi-libc flag, the other is a whole source file that simply is not
+compiled.</p>
+
+<blockquote>The decision took the time it took to run five greps. What
+should have been an argument was a lookup.</blockquote>
+
+<p>Three years of "it probably needs Emscripten" collapsed into a page of
+compiler flags. This is the whole of it — 41 of the 44 VM sources compiled
+unmodified, and every environmental difference stated as a
+<code>-D</code>:</p>
+
+<pre><code>"-DRING_NODLL=1",        // a browser loads no extensions (drops dll_e.c)
+"-DRING_LIMITEDSYS=1",   // no system(), no chdir()/currentdir()
+"-D_WASI_EMULATED_SIGNAL",         // the SIGSEGV handler above
+"-D_WASI_EMULATED_PROCESS_CLOCKS",
+"-Dmkstemp(x)=(-1)",     // WASI has no temp directory
+"-Dfopen=rs_fopen",      // every file open -> the embedded-map resolver
+"-Dstat(a,b)=rs_stat(a,b)",   // ...and every question ABOUT a file</code></pre>
+
+<p>The last two lines are the ones worth pausing on. There is no sandbox
+around the filesystem here — the filesystem is <em>redirected at the
+compiler level</em> to a read-only map baked into the binary. A capability
+that was never linked in cannot be escaped from, misconfigured, or
+re-enabled by a later patch.</p>
+
+<p>And the <code>stat</code> line is a bug fix wearing a flag's clothes:
+<code>fexists</code>, <code>getpathtype</code> and <code>getfilesize</code>
+ask <em>about</em> a file rather than opening one, so redirecting only
+<code>fopen</code> left them reporting that embedded files did not exist.
+It is written function-like — <code>stat(a,b)</code>, not <code>stat</code>
+— so it expands only where <code>stat</code> is followed by a parenthesis,
+leaving every <code>struct stat</code> in the source untouched.</p>
+
+<h2>What replaced each Emscripten convenience</h2>
+
+<p>Emscripten is not just a compiler; it is a bundle of conveniences. Each
+one had to be answered explicitly, and the answers turned out to be smaller
+than the conveniences.</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>Emscripten gives you</th><th>What we wrote instead</th></tr></thead>
+  <tbody>
+    <tr><td>generated JS glue and a POSIX-ish environment</td>
+        <td>a hand-written <b>~150-line WASI shim</b>: clocks, randomness, <code>fd_write</code> — ours, vendorable, readable in one sitting</td></tr>
+    <tr><td>MEMFS and <code>--preload-file</code></td>
+        <td><b><code>@embedFile</code></b>: Ring sources baked into the wasm as data, with the bridge resolving <code>load</code> against an embedded map. Not a virtual filesystem — <em>no</em> filesystem</td></tr>
+    <tr><td><code>EM_ASM</code> for calling into JavaScript</td>
+        <td>Zig <code>extern</code> imports declared by the bridge and provided by the same shim</td></tr>
+  </tbody>
+</table>
+</div>
+
+<figure>
+<svg viewBox="0 0 640 250" role="img" aria-label="Diagram: the page and the loader on the left, the Zig bridge and the vendored Ring VM inside one wasm module on the right">
+  <rect class="d-box" x="12" y="30" width="250" height="150" rx="10"/>
+  <text class="d-t" x="34" y="58">your page</text>
+  <rect class="d-accent" x="34" y="74" width="206" height="88" rx="7"/>
+  <text class="d-t" x="52" y="100">ringscript.js</text>
+  <text class="d-s" x="52" y="124">the WASI shim</text>
+  <text class="d-s" x="52" y="146">the whole JS side</text>
+
+  <path class="d-line" d="M262 105 h116"/>
+  <text class="d-s" x="272" y="96">imports</text>
+
+  <rect class="d-box" x="378" y="30" width="250" height="190" rx="10"/>
+  <text class="d-t" x="398" y="58">ringscript.wasm</text>
+  <rect class="d-accent" x="398" y="74" width="210" height="56" rx="7"/>
+  <text class="d-t" x="416" y="98">the bridge (Zig)</text>
+  <text class="d-s" x="416" y="119">one resident RingState</text>
+  <rect class="d-accent" x="398" y="142" width="210" height="60" rx="7"/>
+  <text class="d-t" x="416" y="166">Ring VM (vendored C)</text>
+  <text class="d-s" x="416" y="188">compiler + VM, as shipped</text>
+</svg>
+<figcaption>Three layers, three languages, one build command. Nothing is
+fetched at build time — there is no dependency manifest at all.</figcaption>
+</figure>
+
+<h2>The fallback that was never needed</h2>
+
+<p>The plan wrote down its own escape hatch before starting: a timeboxed
+spike, and if a wasi-libc gap resisted a day's work, fall back to
+Emscripten for the VM only — the bridge API was designed to be
+toolchain-agnostic precisely so nothing downstream would care.</p>
+
+<p>The gaps that actually surfaced were <code>tmpfile</code> and
+<code>mkstemp</code>. Both were stubbed <b>without touching a line of
+vendor source</b>. The escape hatch stayed shut, and the whole repair plan
+— resident state, unbounded output, error trapping, the embedded payload,
+the two-way bridge, and a version bump of the vendored VM — went through in
+one session.</p>
+
+<h2>What it cost, honestly</h2>
+
+<p>Two things, and both are worth stating because a post that only lists
+wins is an advertisement.</p>
+
+<p><b>The shim is ours to get right.</b> Hand-written glue is the densest
+source of defects per line in this project, and its failures are the nasty
+kind: the VM keeps running and reports something plausible. A wrong clock
+conversion does not throw — it just makes every timestamp quietly wrong.
+So the shim has its own suite that holds it to the host's <em>own</em>
+clock, encoding and output ordering rather than to its opinion of itself:
+20 checks, and they exist because guessing was not acceptable.</p>
+
+<p><b>Some things had to be built rather than configured.</b> No MEMFS
+meant writing a file-map resolver. No generated glue meant writing the
+imports. Each of these is a small amount of code you now own forever —
+which is a cost, and also the point.</p>
+
+<h2>What it bought</h2>
+
+<p><b>One toolchain across the whole family</b>, so a person who can build
+the CLI can build the runtime. <b>No provisioning</b>: no Python, no Node,
+no emsdk environment scripts, no CMake. <b>No dependency manifest</b> —
+there is no <code>build.zig.zon</code> in this repository, so nothing is
+fetched at build time, ever. The dev server is part of the build. And the
+artifact is small enough to argue about: <b>396,935 bytes</b> of wasm for a
+complete language implementation, released by default because the committed
+artifact must never be a debug build.</p>
+
+<pre><code>zig build            # the wasm, ReleaseSmall
+zig build serve      # ...and serve it on http://localhost:8377/
+zig build dist       # cross-compile the dev server for every shipped platform</code></pre>
+
+<p>Zig 0.15.2 is the only thing you need installed.</p>
+
+<h2>How we knew it was still Ring</h2>
+
+<p>Changing the compiler that builds a language implementation is exactly
+the sort of move that produces something 99% correct — which is another way
+of saying broken. The answer was not confidence, it was an oracle: every
+program is run through <b>both</b> the wasm runtime and a native
+<code>ring.exe</code>, and the output compared byte for byte.</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>Corpus</th><th class="n">Size</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>Playground examples</td><td class="n">24</td><td>byte-identical</td></tr>
+    <tr><td>the official Ring samples</td><td class="n">~284</td><td>zero mismatches</td></tr>
+    <tr><td>code blocks lifted from the Ring documentation</td><td class="n">~550</td><td>zero mismatches</td></tr>
+    <tr><td>permanent gates</td><td class="n">66</td><td>all pass</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>That battery is also what made it safe, later, to patch the VM's hottest
+code path — <a href="blog-two-quadratics.html">the two quadratic
+surprises</a> are a story that only has a happy ending because ~850
+programs could be re-checked in a few minutes.</p>
+
+<p>The decision as it was written down at the time, evidence and fallback
+included: <a href="https://github.com/mayouni/ringscript/blob/main/docs/REPAIR_PLAN.md"
+target="_blank" rel="noopener">docs/REPAIR_PLAN.md</a>, §2.5. The layers as
+they ended up: <a href="https://github.com/mayouni/ringscript/blob/main/docs/architecture.md"
+target="_blank" rel="noopener">docs/architecture.md</a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+</body>
+</html>

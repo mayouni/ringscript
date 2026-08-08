@@ -6,11 +6,11 @@
 <title>Why Ring? — the road from a language to Softanza and RingScript</title>
 <meta name="description" content="Why I chose Ring in 2018, wrote a book about it, built the Softanza library and engine on top of it, and ended up porting the language to WebAssembly.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
     article h2 { margin-top: 3rem; }
 
     /* The language this page is about, shown before its name is read.
@@ -37,7 +37,7 @@
         width: 12px; height: 12px; border-radius: 50%;
         background: var(--accent); border: 3px solid var(--bg);
     }
-    .moment .year { font-weight: 700; color: var(--accent); font-size: 1.15rem; display: block; }
+    .moment .year { font-weight: 700; color: var(--accent); display: block; }
     .moment p { margin: .3rem 0 0; }
 
     /* the book, sitting beside its moment in the story */
@@ -54,7 +54,7 @@
     .book .about .booklink { color: var(--accent); text-decoration: none; font-weight: 600; }
     .book .about .booklink:hover { text-decoration: underline; }
     .book .about p { margin: 0 0 .6rem; }
-    .book .about .title { font-weight: 700; color: var(--ink); font-size: 1.2rem; }
+    .book .about .title { font-weight: 700; color: var(--ink); }
     .book .about .meta { color: var(--muted); }
     /* On narrow screens the cover goes full width and its description
        sits underneath, rather than squeezing into a column beside it. */
@@ -68,7 +68,7 @@
     .limit { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem; }
     .limit .num { font-size: 1.6rem; font-weight: 700; color: var(--muted); opacity: .5; line-height: 1; }
     .limit h3 { margin: .4rem 0 .35rem; }
-    .limit p { margin: 0; font-size: 1.05rem; }
+    .limit p { margin: 0; }
 
     .answer { background: var(--accent-soft); border-radius: 12px; padding: 1.3rem 1.5rem; margin: 1.6rem 0; }
     .answer p { color: var(--ink); margin: 0 0 .8rem; }
@@ -81,7 +81,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a class="active" href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>

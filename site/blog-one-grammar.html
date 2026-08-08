@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One grammar, three runtimes — RingScript blog</title>
+<meta name="description" content="The business rules of a savings circle, written once as a declaration and run by three different engines — a Zig CLI, a JavaScript runtime, and Ring inside the browser. Why a closed grammar is a stronger guarantee than a permission check.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.24">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    pre {
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    figure { margin: 2rem 0; }
+    figure svg { width: 100%; height: auto; display: block; }
+    figcaption { font-size: var(--floor); color: var(--ink-soft); margin-top: .6rem; text-align: center; }
+    .d-line { stroke: currentColor; stroke-width: 1.5; fill: none; opacity: .75; }
+    .d-box { fill: none; stroke: currentColor; stroke-width: 1.5; opacity: .8; }
+    .d-accent { stroke: var(--accent); fill: none; stroke-width: 2; }
+    .d-t { font: 600 17px -apple-system, "Segoe UI", sans-serif; fill: currentColor; }
+    .d-s { font: 16px -apple-system, "Segoe UI", sans-serif; fill: currentColor; opacity: .7; }
+
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--border); }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .scroll { overflow-x: auto; }
+
+    .try { border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem; margin: 2rem 0; }
+    .try h3 { margin: 0 0 .5rem; }
+    .try textarea {
+        width: 100%; min-height: 16rem; resize: vertical; box-sizing: border-box;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: var(--mono-size); line-height: 1.5; color: var(--ink);
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
+    }
+    .try .row { display: flex; gap: .8rem; align-items: center; margin: .7rem 0 0; flex-wrap: wrap; }
+    .try button {
+        padding: .55rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer;
+        background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    }
+    .try button[disabled] { opacity: .5; cursor: default; }
+    .try .status { font-size: var(--floor); color: var(--ink-soft); }
+    .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><a href="blog.html">Blog</a><span class="sep">&rsaquo;</span><span class="here-crumb">One grammar, three runtimes</span></p>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>One grammar, three runtimes</h1>
+
+<p class="meta"><span class="label">Vision &amp; direction</span> August 2026 · Mansour Ayouni</p>
+
+<p class="first">The rules of a savings circle do not change when you move
+from the server to the browser. So why should they be written twice, in two
+languages, and drift apart quietly for the rest of the product's life?</p>
+
+<h2>The rule that keeps getting rewritten</h2>
+
+<p>Every business application has a handful of sentences at its centre.
+<em>A deposit must bring something to the circle. The collector records;
+the treasurer audits. Bulk imports still pass every step.</em> These
+sentences are the product. Everything else is plumbing.</p>
+
+<p>And in most systems they are written at least three times: once in the
+database as a constraint, once on the server as a validation, once in the
+page as a form check — three dialects, three places to forget, and a bug
+report that begins <em>"the web version lets you do it but the app
+doesn't"</em>.</p>
+
+<p>The alternative is to write the sentence <b>once</b>, in a form that is
+neither server code nor page code, and let every runtime read the same
+file. That is what <b>ZQL</b> is: a tiny declarative grammar for entities,
+norms, flows and the one door data may arrive through.</p>
+
+<pre><code>DEFINE ENTITY deposit (
+  id: uuid,
+  member: text,
+  amount: currency,
+  round: int,
+  status: enum("STAGED", "AUDITED", "ACTIVE")
+) RATIONALE "One member contribution to one round of the circle"
+
+DEFINE NORM positive_deposit AS (
+  RULE: amount &gt; 0,
+  MESSAGE: "A deposit must bring something to the circle"
+)
+
+DEFINE FLOW collect (
+  STEP 1: RECORD -&gt; { ACTOR: collector,  VALIDATE: member != "" },
+  STEP 2: AUDIT  -&gt; { ACTOR: treasurer,  ENFORCING: positive_deposit }
+) RATIONALE "The collector records; the treasurer audits"</code></pre>
+
+<p>Note what the <code>MESSAGE</code> is for. It is not a comment: when the
+norm stops a flow, that exact sentence is what the outcome carries back to
+whoever is standing at the counter. The rule and the explanation cannot
+drift apart, because they are the same declaration.</p>
+
+<h2>Three engines, one file</h2>
+
+<p>The same grammar has three complete implementations, each living where
+it earns its keep.</p>
+
+<figure>
+<svg viewBox="0 0 640 260" role="img" aria-label="Diagram: one ZQL declaration read by three runtimes — a Zig CLI, a JavaScript page runtime, and the Ring VM in the browser">
+  <rect class="d-accent" x="200" y="14" width="240" height="52" rx="9"/>
+  <text class="d-t" x="228" y="38">app.zql</text>
+  <text class="d-s" x="228" y="57">entities · norms · flows</text>
+
+  <path class="d-line" d="M320 66 v28 M60 94 h520 M60 94 v26 M320 94 v26 M580 94 v26"/>
+
+  <rect class="d-box" x="14" y="120" width="185" height="96" rx="9"/>
+  <text class="d-t" x="34" y="146">Zig</text>
+  <text class="d-s" x="34" y="168">the CLI and the</text>
+  <text class="d-s" x="34" y="188">engine, natively</text>
+
+  <rect class="d-box" x="227" y="120" width="185" height="96" rx="9"/>
+  <text class="d-t" x="247" y="146">JavaScript</text>
+  <text class="d-s" x="247" y="168">the page runtime</text>
+  <text class="d-s" x="247" y="188">of the framework</text>
+
+  <rect class="d-box" x="440" y="120" width="185" height="96" rx="9"/>
+  <text class="d-t" x="460" y="146">Ring</text>
+  <text class="d-s" x="460" y="168">on the server — and</text>
+  <text class="d-s" x="460" y="188">now in the browser</text>
+
+  <text class="d-s" x="182" y="243">same declaration &#8594; same verdicts, checked side by side</text>
+</svg>
+<figcaption>One declaration, three readers. RingScript is what added the
+third one to the browser.</figcaption>
+</figure>
+
+<p>The Ring implementation — <code>stzZql.ring</code>, a hand-written
+tokenizer, recursive-descent parser, expression evaluator and small
+interpreter in <b>pure core Ring</b> — ships baked inside
+<code>ringscript.wasm</code>. And the proof that this is not a slide: in
+the framework's repository, a page loads one <code>app.zql</code>, runs the
+tontine flow through the JavaScript runtime and through Ring-on-wasm side
+by side, and compares. Same declaration, identical verdicts.</p>
+
+<h2>The surprise: the Ring parser is the small one</h2>
+
+<p>A fair question when we chose what to embed: a Zig implementation of the
+same grammar already existed, self-contained, and would compile straight
+into the wasm. So we built both and weighed the artifact.</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>Inside ringscript.wasm</th><th class="n">Cost</th></tr></thead>
+  <tbody>
+    <tr><td>the Ring source, embedded</td><td class="n"><b>24,253 bytes</b></td></tr>
+    <tr><td>the Zig implementation, compiled in</td><td class="n">43,262 bytes</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The Zig version is <b>19&nbsp;KB larger</b>, and the reason is structural
+rather than a quirk of either program. The Ring version is 21.7&nbsp;KB of
+<em>source text</em>, and the machine that runs it — tokenizer, parser,
+evaluator, lists, strings, garbage collector — <b>is already in the
+binary</b>, because RingScript <em>is</em> the Ring VM. It rides for free.
+The Zig version must bring its own tokenizer, parser, AST and evaluator.</p>
+
+<blockquote>Inside a binary that already contains a complete language
+implementation, writing a parser in that language is the cheap
+option.</blockquote>
+
+<p>Zig would parse far faster. But a page pays the wasm size on
+<em>every load</em> and the parse cost once, if ever — for the web that
+trade runs the wrong way. Where the Zig implementation earns its place is
+where it already lives: the CLI and the engine, running natively, at
+volume, with no Ring VM nearby to borrow. Three runtimes, three homes.</p>
+
+<h2>Why the verb set is closed</h2>
+
+<p>There is no <code>DROP</code> in ZQL. No <code>DELETE</code>, no
+<code>UPDATE</code>. Not because they are blocked, checked, or filtered —
+because they are <b>not in the grammar</b>, so they cannot be
+expressed:</p>
+
+<pre><code>StzZqlQ("DROP TABLE users")
+# stzZql (line 1): Unknown verb 'DROP'. The ZQL verb set is closed --
+# destructive or unrecognized operations are not part of the grammar.</code></pre>
+
+<p>This is a different kind of guarantee from a permission check. A
+permission check is code that must be correct, kept current, and applied
+everywhere; a closed grammar is a property of the language, and it holds
+even when the declaration arrives from somewhere you do not control. It is
+the property that makes running one of these files inside a browser a
+reasonable thing to do at all.</p>
+
+<p>The same instinct runs through the runtime underneath it: RingScript has
+no filesystem to sandbox, because the Ring VM's file layer was redirected
+at compile time to an embedded, read-only map. Not <em>guarded</em> —
+absent. The strongest security property is the one you cannot switch
+off.</p>
+
+<div class="try">
+<h3>Try it here — parse a declaration, live</h3>
+<p class="status" style="margin:0 0 .6rem">The ZQL engine is embedded in
+the runtime this page loads. Edit the declaration, press Run: it parses,
+describes what it found, evaluates the norm both ways, and shows what
+happens when you ask for a verb the grammar does not have.</p>
+<textarea id="code" spellcheck="false">
+load "ringlib/stzZql.ring"
+
+cSrc = '
+DEFINE ENTITY deposit (id: uuid, member: text, amount: currency)
+  RATIONALE "One member contribution to one round of the circle"
+
+DEFINE NORM positive_deposit AS (
+  RULE: amount > 0,
+  MESSAGE: "A deposit must bring something to the circle"
+)
+
+DEFINE FLOW collect (
+  STEP 1: RECORD -> { ACTOR: collector, VALIDATE: member != "" },
+  STEP 2: AUDIT  -> { ACTOR: treasurer, ENFORCING: positive_deposit }
+) RATIONALE "The collector records; the treasurer audits"
+'
+
+o = StzZqlQ(cSrc)
+see "parsed: " + o.CountEntities() + " entity, " +
+    o.CountNorms() + " norm, " + o.CountFlows() + " flow" + nl + nl
+see o.Describe() + nl
+
+see "-- the norm, both ways --" + nl
+see "amount 5000 -> " + o.EvalNorm("positive_deposit", [ :amount = 5000 ]) + nl
+see "amount    0 -> " + o.EvalNorm("positive_deposit", [ :amount = 0 ]) + nl + nl
+
+see "-- a verb the grammar does not have --" + nl
+try
+    StzZqlQ("DROP TABLE users")
+catch
+    see cCatchError + nl
+done
+</textarea>
+<div class="row">
+  <button id="run">Run the declaration</button>
+  <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
+</div>
+<pre id="out"></pre>
+</div>
+
+<h2>What this is really about</h2>
+
+<p>A small country office, a school, a cooperative — the places this
+software is built for — cannot afford a rule that means one thing on the
+server and another on the counter clerk's screen. They also cannot afford
+three teams to keep the two in step.</p>
+
+<p>Writing the rule once, in a grammar small enough to read aloud, and
+having every runtime obey the same file is not an architectural
+preference. It is how a team of two keeps a system honest for ten years.
+RingScript's contribution to that is narrow and specific: it made the
+browser one of the places the Ring implementation can run, so the
+<em>front</em> of the application stopped being the one place the rules had
+to be retyped.</p>
+
+<p>The grammar, in full, with every production and the Ring surface that
+reads it: <a href="https://github.com/mayouni/ringscript/blob/main/docs/zql-payload.md"
+target="_blank" rel="noopener">docs/zql-payload.md</a>. The engine itself:
+<a href="https://github.com/mayouni/ringscript/blob/main/src/ringlib/stzZql.ring"
+target="_blank" rel="noopener">src/ringlib/stzZql.ring</a>, with its
+ten-assertion suite running <em>inside the wasm</em> as a permanent
+gate.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ringscript.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ring = null;
+  var btn = document.getElementById("run");
+  var out = document.getElementById("out");
+  var status = document.getElementById("status");
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    try {
+      if (!ring) {
+        status.textContent = "starting the Ring VM…";
+        var wasm = await (await fetch("playground/ringscript.wasm")).arrayBuffer();
+        ring = await RingScript.load(wasm, { onOutput: function () {} });
+      }
+      status.textContent = "running…";
+      var t0 = performance.now();
+      var r = ring.eval(document.getElementById("code").value);
+      var ms = (performance.now() - t0).toFixed(0);
+      out.textContent = r.ok ? r.output : r.error;
+      status.textContent = r.ok ? "parsed and run in " + ms + " ms, inside this page"
+                                : "Ring reported an error — the page is fine";
+    } catch (e) {
+      out.textContent = String(e && e.message || e);
+      status.textContent = "failed";
+    }
+    btn.disabled = false;
+  });
+})();
+</script>
+
+</body>
+</html>

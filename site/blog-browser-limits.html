@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What a browser cannot give you — and why that is an error, not a crash — RingScript blog</title>
+<meta name="description" content="Files, directories, processes: what a Ring program loses inside a page, exactly how each loss behaves, and the design rule that keeps a missing capability from taking the page down.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.24">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    pre {
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border);
+                             vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    .scroll { overflow-x: auto; }
+
+    .try { border: 1px solid var(--accent); border-radius: 10px; padding: 1rem 1.1rem; margin: 2rem 0; }
+    .try h3 { margin: 0 0 .5rem; }
+    .try textarea {
+        width: 100%; min-height: 17rem; resize: vertical; box-sizing: border-box;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: var(--mono-size); line-height: 1.5; color: var(--ink);
+        background: var(--code-bg, rgba(127,127,127,.08));
+        border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
+    }
+    .try .row { display: flex; gap: .8rem; align-items: center; margin: .7rem 0 0; flex-wrap: wrap; }
+    .try button {
+        padding: .55rem 1.4rem; font: inherit; font-weight: 600; cursor: pointer;
+        background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    }
+    .try button[disabled] { opacity: .5; cursor: default; }
+    .try .status { font-size: var(--floor); color: var(--ink-soft); }
+    .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><a href="blog.html">Blog</a><span class="sep">&rsaquo;</span><span class="here-crumb">What a browser cannot give you</span></p>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>What a browser cannot give you — and why that is an error, not a crash</h1>
+
+<p class="meta"><span class="label">For app programmers</span> August 2026 · from the RingScript project</p>
+
+<p class="first">Ring in a page is the same Ring: the same compiler, the same
+virtual machine, byte-identical output on roughly 850 verified programs.
+What changes is the world around it. This is the practical map of what your
+program loses, exactly how each loss behaves, and the one design rule that
+makes the difference between a caught error and a dead page.</p>
+
+<h2>The rule, first</h2>
+
+<blockquote>Exclusion is an error, never a crash.</blockquote>
+
+<p>A Ring program that asks for something a browser does not have gets a
+<b>catchable Ring error with a line number</b>, and the VM — with every
+global, every class, every loaded library still in it — keeps running.
+Nothing in the verification corpus has ever brought the runtime down. That
+is the promise you can build on, and it is why the rest of this page is a
+table rather than a warning.</p>
+
+<h2>The map</h2>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>What your code asks for</th><th>What happens in a page</th></tr></thead>
+  <tbody>
+    <tr><td><code>write</code>, <code>remove</code>, <code>rename</code>, <code>tempfile</code></td>
+        <td>fails the way an unwritable file fails — a trappable Ring error (the R35 family)</td></tr>
+    <tr><td><code>read</code>, <code>load</code></td>
+        <td>resolve against the <b>embedded library map</b> baked into the wasm; an unknown path is a trappable error</td></tr>
+    <tr><td><code>fexists</code>, <code>getfilesize</code>, <code>getpathtype</code></td>
+        <td>answer from that same map, so <code>if fexists(f) … read(f)</code> behaves as written</td></tr>
+    <tr><td><code>direxists</code>, directory listing</td>
+        <td>always false, always empty — truthfully, because there are no directories to have</td></tr>
+    <tr><td><code>system()</code>, <code>chdir</code>, <code>currentdir</code></td>
+        <td>compiled out entirely</td></tr>
+    <tr><td>threads, sockets, RingQt and other bindings</td>
+        <td>not present — they are separate C extensions, never part of the core VM</td></tr>
+    <tr><td><code>syssleep</code></td>
+        <td>returns immediately; a page does not get to block</td></tr>
+    <tr><td><code>clock()</code>, <code>time()</code>, <code>date()</code></td>
+        <td>fully working, on the host's <b>local</b> clock</td></tr>
+    <tr><td><code>random()</code></td>
+        <td>works — and is <b>unseeded, exactly as in native Ring</b></td></tr>
+    <tr><td><code>iswindows()</code>, <code>filename()</code>, pointer addresses</td>
+        <td>answer truthfully for the wasm environment: <code>0</code>, <code>Ring_EmbeddedCode</code>, and so on</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Three of those deserve a paragraph</h2>
+
+<h3><code>fexists</code> was a real gap, and a good lesson</h3>
+
+<p>Redirecting <code>fopen</code> to the embedded map is the obvious half of
+having no filesystem. The half that is easy to miss: several Ring functions
+ask <em>about</em> a file instead of opening one. <code>fexists</code>,
+<code>getfilesize</code> and <code>getpathtype</code> go through
+<code>stat</code>, not <code>fopen</code> — so for a while they reported
+that embedded files did not exist, and the most idiomatic guard in Ring
+skipped files that were sitting right there:</p>
+
+<pre><code>if fexists("ringlib/stzZql.ring")     # said 0 — but the file is embedded
+    load "ringlib/stzZql.ring"
+ok</code></pre>
+
+<p>The fix was to redirect <code>stat</code> to the same resolver, so the
+question and the answer come from one place. The lesson generalises: when
+you replace a capability, find every door into it, not just the one your
+first test used.</p>
+
+<h3><code>random()</code> repeats — for every visitor</h3>
+
+<p>Ring does not seed its generator, natively or here. On a desktop program
+run once a day that is a curiosity. On a page, it means <b>every visitor
+gets the same sequence of numbers</b>, in the same order, forever. If the
+randomness matters — sample data, a shuffled quiz, an id — seed it
+yourself:</p>
+
+<pre><code>nSeed = (clock() % 100000) + 1
+for i = 1 to nSeed  x = random(100)  next    # burn a variable prefix</code></pre>
+
+<p>Or, better in a page: ask JavaScript, which has a real source of
+entropy, and pass the number in through <code>ring.call</code>.</p>
+
+<h3>Time works, and the timezone is done by hand</h3>
+
+<p>wasi-libc carries no timezone database, so a naive build reports UTC and
+your clock is politely wrong for most of the planet. RingScript applies the
+browser's own offset before handing the time to Ring, which is why
+<code>date()</code> and <code>time()</code> agree with the clock in the
+corner of the screen. It is a small thing that would have been a
+long-running bug report.</p>
+
+<div class="try">
+<h3>See it for yourself — live, on this page</h3>
+<p class="status" style="margin:0 0 .6rem">Every line below runs in the
+real runtime. Watch a missing capability come back as an ordinary caught
+error while everything after it keeps working.</p>
+<textarea id="code" spellcheck="false">
+see "-- what is here --" + nl
+see "date and time : " + date() + " " + time() + nl
+see "an embedded file exists : " + fexists("ringlib/json.ring") + nl
+see "a real one does not     : " + fexists("C:/secrets.txt") + nl
+see "directories exist       : " + direxists("C:/") + nl
+see "iswindows()             : " + iswindows() + nl
+see "this program is called  : " + filename() + nl + nl
+
+see "-- what is not, and how it says so --" + nl
+try
+    write("C:/anywhere.txt", "hello")
+catch
+    see "write   -> " + cCatchError + nl
+done
+try
+    read("no-such-file.ring")
+catch
+    see "read    -> " + cCatchError + nl
+done
+see nl
+
+see "-- and the VM is entirely fine --" + nl
+cOut = ""
+for i = 1 to 8  cOut += "" + (i * i) + " "  next
+see "still computing squares: " + cOut + nl
+</textarea>
+<div class="row">
+  <button id="run">Run the checks</button>
+  <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
+</div>
+<pre id="out"></pre>
+</div>
+
+<h2>Shipping your own library into the page</h2>
+
+<p>Because <code>load</code> resolves against an embedded map, a pure-Ring
+library can travel into the browser unchanged. That is three steps:</p>
+
+<pre><code># 1. drop mylib.ring into src/ringlib/
+# 2. add one line to embedded_files in src/bridge.zig:
+.{ .name = "ringlib/mylib.ring", .data = @embedFile("ringlib/mylib.ring") },
+# 3. zig build serve
+
+load "ringlib/mylib.ring"      # now works in any page</code></pre>
+
+<p>One contract keeps this honest: <b>embedded libraries stay pure Ring</b>
+— no file or OS calls. That is exactly what makes them portable into a
+browser without edits, and it is why the ZQL engine, written years earlier
+for a filesystem, needed none. If you are writing a Ring library today and
+would like it to run in a page tomorrow, that is the whole of the
+discipline.</p>
+
+<h2>Writing code that runs in both places</h2>
+
+<p>The practical shape is a seam, not a fork. Keep the rules, the
+calculations and the data structures in plain Ring that touches nothing but
+values — that part is identical on the server and in the page. Put the
+things that differ, storage above all, behind two or three functions, and
+give each environment its own implementation.</p>
+
+<p>A page's version of "save" is a call out to JavaScript; a server's is a
+file. The 300 lines in between never learn which one they are talking to,
+and that is the entire portability story.</p>
+
+<p>The full compatibility statement, with the corpus behind it:
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/compatibility.md"
+target="_blank" rel="noopener">docs/compatibility.md</a>. What the API
+looks like from both sides:
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/api.md"
+target="_blank" rel="noopener">docs/api.md</a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ringscript.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ring = null;
+  var btn = document.getElementById("run");
+  var out = document.getElementById("out");
+  var status = document.getElementById("status");
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    try {
+      if (!ring) {
+        status.textContent = "starting the Ring VM…";
+        var wasm = await (await fetch("playground/ringscript.wasm")).arrayBuffer();
+        ring = await RingScript.load(wasm, { onOutput: function () {} });
+      }
+      status.textContent = "running…";
+      var t0 = performance.now();
+      var r = ring.eval(document.getElementById("code").value);
+      var ms = (performance.now() - t0).toFixed(0);
+      out.textContent = r.ok ? r.output : r.error;
+      status.textContent = r.ok ? "done in " + ms + " ms, inside this page"
+                                : "Ring reported an error — the page is fine";
+    } catch (e) {
+      out.textContent = String(e && e.message || e);
+      status.textContent = "failed";
+    }
+    btn.disabled = false;
+  });
+})();
+</script>
+
+</body>
+</html>

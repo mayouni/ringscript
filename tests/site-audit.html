@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site audit — the reading floor, measured</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.6 system-ui, "Segoe UI", sans-serif; margin: 0; padding: 1.5rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .3rem; }
+  p { max-width: 46rem; color: #555; }
+  @media (prefers-color-scheme: dark) { p { color: #aaa; } }
+  .bar { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; margin: 1.2rem 0; }
+  button { font: inherit; font-weight: 600; padding: .45rem 1.2rem; border-radius: 7px;
+           border: 1px solid #1a7f5a; background: #1a7f5a; color: #fff; cursor: pointer; }
+  button[disabled] { opacity: .5; cursor: default; }
+  label { font-size: 1rem; }
+  input { font: inherit; width: 6rem; padding: .3rem .5rem; }
+  #verdict { font-weight: 700; }
+  #verdict.ok { color: #12703a; }
+  #verdict.bad { color: #b3261e; }
+  pre { font-size: 1rem; line-height: 1.5; overflow-x: auto;
+        background: rgba(127,127,127,.1); padding: 1rem; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Site audit — the reading floor, measured</h1>
+
+<p>Loads every page of <code>site/</code> into a frame at a chosen width and
+measures <b>every rendered text node</b>: its computed size in pixels, and
+its true contrast against the background actually painted behind it,
+composited up the tree. It also flags any block that scrolls sideways while
+the page still has width to spare.</p>
+
+<p>The rules are not this project's invention — they are pinned by
+<a href="https://github.com/mayouni/stzzui">StzZui's interface
+constitution</a>, and this tool is a port of the measurement half of its
+own audit: <b>rule 105</b> (the legibility floor — 16&nbsp;px, 4.5:1),
+<b>rule 107</b> (hierarchy is not miniaturization) and <b>rule 114</b>
+(room before scrollbars). Nothing leaves the browser; no dependencies.</p>
+
+<p>Serve the repository root and open this file, e.g.
+<code>python -m http.server 8399</code> then
+<code>localhost:8399/tests/site-audit.html</code>. Check the widths that
+matter: a phone (375), a tablet (768), the point just above and below the
+menu's breakpoint (1023 / 1024), and a desktop (1440).</p>
+
+<div class="bar">
+  <label>viewport width <input id="w" type="number" value="1280" min="320" max="2560" step="1"></label>
+  <button id="run">Measure the site</button>
+  <span id="verdict"></span>
+</div>
+
+<pre id="out">Press “Measure the site”.</pre>
+
+<script>
+"use strict";
+/* Ported from stzzui/tools/ui-audit.html — same constants, same maths. */
+const FLOOR = 16, LARGE = 24, LARGE_BOLD = 18.66;
+const PAGES = [
+  "index.html", "start.html", "tutorial-clock.html", "story.html",
+  "why-ring.html", "data.html", "faq.html", "blog.html",
+  "blog-local-first.html", "blog-one-grammar.html", "blog-data-pages.html",
+  "blog-browser-limits.html", "blog-zig-not-emscripten.html",
+  "blog-two-quadratics.html", "whats-new.html"
+];
+
+/* Chrome returns a color-mix() result as `color(srgb 1 1 1 / 0.88)` — 0–1
+   channels, not 0–255. Scaling those as bytes reads white as black and
+   invents contrast failures, so detect the function and scale. */
+function parseColor(c) {
+  const s = String(c), m = s.match(/[\d.]+/g);
+  if (!m) return null;
+  const k = /^color\(/.test(s) ? 255 : 1;
+  return { r: +m[0] * k, g: +m[1] * k, b: +m[2] * k, a: m[3] === undefined ? 1 : +m[3] };
+}
+function composite(f, b) {
+  return { r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a),
+           b: f.b * f.a + b.b * (1 - f.a), a: 1 };
+}
+function lum(c) {
+  const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+}
+function contrast(a, b) {
+  const l1 = lum(a), l2 = lum(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+/* the background actually painted behind the text, composited up the tree */
+function backgroundOf(el, win) {
+  let n = el, acc = null;
+  while (n && n.nodeType === 1) {
+    const c = parseColor(win.getComputedStyle(n).backgroundColor);
+    if (c && c.a > 0) { acc = acc ? composite(acc, c) : c; if (acc.a >= 0.999) return acc; }
+    n = n.parentElement;
+  }
+  return acc && acc.a >= 0.999 ? acc : { r: 255, g: 255, b: 255, a: 1 };
+}
+function cls(el) {
+  return (typeof el.className === "string" && el.className.trim())
+    ? "." + el.className.trim().split(/\s+/).join(".") : "";
+}
+
+/* Rule 114: a block may scroll sideways only once the PAGE has run out. */
+function auditRoom(doc, win, label) {
+  const out = [], spare = win.innerWidth - 44;
+  doc.querySelectorAll("body *").forEach(el => {
+    const cs = win.getComputedStyle(el);
+    if (!/auto|scroll/.test(cs.overflowX)) return;
+    if (cs.display === "none" || cs.visibility === "hidden") return;
+    const over = el.scrollWidth - el.clientWidth;
+    if (over <= 2 || el.scrollWidth > spare) return;
+    out.push({ page: label, where: el.tagName.toLowerCase() + cls(el),
+               text: (el.textContent || "").trim().slice(0, 40),
+               issues: "scrolls sideways by " + over + "px with "
+                     + (spare - el.scrollWidth) + "px of page free [rule 114]" });
+  });
+  return out;
+}
+
+function auditDoc(doc, win, label) {
+  const findings = auditRoom(doc, win, label);
+  doc.querySelectorAll("body *").forEach(el => {
+    const own = [...el.childNodes].filter(n => n.nodeType === 3)
+      .map(n => n.textContent.trim()).join("").trim();
+    if (own.length < 3) return;                       /* ignore fragments */
+    const cs = win.getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || +cs.opacity === 0) return;
+
+    let size = parseFloat(cs.fontSize);
+    const weight = +cs.fontWeight || 400;
+    /* SVG text is specified in viewBox units: rescale to rendered pixels */
+    const svg = el.ownerSVGElement;
+    if (svg) {
+      const box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      if (vb && vb.width && box.width) size = size * (box.width / vb.width);
+    }
+    const bg = backgroundOf(el, win);
+    let fg = parseColor(cs.color);
+    if (!fg) return;
+    if (fg.a < 1) fg = composite(fg, bg);
+    const op = parseFloat(cs.opacity);
+    if (op < 1) fg = composite({ ...fg, a: op }, bg);
+
+    const ratio = contrast(fg, bg);
+    const needed = (size >= LARGE || (size >= LARGE_BOLD && weight >= 700)) ? 3 : 4.5;
+    const issues = [];
+    if (size < FLOOR) issues.push("size " + size.toFixed(1) + "px (floor " + FLOOR + ") [rule 105/107]");
+    if (ratio < needed) issues.push("contrast " + ratio.toFixed(2) + ":1 (needs " + needed + ") [rule 105]");
+    if (!issues.length) return;
+    findings.push({ page: label, where: el.tagName.toLowerCase() + cls(el),
+                    text: own.slice(0, 40), issues: issues.join(" + ") });
+  });
+  return findings;
+}
+
+/* Rule 27: a horizontal menu must never wrap by accident. Below its own
+   breakpoint the bar stacks on purpose, brand on its own line — that is
+   what we check for, rather than the row count alone. */
+function auditMenu(doc, win, label) {
+  const bar = doc.querySelector("nav .wrap");
+  if (!bar) return [];
+  const items = [...bar.children];
+  const tops = [...new Set(items.map(e => Math.round(e.getBoundingClientRect().top)))].sort((a, b) => a - b);
+  const bands = tops.reduce((a, t) => { if (!a.length || t - a[a.length - 1] > 14) a.push(t); return a; }, []);
+  if (bands.length < 2) return [];
+  /* The brand takes the full CONTENT width of the bar when the layout
+     stacks on purpose — compare against that, not against the border box,
+     or the wrap's own gutters read as a shortfall. */
+  const brand = doc.querySelector("nav .brand");
+  const cs = win.getComputedStyle(bar);
+  const inner = bar.getBoundingClientRect().width
+              - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const stacked = brand && brand.getBoundingClientRect().width >= inner - 2;
+  if (stacked) return [];                       /* the deliberate two-row bar */
+  return [{ page: label, where: "nav .wrap", text: items.length + " items",
+            issues: "the menu wrapped to " + bands.length
+                  + " rows without the stacked layout [rule 27]" }];
+}
+
+function load(p, width) {
+  return new Promise(res => {
+    const f = document.createElement("iframe");
+    f.style.cssText = "width:" + width + "px;height:900px;border:0;position:absolute;left:-9999px";
+    f.src = "../site/" + p;
+    f.onload = () => setTimeout(() => {
+      let r = [];
+      try {
+        const d = f.contentDocument, w = f.contentWindow;
+        r = auditDoc(d, w, p).concat(auditMenu(d, w, p));
+        const sideways = d.documentElement.scrollWidth - d.documentElement.clientWidth;
+        if (sideways > 2) r.push({ page: p, where: "html", text: "-",
+          issues: "THE PAGE ITSELF scrolls sideways by " + sideways + "px" });
+      } catch (e) {
+        r = [{ page: p, where: "-", text: "-", issues: "could not read the frame: " + e.message }];
+      }
+      f.remove();
+      res(r);
+    }, 260);
+    document.body.appendChild(f);
+  });
+}
+
+const btn = document.getElementById("run");
+btn.addEventListener("click", async () => {
+  btn.disabled = true;
+  const width = Math.max(320, +document.getElementById("w").value || 1280);
+  const out = document.getElementById("out"), verdict = document.getElementById("verdict");
+  verdict.textContent = ""; verdict.className = "";
+  let all = [];
+  for (const p of PAGES) {
+    out.textContent = "measuring " + p + " at " + width + "px…";
+    all = all.concat(await load(p, width));
+  }
+  verdict.textContent = all.length === 0
+    ? "clean at " + width + "px — " + PAGES.length + " pages"
+    : all.length + " findings at " + width + "px";
+  verdict.className = all.length === 0 ? "ok" : "bad";
+  out.textContent = all.length === 0
+    ? "Every text node meets the 16px floor and the contrast it owes, no block\n"
+      + "scrolls sideways with room to spare, and no menu wrapped by accident."
+    : all.map(f => f.page.padEnd(28) + " | " + f.where.slice(0, 40).padEnd(40)
+                 + " | " + f.issues + "\n" + " ".repeat(30) + "« " + f.text).join("\n");
+  btn.disabled = false;
+});
+</script>
+
+</body>
+</html>

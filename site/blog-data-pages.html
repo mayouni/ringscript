@@ -6,27 +6,27 @@
 <title>Writing a fast data page in Ring — RingScript blog</title>
 <meta name="description" content="Five rules and one payload shape for fast Ring pages, each learned by getting it wrong first and each measured. With a live Ring example you can edit and run.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 44rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
-    .meta { font-size: .85rem; color: var(--ink-soft); margin: 0 0 1.6rem; }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
     .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
-                   letter-spacing: .05em; font-size: .75rem; margin-right: .7rem; }
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
 
     .rule { margin: 2.2rem 0; padding-top: 1.3rem; border-top: 1px solid var(--border); }
     .rule:first-of-type { border-top: 0; }
     .rule h2 { display: flex; align-items: baseline; gap: .6rem; margin: 0 0 .5rem; }
     .rule h2 .n {
         flex: 0 0 auto; width: 1.8rem; height: 1.8rem; border-radius: 50%;
-        background: var(--accent); color: #fff; font-size: .95rem; font-weight: 700;
+        background: var(--accent); color: #fff; font-size: var(--floor); font-weight: 700;
         display: inline-grid; place-items: center; transform: translateY(-.05em);
     }
     pre {
         background: var(--code-bg, rgba(127,127,127,.08));
         border: 1px solid var(--border); border-radius: 9px;
-        padding: .9rem 1rem; overflow-x: auto; font-size: .87rem; line-height: 1.5;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
     }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .bad::before  { content: "✗  slower — "; color: #b3261e; font-weight: 700; }
@@ -34,11 +34,11 @@
     @media (prefers-color-scheme: dark) {
         .bad::before { color: #ff7a70; } .good2::before { color: #6fcf97; }
     }
-    .bad, .good2 { display: block; font-size: .8rem; margin: 0 0 .3rem; color: var(--ink-soft); }
+    .bad, .good2 { display: block; font-size: var(--floor); margin: 0 0 .3rem; color: var(--ink-soft); }
 
-    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: .92rem; }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
     table.m th, table.m td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--border); }
-    table.m th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
                  color: var(--ink-soft); font-weight: 600; }
     table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -47,7 +47,7 @@
     .try textarea {
         width: 100%; min-height: 15.5rem; resize: vertical; box-sizing: border-box;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: .85rem; line-height: 1.5; color: var(--ink);
+        font-size: var(--mono-size); line-height: 1.5; color: var(--ink);
         background: var(--code-bg, rgba(127,127,127,.08));
         border: 1px solid var(--border); border-radius: 8px; padding: .8rem;
     }
@@ -57,7 +57,7 @@
         background: var(--accent); color: #fff; border: 0; border-radius: 7px;
     }
     .try button[disabled] { opacity: .5; cursor: default; }
-    .try .status { font-size: .85rem; color: var(--ink-soft); }
+    .try .status { font-size: var(--floor); color: var(--ink-soft); }
     .try pre { margin: .7rem 0 0; min-height: 2.2rem; }
     .scroll { overflow-x: auto; }
 </style>
@@ -68,7 +68,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>
@@ -79,12 +78,16 @@
   </div>
 </nav>
 
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><a href="blog.html">Blog</a><span class="sep">&rsaquo;</span><span class="here-crumb">Writing a fast data page in Ring</span></p>
+</nav>
+
 <section class="wrap">
 <article>
 
-<p class="meta"><span class="label">For app programmers</span> August 2026 · from the RingScript project</p>
-
 <h1>Writing a fast data page in Ring — five rules and one payload shape</h1>
+
+<p class="meta"><span class="label">For app programmers</span> August 2026 · from the RingScript project</p>
 
 <p class="first">These rules come from building a real application — the
 <a href="data.html">savings-circle register</a> that holds 20,000 records
@@ -212,7 +215,7 @@ see "against the rules : " + nMsSlow + " ms" + nl
 see "with the rules    : " + nMsFast + " ms" + nl
 </textarea>
 <div class="row">
-  <button id="run">Run</button>
+  <button id="run">Run both loops</button>
   <span class="status" id="status">the runtime loads on first run (~400 KB, once)</span>
 </div>
 <pre id="out"></pre>

@@ -6,21 +6,21 @@
 <title>What's new — RingScript</title>
 <meta name="description" content="What has landed in RingScript, in the order it happened: the runtime, the hardening, the performance work, the data app, and the fixes contributed back to Ring.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
 
     .entry { margin: 2.2rem 0; padding-top: 1.4rem; border-top: 1px solid var(--border); }
     .entry:first-of-type { border-top: 0; padding-top: 0; }
     .entry .date {
-        font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
+        font-size: var(--floor); text-transform: uppercase; letter-spacing: .05em;
         color: var(--ink-soft); font-variant-numeric: tabular-nums;
     }
-    .entry h2 { margin: .25rem 0 .5rem; font-size: 1.25rem; }
+    .entry h2 { margin: .25rem 0 .5rem; }
     .entry p { margin: .4rem 0; }
-    .entry .links { margin-top: .5rem; font-size: .92rem; }
+    .entry .links { margin-top: .5rem; }
     .entry .links a { margin-right: 1.1rem; }
     .num { font-variant-numeric: tabular-nums; }
     .gh { width: .95em; height: .95em; vertical-align: -.1em; margin-left: .3em; fill: currentColor; }
@@ -32,7 +32,6 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="tutorial-clock.html">Tutorial</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>
@@ -52,6 +51,32 @@
 measured. This page keeps the short version of what has landed, newest
 first — each entry links to the code, the documents or the pages behind
 it.</p>
+
+<div class="entry">
+  <p class="date">August 8, 2026</p>
+  <h2>The site, read properly — and three more posts</h2>
+  <p>The whole site now sits on one type scale: a hero voice, a title
+  voice, and <b>one reading size</b>, with nothing anywhere below the
+  legibility floor. That is not a taste call — it is
+  <a href="https://github.com/mayouni/stzzui" target="_blank" rel="noopener">a
+  constitution of interface rules<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
+  pinned by this family of projects, and the site was measured against it:
+  every rendered text node checked for computed size and true contrast,
+  every menu checked against the tree it claims. <b>396 findings became
+  zero.</b> The menu lost a stop it should never have had, the two branches
+  that go a level deep now show their path, and three syntax colours were
+  darkened until they earned their meaning.</p>
+  <p>Three new posts joined the blog, chosen from the whole project rather
+  than the last thing we happened to build: <b>one grammar read by three
+  runtimes</b>, <b>what a browser cannot give a Ring program</b>, and
+  <b>why the Emscripten build was replaced by Zig</b>. Two of the three run
+  live Ring inside the page.</p>
+  <p class="links">
+    <a href="blog.html">Read the blog</a>
+    <a href="blog-one-grammar.html">One grammar, three runtimes</a>
+    <a href="blog-zig-not-emscripten.html">Zig instead of Emscripten</a>
+  </p>
+</div>
 
 <div class="entry">
   <p class="date">August 7, 2026</p>

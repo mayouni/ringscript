@@ -20,23 +20,42 @@
     --code-bg: #f7f9fc;
     --code-ink: #24313f;
     --code-border: #dbe3ec;
-    --k: #8b3fc9;   /* keywords   */
-    --s: #0a7d4b;   /* strings    */
-    --n: #b35c00;   /* numbers    */
-    --c: #71808f;   /* comments   */
-    --a: #0b6bcb;   /* :atoms     */
-    --t: #1f6feb;   /* html tags  */
-    --f: #7a4f01;   /* functions  */
+    /* Every syntax colour clears 4.5:1 against --code-bg, measured, because
+       a colour that carries meaning must also carry contrast (Zui rule 105).
+       Three of them used not to: comments 3.84, tags 4.39, numbers 4.48. */
+    --k: #8b3fc9;   /* keywords  5.45 */
+    --s: #0a7d4b;   /* strings   4.92 */
+    --n: #a83a0f;   /* numbers   6.08 */
+    --c: #5c6773;   /* comments  5.47 */
+    --a: #0b6bcb;   /* :atoms    5.00 */
+    --t: #0f5bc4;   /* html tags 6.01 */
+    --f: #7a4f01;   /* functions 6.76 */
     --mono: "Cascadia Code", Consolas, "SF Mono", monospace;
+
+    /* ------------------------------------------------------ the type scale
+       Three voices and one reading size (Zui rule 107, "Hierarchy Is Not
+       Miniaturization"): a hero, a title, and ONE size for everything that
+       is read. Below the title, structure is carried by weight, colour and
+       space — never by shrinking the text. Two deviations only, both the
+       ones the rule sanctions: monospace is set metrically so it LOOKS the
+       same size as the prose beside it, and interface chrome that is never
+       read for content (the menu, the footer, small controls) may sit at
+       --floor, which is the absolute legibility floor and not a millimetre
+       below it (rule 105). Nothing on this site is smaller than --floor. */
+    --floor: 1rem;        /* 16px — the legibility floor, chrome only     */
+    --read: 1.2rem;       /* 19.2px — the one reading size                */
+    --title: 1.6rem;      /* 25.6px — the title voice                     */
+    --mono-size: 1.08rem; /* 17.3px — optical parity with --read          */
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* No smooth scrolling. The reader asked to be at an anchor; animating the
+   journey there is motion that reports nothing (Zui rule 112). */
 body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font: 18.5px/1.75 system-ui, "Segoe UI", -apple-system, sans-serif;
+    font: var(--read)/1.75 system-ui, "Segoe UI", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 /* Horizontal only: the shorthand would win on specificity over the vertical
@@ -45,14 +64,19 @@ body {
 .narrow { max-width: 46rem; }
 
 /* ---------------------------------------------------------------- nav */
+/* Opaque, not translucent. A sticky bar is allowed to be a bar, but not to
+   let the reading show through it as it passes underneath (rule 110). */
 nav {
     position: sticky; top: 0; z-index: 20;
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(8px);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
 }
 nav .wrap { display: flex; align-items: center; gap: 1.4rem; padding-top: .7rem; padding-bottom: .7rem; }
-nav a { color: var(--ink-soft); text-decoration: none; font-size: 1rem; }
+/* Seven stops and one call to action — rule 27 caps a horizontal menu at
+   eight, and a menu that wraps has stopped orienting anybody. The tutorial
+   is reached from Start here, whose path names it (rule 116: the menu tells
+   the truth about the tree; it does not grow by promotion). */
+nav a { color: var(--ink-soft); text-decoration: none; font-size: var(--floor); }
 nav a:hover { color: var(--ink); }
 nav a.active { color: var(--accent); font-weight: 600; }
 /* The RS mark sits with the wordmark, not above it: inline-flex so the two
@@ -81,17 +105,17 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 .hero img.logo { width: 200px; height: auto; margin-bottom: .6rem; }
 .hero h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.15; margin: .3rem 0 .8rem; letter-spacing: -.02em; }
 .hero h1 em { font-style: normal; color: var(--accent); }
-.hero p.sub { font-size: 1.2rem; color: var(--ink-soft); max-width: 40rem; margin: 0 auto 1.4rem; }
+.hero p.sub { font-size: var(--read); color: var(--ink-soft); max-width: 40rem; margin: 0 auto 1.4rem; }
 .badges { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.6rem; }
 .badge {
-    font-size: .95rem; color: var(--ink-soft);
+    font-size: var(--floor); color: var(--ink-soft);
     border: 1px solid var(--border); border-radius: 100px;
-    padding: .25rem .9rem; background: var(--panel);
+    padding: .3rem 1rem; background: var(--panel);
 }
 .actions { display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; }
 .btn {
     display: inline-block; padding: .6rem 1.5rem; border-radius: 8px;
-    text-decoration: none; font-weight: 600; font-size: 1rem;
+    text-decoration: none; font-weight: 600; font-size: var(--read);
     border: 1px solid var(--accent);
 }
 .btn.primary { background: var(--accent); color: var(--accent-ink); }
@@ -108,20 +132,49 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 }
 a:hover .newtab { opacity: 1; }
 
-/* Under 768px the six nav items no longer fit on one line: they used to
-   overflow and drag the whole document sideways, and just above that they
-   squeezed until their own labels wrapped. Let them wrap properly, and stop
-   pinning the bar — stacked rows would eat a sixth of a phone screen for
-   the whole scroll. */
-@media (max-width: 767px) {
+/* Measured, not guessed: brand + seven stops + the call to action stop
+   fitting on one row between 975px and 980px of viewport — and a menu is
+   never allowed to wrap by ACCIDENT (rule 27). So the switch is pulled up
+   to 1023px, below the laptop class and with ~45px of slack, because
+   system-ui is a different font on every platform and a breakpoint tuned
+   to this machine's metrics is a breakpoint that wraps on someone else's.
+   Under it the bar becomes a deliberate two-row layout, brand on its own
+   line, which is what rule 27 permits on a small viewport. It also stops
+   being pinned there: stacked rows would eat a sixth of a phone screen
+   for the whole scroll. */
+@media (max-width: 1023px) {
     nav { position: static; }
     nav .wrap { flex-wrap: wrap; gap: .15rem 1rem; }
     nav .brand { width: 100%; margin-right: 0; }
     /* A 27px line of text is a poor thumb target. Padding takes each link
        to ~40px tall; the row gap shrinks to match, so the bar keeps its
        height. The CTA has its own padding and is already big enough. */
-    nav a { font-size: .98rem; padding-top: .4rem; padding-bottom: .4rem; }
+    nav a { padding-top: .4rem; padding-bottom: .4rem; }
 }
+
+/* ------------------------------------------------------------- the path
+   Two branches on this site go a level deep — Start here → the tutorial,
+   and Blog → its posts — and the menu deliberately names only their tops
+   (rule 116). The path is what shows the rest, so it is drawn on every
+   page of those branches and reads the SAME at each step: only the
+   highlight moves (rule 115). Everything else is one level deep, where
+   the menu already says all there is to say. */
+nav[aria-label="Breadcrumb"] {
+    position: static; background: none; border: 0;
+    padding-top: 1.7rem; padding-bottom: 0;
+}
+.crumbs { margin: 0; font-size: var(--floor); color: var(--muted); }
+.crumbs a { color: var(--ink-soft); text-decoration: none; }
+.crumbs a:hover { text-decoration: underline; }
+/* The current position is marked by colour alone, and is never a link to
+   itself; hover stays unstyled, so no step is ever painted as a place the
+   reader is not (rule 115). */
+.crumbs .here-crumb { color: var(--accent); font-weight: 700; }
+.crumbs .sep { padding: 0 .5rem; opacity: .6; }
+/* The trail belongs to the page under it, not to the bar above it: without
+   this, a section's own 4.5rem of top padding leaves it stranded between
+   the two and it reads as chrome rather than as position. */
+nav[aria-label="Breadcrumb"] + section { padding-top: 1.5rem; }
 
 /* -------------------------------------------------------------- cards */
 /* Sections breathe: a clear gap from whatever sits above them. */
@@ -132,12 +185,14 @@ section + section { padding-top: 4.5rem; }
    them — the two halves of a title drift apart and stop reading as one. */
 h1, h2, h3 { line-height: 1.25; }
 h1 { font-size: clamp(1.9rem, 6vw, 2.3rem); letter-spacing: -.02em; }
-h2 { font-size: 1.6rem; letter-spacing: -.01em; margin: 0 0 .6rem; }
-h3 { font-size: 1.1rem; margin: 0 0 .35rem; }
-.lead { color: var(--ink-soft); font-size: 1.05rem; max-width: 44rem; margin: 0 0 2rem; }
+h2 { font-size: var(--title); letter-spacing: -.01em; margin: 0 0 .6rem; }
+/* The third level is NOT a fourth size. It is the reading size carrying
+   more weight and the darker ink — the whole of rule 107 in one line. */
+h3 { font-size: var(--read); font-weight: 700; margin: 0 0 .35rem; }
+.lead { color: var(--ink-soft); font-size: var(--read); max-width: 44rem; margin: 0 0 2rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1.3rem 1.4rem; }
-.card p { margin: 0; color: var(--ink-soft); font-size: 1.02rem; }
+.card p { margin: 0; color: var(--ink-soft); font-size: var(--read); }
 /* Neutral geometric glyphs, deliberately not emoji: they inherit a calm
    grey and never fight the text for attention. */
 .card .icon {
@@ -152,7 +207,7 @@ pre.code {
     background: var(--code-bg); color: var(--code-ink);
     border: 1px solid var(--code-border); border-radius: 10px;
     padding: 1.1rem 1.2rem; overflow-x: auto; margin: 0;
-    font-size: 15px; line-height: 1.7;
+    font-size: var(--mono-size); line-height: 1.7;
 }
 pre.code .k { color: var(--k); font-weight: 600; }
 pre.code .s { color: var(--s); }
@@ -167,9 +222,38 @@ pre.code .f { color: var(--f); }
     margin-left: .5rem; padding: .1em .7em;
     border: 1px solid var(--border); border-radius: 100px;
     background: var(--bg);
-    font-size: .95rem; font-weight: 600; color: var(--muted);
+    font-size: var(--floor); font-weight: 600; color: var(--muted);
     white-space: nowrap;
 }
+
+/* Room before scrollbars (Zui rule 114). A measure that fits sentences does
+   not fit a terminal transcript, a shell command or a wide table — and a
+   reader can see the empty margin beside a scrollbar. So inside an article
+   these blocks take the page's spare width when they need it, growing about
+   the SAME axis so the reading line never moves, and scroll only once the
+   page itself has run out. The cap is the page's own content column, not
+   the viewport: a code block that ran the full width of a 27-inch monitor
+   would trade one bad layout for another.
+
+   The author owes the other half of this rule: lines are written to fit the
+   column, so the widening stays exceptional rather than routine. */
+article pre, article .scroll {
+    width: max-content;
+    min-width: 100%;
+    max-width: min(62rem, calc(100vw - 2.5rem));
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+/* A diagram cannot reflow. Squeeze one into a phone column and its labels
+   drop under the reading floor — the same defect as small text, arrived at
+   sideways. So a figure holds its diagram at the width its labels need
+   (41.25rem = 660px is the widest diagram's own coordinate width, so its
+   16-unit labels render at 16px or better) and scrolls inside itself once
+   the page has run out. Written here rather than per page so that no
+   future diagram can forget it. */
+article figure { overflow-x: auto; }
+article figure svg { min-width: 41.25rem; }
 
 /* Links inside prose and cards: the site's green, underlined on hover —
    never the browser default blue. Buttons keep their own styling. */
@@ -181,7 +265,7 @@ article a:not(.btn):hover, .card a:hover, .pair a:hover { text-decoration: under
 
 p code, li code, td code {
     background: var(--accent-soft); color: var(--ink);
-    padding: .08em .35em; border-radius: 4px; font-size: .95em;
+    padding: .08em .35em; border-radius: 4px; font-size: var(--mono-size);
     /* A path or long identifier has no spaces to break at, so on a phone it
        would push the whole page sideways. Let it break anywhere it must. */
     overflow-wrap: anywhere;
@@ -197,13 +281,13 @@ p code, li code, td code {
    scrolls inside itself instead, which is what `pre.code` already asks for. */
 .compare > div, .grid > *, .limits > *, .pair > * { min-width: 0; }
 .compare .label {
-    font-size: 1.05rem; color: var(--ink-soft);
+    font-size: var(--read); color: var(--ink-soft);
     margin-bottom: .6rem; display: block;
 }
-.compare .label b { color: var(--ink); font-size: 1.12rem; }
+.compare .label b { color: var(--ink); }
 .compare .label .tag {
     display: inline-block; margin-left: .5rem; padding: .05em .7em;
-    border-radius: 100px; font-size: 1rem; font-weight: 600;
+    border-radius: 100px; font-size: var(--floor); font-weight: 600;
     background: var(--accent-soft); color: var(--accent);
 }
 .preamble { max-width: 52rem; margin: 0 0 2rem; }
@@ -211,40 +295,40 @@ p code, li code, td code {
 
 /* ---------------------------------------------------------- try panel */
 .try { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; max-width: 42rem; margin: 0 auto; }
-.try-head { display: flex; justify-content: space-between; padding: .5rem .9rem; font-size: .8rem; color: var(--muted); border-bottom: 1px solid var(--border); }
+.try-head { display: flex; justify-content: space-between; padding: .5rem .9rem; font-size: var(--floor); color: var(--muted); border-bottom: 1px solid var(--border); }
 .try textarea {
     display: block; width: 100%; border: 0; outline: none; resize: vertical;
     background: var(--code-bg); color: var(--code-ink); caret-color: #fff;
-    font: 15px/1.6 var(--mono); padding: .8rem 1rem; min-height: 6rem;
+    font: var(--mono-size)/1.6 var(--mono); padding: .8rem 1rem; min-height: 6rem;
 }
 .try-bar { display: flex; gap: .8rem; align-items: flex-start; padding: .6rem .9rem; background: #0a101a; border-top: 1px solid var(--code-border); }
 .try-bar button {
     border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
-    border-radius: 7px; padding: .35rem 1.2rem; font: 600 .95rem system-ui; cursor: pointer; flex: 0 0 auto;
+    border-radius: 7px; padding: .4rem 1.2rem; font: 600 var(--floor) system-ui; cursor: pointer; flex: 0 0 auto;
 }
 .try-bar button:disabled { opacity: .5; cursor: default; }
-.try-bar pre { margin: 0; flex: 1; font: 14px/1.5 var(--mono); color: #7d8b9d; white-space: pre-wrap; word-break: break-word; max-height: 8rem; overflow: auto; }
+.try-bar pre { margin: 0; flex: 1; font: var(--floor)/1.5 var(--mono); color: #9aa8ba; white-space: pre-wrap; word-break: break-word; max-height: 10rem; overflow: auto; }
 .try-bar pre.has { color: var(--s); }
 .try-bar pre .err { color: var(--error); }
 
 /* -------------------------------------------------------------- misc */
 .steps { counter-reset: s; list-style: none; padding: 0; max-width: 46rem; }
-.steps li { counter-increment: s; position: relative; padding-left: 2.4rem; margin-bottom: 1rem; color: var(--ink-soft); }
+.steps li { counter-increment: s; position: relative; padding-left: 2.8rem; margin-bottom: 1rem; color: var(--ink-soft); }
 .steps li::before {
     content: counter(s); position: absolute; left: 0; top: .05rem;
-    width: 1.7rem; height: 1.7rem; border-radius: 50%;
+    width: 2rem; height: 2rem; border-radius: 50%;
     background: var(--accent-soft); color: var(--accent);
-    font-weight: 700; font-size: .9rem; display: grid; place-items: center;
+    font-weight: 700; font-size: var(--floor); display: grid; place-items: center;
 }
 .steps li b { color: var(--ink); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; background: var(--accent-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; text-align: center; }
 .stats .num { font-size: 1.9rem; font-weight: 700; color: var(--accent); }
-.stats .what { font-size: 1rem; color: var(--ink-soft); }
+.stats .what { font-size: var(--read); color: var(--ink-soft); }
 figure { margin: 0; }
 figure img { width: 100%; border: 1px solid var(--border); border-radius: 12px; display: block; }
-figcaption { font-size: 1.02rem; color: var(--ink-soft); text-align: center; margin-top: .9rem; line-height: 1.6; }
+figcaption { font-size: var(--read); color: var(--ink-soft); text-align: center; margin-top: .9rem; line-height: 1.6; }
 
-footer { border-top: 1px solid var(--border); margin-top: 2rem; padding: 2rem 0 3rem; color: var(--ink-soft); font-size: 1rem; }
+footer { border-top: 1px solid var(--border); margin-top: 2rem; padding: 2rem 0 3rem; color: var(--ink-soft); font-size: var(--floor); }
 footer a { color: var(--accent); text-decoration: none; }
 footer .wrap { display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; }
 footer .sp { margin-left: auto; }

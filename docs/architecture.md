@@ -244,6 +244,18 @@ node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.
                                 # ~550 Ring-documentation examples vs native
 ```
 
+The site has a measurement of its own. `tests/site-audit.html` loads every
+page of `site/` at a chosen viewport and checks each rendered text node's
+computed size and its true contrast against the background actually painted
+behind it, plus any block that scrolls sideways with page width to spare and
+any menu that wrapped by accident. It is a port of the measurement half of
+[StzZui's UI audit](https://github.com/mayouni/stzzui), and it enforces that
+project's interface rules 105, 107, 114 and 27 — the reading floor is
+16&nbsp;px at 4.5:1, and nothing on the site is below it. Serve the
+repository root (`python -m http.server 8399`) and open
+`localhost:8399/tests/site-audit.html`; check 375, 768, 1023, 1024 and 1440.
+Current status: **clean at every width, 15 pages**.
+
 The oracle suites run each program through **both** the wasm runtime
 and a native `ring.exe`, then compare byte-for-byte (nondeterministic
 programs — clock, random, date — are required to run cleanly rather

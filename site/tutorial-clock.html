@@ -6,11 +6,11 @@
 <title>Build an analog clock in Ring — a step-by-step tutorial</title>
 <meta name="description" content="A working analog clock for the web, with the logic written in Ring. Built from nothing in six steps, assuming no web experience.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=0.9.23">
+<link rel="stylesheet" href="style.css?v=0.9.24">
 <style>
     article { max-width: 46rem; }
     article p { color: var(--ink-soft); }
-    article p.first { font-size: 1.2rem; color: var(--ink); }
+    article p.first { font-size: var(--read); color: var(--ink); }
 
     .step {
         margin: 2.8rem 0; padding-top: 1.6rem;
@@ -22,7 +22,7 @@
         flex: 0 0 auto;
         width: 2rem; height: 2rem; border-radius: 50%;
         background: var(--accent); color: #fff;
-        font-size: 1rem; font-weight: 700;
+        font-size: var(--floor); font-weight: 700;
         display: inline-grid; place-items: center;
         transform: translateY(-.1em);
     }
@@ -33,7 +33,7 @@
     figure.shot .digital {
         font: 700 1.5rem/1.2 var(--mono); color: var(--accent); margin-top: .3rem;
     }
-    figure.shot .day { color: var(--muted); font-size: .98rem; }
+    figure.shot .day { color: var(--muted); font-size: var(--floor); }
     .face   { fill: #fff; stroke: var(--ink); stroke-width: 3; }
     .tick   { stroke: var(--ink); stroke-width: 2.5; }
     .pin    { fill: var(--accent); }
@@ -49,7 +49,7 @@
     .note p { color: var(--ink); margin: 0; }
     .note p + p { margin-top: .6rem; }
 
-    table.angles { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: 1.02rem; }
+    table.angles { border-collapse: collapse; width: 100%; margin: 1.2rem 0; }
     table.angles th, table.angles td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--border); }
     table.angles th { color: var(--ink); }
     table.angles td { color: var(--ink-soft); }
@@ -61,8 +61,7 @@
 <nav>
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
-    <a href="start.html">Start here</a>
-    <a class="active" href="tutorial-clock.html">Tutorial</a>
+    <a class="active" href="start.html">Start here</a>
     <a href="story.html">The story</a>
     <a href="why-ring.html">Why Ring?</a>
     <a href="data.html">Working with data</a>
@@ -71,6 +70,10 @@
     <a href="whats-new.html">What's new</a>
     <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
   </div>
+</nav>
+
+<nav aria-label="Breadcrumb" class="wrap">
+  <p class="crumbs"><a href="index.html">RingScript</a><span class="sep">&rsaquo;</span><a href="start.html">Start here</a><span class="sep">&rsaquo;</span><span class="here-crumb">Build an analog clock</span></p>
 </nav>
 
 <section class="wrap">
