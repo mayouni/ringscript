@@ -25,7 +25,7 @@ aPackageInfo = [
 		"main.ring",
 		"lib.ring",
 		"package.ring",
-		"README.md",
+		"readme.md",
 		"LICENSE",
 
 		# The runtime you deploy: these two files ARE RingScript
