@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RingScript Playground — the Ring language in your browser</title>
-<link rel="icon" href="favicon.ico">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="site.css">
 <style>
     * { box-sizing: border-box; }
@@ -30,7 +30,12 @@
         flex: 0 0 auto;
         flex-wrap: wrap;
     }
-    header .brand { font-weight: 700; white-space: nowrap; }
+    header .brand { font-weight: 700; white-space: nowrap;
+                    display: inline-flex; align-items: center; }
+    /* Spacing on the mark, not as a flex gap: the wordmark is several
+       flex items and a gap would prise "Ring" and "Script" apart. */
+    header .brand img { width: 22px; height: 22px; display: block;
+                        flex: 0 0 auto; margin-right: .45rem; }
     header .brand small { color: var(--muted); font-weight: 400; }
     select {
         flex: 1 1 14rem;
@@ -206,6 +211,14 @@
         display: flex; flex-direction: column; gap: .4rem;
     }
     #ask-box .label { font-size: .82rem; color: var(--muted); }
+    /* Waiting state: the field and its button are visibly out of play
+       until a running program asks for input. They keep their space so
+       nothing shifts when it does. */
+    #ask-box.idle { opacity: .75; }
+    #ask-box.idle .label { font-style: italic; }
+    #ask-field:disabled { background: var(--panel); color: var(--muted); cursor: not-allowed; }
+    #ask-go:disabled { background: var(--muted); border-color: var(--muted);
+                       color: var(--panel); cursor: not-allowed; }
     #ask-box .row { display: flex; gap: .5rem; flex-wrap: wrap; }
     #ask-field {
         flex: 1;
@@ -250,7 +263,7 @@
 <body>
 
 <header>
-    <span class="brand">Ring<span style="color:var(--accent)">Script</span>
+    <span class="brand"><img src="favicon.svg" alt="" width="22" height="22">Ring<span style="color:var(--accent)">Script</span>
         <small>Playground</small> <small id="version"></small></span>
     <span class="pick-hint">&#9662; 24 ready-made examples — pick one, tweak it, run:</span>
     <select id="picker" title="Choose one of the 24 ready-made examples"></select>
@@ -270,11 +283,11 @@
     <div id="splitter" title="Drag to resize"></div>
     <section id="right-pane">
         <div id="out-box"></div>
-        <div id="ask-box" hidden>
+        <div id="ask-box" class="idle">
             <span class="label" id="ask-label"></span>
             <div class="row">
-                <input id="ask-field" autocomplete="off" placeholder="type your answer…">
-                <button id="ask-go">Continue &#9654;</button>
+                <input id="ask-field" autocomplete="off" placeholder="type your answer…" disabled>
+                <button id="ask-go" disabled>Continue &#9654;</button>
             </div>
         </div>
         <div id="bottom-box">
@@ -289,6 +302,7 @@
     </section>
 </main>
 
+<script src="ring-highlight.js"></script>
 <script src="examples-data.js"></script>
 <script src="ringscript.js"></script>
 <script>
@@ -297,90 +311,9 @@
     const $ = id => document.getElementById(id);
     const codeEl = $("code"), hlEl = $("highlight"), gutterEl = $("gutter"), lineHlEl = $("line-hl");
 
-    // ------------------------------------------------- Ring highlighter
-    const KEYWORDS = new Set(("see give put get but ok if else elseif for to next while end do again " +
-        "return func def function endfunction endfunc class endclass endpackage from new try catch done " +
-        "switch on other off exit loop step in load import private package bracestart braceend " +
-        "braceexpreval braceerror bracenewline changeringkeyword changeringoperator and or not " +
-        "true false nl null main init self this super raise").split(" "));
-
-    function escapeHtml(s) {
-        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    function highlightRing(src) {
-        let out = "", i = 0;
-        const n = src.length;
-        const isIdStart = c => /[A-Za-z_\u00A0-\uFFFF]/.test(c);
-        const isId = c => /[A-Za-z0-9_\u00A0-\uFFFF]/.test(c);
-        while (i < n) {
-            const c = src[i];
-            // comments
-            if (c === "#" || (c === "/" && src[i + 1] === "/")) {
-                let j = i;
-                while (j < n && src[j] !== "\n") j++;
-                out += '<span class="tok-com">' + escapeHtml(src.slice(i, j)) + "</span>";
-                i = j;
-                continue;
-            }
-            if (c === "/" && src[i + 1] === "*") {
-                let j = i + 2;
-                while (j < n && !(src[j] === "*" && src[j + 1] === "/")) j++;
-                j = Math.min(n, j + 2);
-                out += '<span class="tok-com">' + escapeHtml(src.slice(i, j)) + "</span>";
-                i = j;
-                continue;
-            }
-            // strings (Ring has no escape sequences)
-            if (c === '"' || c === "'" || c === "`") {
-                let j = i + 1;
-                while (j < n && src[j] !== c) j++;
-                j = Math.min(n, j + 1);
-                out += '<span class="tok-str">' + escapeHtml(src.slice(i, j)) + "</span>";
-                i = j;
-                continue;
-            }
-            // :atoms
-            if (c === ":" && i + 1 < n && isIdStart(src[i + 1])) {
-                let j = i + 1;
-                while (j < n && isId(src[j])) j++;
-                out += '<span class="tok-atom">' + escapeHtml(src.slice(i, j)) + "</span>";
-                i = j;
-                continue;
-            }
-            // numbers
-            if (/[0-9]/.test(c)) {
-                let j = i;
-                while (j < n && /[0-9._eE+\-xXa-fA-F]/.test(src[j])) {
-                    if ((src[j] === "+" || src[j] === "-") && !/[eE]/.test(src[j - 1])) break;
-                    j++;
-                }
-                out += '<span class="tok-num">' + escapeHtml(src.slice(i, j)) + "</span>";
-                i = j;
-                continue;
-            }
-            // identifiers / keywords
-            if (isIdStart(c)) {
-                let j = i;
-                while (j < n && isId(src[j])) j++;
-                const word = src.slice(i, j);
-                let k = j;
-                while (k < n && (src[k] === " " || src[k] === "\t")) k++;
-                if (KEYWORDS.has(word.toLowerCase())) {
-                    out += '<span class="tok-kw">' + escapeHtml(word) + "</span>";
-                } else if (src[k] === "(") {
-                    out += '<span class="tok-fn">' + escapeHtml(word) + "</span>";
-                } else {
-                    out += escapeHtml(word);
-                }
-                i = j;
-                continue;
-            }
-            out += escapeHtml(c);
-            i++;
-        }
-        return out;
-    }
+    // The highlighter lives in ring-highlight.js, shared with the site so
+    // that a fix to either lands in both.
+    const highlightRing = RingHighlight.highlight;
 
     // Show the pre-script input area only when the code actually reads
     // input (give, or second-style get) — otherwise that space stays empty.
@@ -540,8 +473,6 @@
         liveAnswers = [];
         askHide();
         showOutput("", "");
-        codeEl.scrollTop = 0;
-        codeEl.selectionStart = codeEl.selectionEnd = 0;
 
         $("status").textContent = "loading…";
         try {
@@ -557,6 +488,11 @@
                 "served over http:// — opening index.html straight from a folder will not work.\n" +
                 "Run start-playground and it will serve this folder for you.");
         }
+        // AFTER the text lands: assigning .value parks the caret at the end,
+        // so an example used to open with its last line highlighted. A reader
+        // meets a program at its first line.
+        codeEl.scrollTop = 0;
+        codeEl.selectionStart = codeEl.selectionEnd = 0;
         refresh();
     }
     picker.addEventListener("change", loadExample);
@@ -579,14 +515,19 @@
     function askShow() {
         awaitingInput = true;
         $("ask-label").textContent = "The program is waiting for your input:";
-        $("ask-box").hidden = false;
+        $("ask-box").classList.remove("idle");
+        $("ask-field").disabled = false;
+        $("ask-go").disabled = false;
         $("ask-field").value = "";
         $("ask-field").focus();
     }
     function askHide() {
         awaitingInput = false;
-        $("ask-box").hidden = true;
-        $("ask-label").textContent = "";
+        $("ask-box").classList.add("idle");
+        $("ask-field").disabled = true;
+        $("ask-go").disabled = true;
+        $("ask-field").value = "";
+        $("ask-label").textContent = "Answer box — a running program will ask here when it needs input.";
     }
 
     async function run(fromContinue) {

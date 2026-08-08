@@ -15,6 +15,10 @@
     --accent-ink: #ffffff;
     --error: #b42318;
     --border: #e2e8ee;
+    /* A separator has no fill behind it to help, so it needs more
+       weight than a card's outline: the What's new entries were
+       divided by a line nobody could see. */
+    --rule: #c3cede;
     /* Code sits on a soft light panel, not a black box — easier on the eye
        against a white page, and the syntax colours stay legible. */
     --code-bg: #f7f9fc;
@@ -166,7 +170,10 @@ section + section { padding-top: 4.5rem; }
 /* Headings set their own leading. Body text wants 1.75; a heading at that
    spacing falls apart the moment it wraps, which on a phone is most of
    them — the two halves of a title drift apart and stop reading as one. */
-h1, h2, h3 { line-height: 1.25; }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+/* Short centred blocks split evenly rather than dropping one word
+   onto a line of its own. */
+.hero p.sub, figcaption, .badge, .lead { text-wrap: balance; }
 h1 { font-size: clamp(1.9rem, 6vw, 2.3rem); letter-spacing: -.02em; }
 h2 { font-size: var(--title); letter-spacing: -.01em; margin: 0 0 .6rem; }
 /* The third level is NOT a fourth size. It is the reading size carrying
@@ -268,6 +275,74 @@ article .runner pre { max-width: 100%; width: auto; }
 article figure { overflow-x: auto; }
 article figure svg { min-width: 41.25rem; }
 
+/* ------------------------------------------------- the code editor
+   Ring on this site is shown the way the Playground shows it: numbered
+   lines, the same syntax colours, the same monospace. Two arrangements
+   share this styling — a static snippet (a gutter beside a <pre>) and the
+   live editor (a gutter beside a highlighted layer under a transparent
+   textarea) — because they should be indistinguishable to a reader. */
+.rh-shell {
+    display: flex; align-items: stretch;
+    border: 1px solid var(--code-border); border-radius: 10px;
+    background: var(--code-bg);
+    overflow: hidden;
+    margin: 1.2rem 0;
+    /* Rule 114 again: code has lines where prose has sentences. */
+    width: max-content; min-width: 100%;
+    max-width: min(60rem, calc(100vw - 2.5rem));
+}
+.rh-gutter {
+    flex: 0 0 auto;
+    padding: 1.1rem 0;
+    background: color-mix(in srgb, var(--code-ink) 5%, var(--code-bg));
+    border-right: 1px solid var(--code-border);
+    color: var(--muted);
+    font: var(--mono-size)/1.7 var(--mono);
+    text-align: right; user-select: none; overflow: hidden; white-space: pre;
+}
+.rh-gutter div { padding: 0 .6rem 0 .9rem; }
+.rh-gutter div.cur { color: var(--accent); font-weight: 700; background: var(--accent-soft); }
+
+/* a static snippet: the <pre> sits inside the shell and keeps its own scroll */
+article .rh-shell pre.rh-static {
+    margin: 0; border: 0; border-radius: 0; flex: 1 1 auto;
+    width: auto; min-width: 0; max-width: none;
+    background: transparent;
+    padding: 1.1rem 1.1rem;
+    font: var(--mono-size)/1.7 var(--mono);
+    overflow-x: auto;
+}
+article .rh-shell pre.rh-static code { font: inherit; background: none; padding: 0; }
+
+/* the live editor: three layers, the textarea on top and transparent */
+.rh-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+.rh-code, .rh-input, .runner-code {
+    margin: 0; border: 0; padding: 1.1rem;
+    font: var(--mono-size)/1.7 var(--mono);
+    white-space: pre; overflow-wrap: normal; tab-size: 4;
+}
+.rh-code {
+    position: absolute; inset: 0; overflow: hidden;
+    pointer-events: none; color: var(--code-ink);
+}
+.rh-line {
+    position: absolute; left: 0; right: 0;
+    background: var(--accent-soft); pointer-events: none;
+}
+.rh-input {
+    position: relative; display: block; width: 100%; min-height: 6rem;
+    background: transparent; color: transparent; caret-color: var(--ink);
+    outline: none; overflow: auto; resize: vertical;
+}
+.rh-input::selection { background: #cfe6dc; color: transparent; }
+
+.tok-kw   { color: var(--k); font-weight: 600; }
+.tok-str  { color: var(--s); }
+.tok-num  { color: var(--n); }
+.tok-com  { color: var(--c); font-style: italic; }
+.tok-atom { color: var(--a); }
+.tok-fn   { color: var(--f); }
+
 /* ------------------------------------------------------------- runner
    The live Ring panel used by the blog posts: a program you can edit, a
    button that runs it in the real runtime, and the output it produced.
@@ -307,18 +382,21 @@ article figure svg { min-width: 41.25rem; }
 /* The keyboard contract, stated where it applies. Not uppercase — it is a
    sentence, not a label — and never below the floor. */
 .runner-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); }
+/* The editor owns the type and the padding of this textarea — the
+   highlighted layer sits exactly beneath it and the two must agree to the
+   pixel, or the colours drift away from the letters a few lines down.
+   Everything here is what the editor does NOT set. */
 .runner-code {
     display: block; width: 100%; box-sizing: border-box;
-    border: 0; border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    background: var(--code-bg); color: var(--code-ink);
-    font: var(--mono-size)/1.65 var(--mono);
-    tab-size: 4;
-    padding: .9rem 1.1rem;
-    resize: vertical; outline-offset: -3px;
+    background: var(--code-bg); color: var(--code-ink); resize: vertical; outline: none;
     /* height is set from the program's own length on load, so the reader
        meets the whole example rather than the middle of it */
     min-height: 6rem;
+}
+/* the editor's shell replaces the textarea's own frame inside the panel */
+.runner .rh-shell {
+    margin: 0; border-radius: 0; border-left: 0; border-right: 0;
+    width: auto; min-width: 0; max-width: none;
 }
 .runner-bar {
     display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;

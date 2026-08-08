@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A real ledger, written in Ring — does it feel right?</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><text y='.9em' font-size='90'>📒</text></svg>">
 <style>
   :root { --bg:#fff; --fg:#1a1a1a; --dim:#666; --line:#e2e2e2; --card:#fafafa;
           --accent:#1a4fa0; --instant:#12703a; --resp:#8a5a00; --slow:#b3261e; }
@@ -31,6 +31,28 @@
            background:var(--accent); color:#fff; border:0; border-radius:7px; }
   button.ghost { background:transparent; color:var(--accent); border:1px solid var(--line); }
   button[disabled] { opacity:.5; cursor:default; }
+
+  /* The pending state. It says WHAT is running, not just that something
+     is — "sorting by amount" answers the question the spinner raises. */
+  #busy { display:inline-flex; align-items:center; gap:.5rem; color:var(--accent); font-weight:600; }
+  #busy[hidden] { display:none; }
+  .spin {
+    width:1em; height:1em; flex:0 0 auto; border-radius:50%;
+    border:2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-top-color:var(--accent);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* Motion that reports a real state, and only while that state lasts
+     (Zui rule 112). Anyone who has asked for less of it gets a static
+     mark instead of a spinner. */
+  @media (prefers-reduced-motion: reduce) {
+    .spin { animation:none; border-top-color:transparent; background:var(--accent); }
+  }
+  /* The whole surface acknowledges the click, so a second click on the
+     same control is visibly pointless rather than silently queued. */
+  body.working { cursor:progress; }
+  body.working button, body.working th.sortable { pointer-events:none; opacity:.6; }
 
   .stats { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 14px; }
   .stat { flex:1 1 120px; background:var(--card); border:1px solid var(--line);
@@ -75,6 +97,7 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
       <input id="n" type="number" value="20000" min="500" max="200000" step="500">
     </div>
     <div style="flex:0 0 auto"><button id="load">Load the ledger</button></div>
+    <div style="flex:0 0 auto"><span id="busy" hidden><span class="spin" aria-hidden="true"></span><span id="busy-what"></span>&hellip;</span></div>
     <div style="flex:2 1 240px"><p class="hint" id="loadnote">
       Loaded once, at startup — the only time JSON crosses the bridge.</p></div>
   </div>
@@ -220,10 +243,77 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
   }
 
   /* ---- one measured interaction ---- */
+  /* ---- pending state ----------------------------------------------
+     A click that takes a fifth of a second with no acknowledgement reads
+     as a click that did not register, and the user clicks again. The VM
+     runs on this thread, so the only way to show anything is to paint the
+     busy state FIRST and hand the work to a later frame.
+
+     Which actions get it is not a guess: act() records what each one cost
+     last time, and any action that has been over the responsive budget
+     (100 ms) pays the frame it takes to announce itself. Below that, the
+     answer arrives faster than a spinner could appear, and announcing it
+     would only add latency to something that already felt instant. */
+  var lastCost = {};
+  var busyDepth = 0;
+  /* the key pending() is watching while its work runs, so a wrapped
+     block learns the cost of everything inside it, not just one call */
+  var busyKey = null;
+
+  function showBusy(label) {
+    busyDepth++;
+    $("busy").hidden = false;
+    $("busy-what").textContent = label;
+    document.body.classList.add("working");
+  }
+  function hideBusy() {
+    busyDepth = Math.max(0, busyDepth - 1);
+    if (busyDepth === 0) {
+      $("busy").hidden = true;
+      document.body.classList.remove("working");
+    }
+  }
+  /* Two frames: one for the browser to lay the indicator out, one for it
+     to actually paint it. A single rAF fires before the paint.
+
+     The timer is not belt-and-braces, it is the whole safety of this: a
+     hidden or backgrounded tab does not composite, so requestAnimationFrame
+     never fires there and the work would simply never run — the indicator
+     up, the click swallowed, the app apparently hung. Whichever arrives
+     first wins, and the work happens exactly once. */
+  function afterPaint(fn) {
+    var done = false;
+    function once() { if (!done) { done = true; fn(); } }
+    requestAnimationFrame(function () { requestAnimationFrame(once); });
+    setTimeout(once, 60);
+  }
+  function slow(key) { return (lastCost[key] || 0) > 100; }
+
+  /* Run `work` with the busy state up if this action has been slow before.
+     Always returns a promise so callers read the same either way. */
+  function pending(label, work) {
+    if (!slow(label)) {
+      var prev = busyKey; busyKey = label;
+      try { return Promise.resolve(work()); }
+      finally { busyKey = prev; }
+    }
+    showBusy(label);
+    return new Promise(function (resolve, reject) {
+      afterPaint(function () {
+        var prev = busyKey; busyKey = label;
+        try { resolve(work()); }
+        catch (e) { reject(e); }
+        finally { busyKey = prev; hideBusy(); }
+      });
+    });
+  }
+
   function act(label, involved, fn, oracle) {
     var t = performance.now();
     var got = fn();
     var ms = performance.now() - t;
+    lastCost[label] = ms;          /* what this action costs, learned by doing it */
+    if (busyKey) lastCost[busyKey] = Math.max(lastCost[busyKey] || 0, ms);
     var v = ms < 16 ? ["instant", "v-instant"] : ms < 100 ? ["responsive", "v-resp"]
                                                           : ["noticeable", "v-slow"];
     var checked = "";
@@ -307,7 +397,9 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
       ring.call("LedgerSort", (sortDesc ? "-" : "") + sortCol);
     }
     page = 1;
-    drawPage(); refreshStats(); drawBoard();
+    pending("applying the filter", function () {
+      drawPage(); refreshStats(); drawBoard();
+    });
   }
 
   /* ---- the optimisation panel: RingScript vs what Ring alone does ---- */
@@ -445,10 +537,13 @@ beats JavaScript. It is whether an ordinary Ring page feels right to use.</b></p
       sortDesc = (c === sortCol) ? !sortDesc : false;
       sortCol = c;
       var view = jsFilter(lastFilter);
-      act("Sort by " + c + (sortDesc ? " (desc)" : ""), view.length, function () {
-        return ring.call("LedgerSort", (sortDesc ? "-" : "") + c).result;
-      }, function () { return view.length; });
-      page = 1; drawPage();
+      var label = "Sort by " + c + (sortDesc ? " (desc)" : "");
+      pending("sorting by " + c, function () {
+        act(label, view.length, function () {
+          return ring.call("LedgerSort", (sortDesc ? "-" : "") + c).result;
+        }, function () { return view.length; });
+        page = 1; drawPage();
+      });
     });
   });
   function validateForm() {

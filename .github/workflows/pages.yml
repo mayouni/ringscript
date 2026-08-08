@@ -51,7 +51,8 @@ jobs:
           mkdir -p ringscript-starter/server
           cp starter/README.txt starter/index.html starter/app.ring \
              starter/clock.html starter/clock.ring \
-             starter/start-windows.bat starter/start-mac-linux.sh ringscript-starter/
+             starter/start-windows.bat starter/start-mac-linux.sh \
+             starter/favicon.svg ringscript-starter/
           cp playground/ringscript.js playground/ringscript.wasm ringscript-starter/
           cp bin/* ringscript-starter/server/
           chmod +x ringscript-starter/start-mac-linux.sh ringscript-starter/server/*

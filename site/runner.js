@@ -42,6 +42,12 @@
         area.style.height = "auto";
         var max = 48 * parseFloat(getComputedStyle(document.documentElement).fontSize);
         area.style.height = Math.min(area.scrollHeight + 2, max) + "px";
+        /* the highlighted layer is absolutely positioned, so the wrapper
+           has to be told the height the textarea just chose */
+        var wrap = area.parentNode;
+        if (wrap && wrap.classList.contains("rh-wrap")) {
+            wrap.style.height = area.style.height;
+        }
     }
 
     /* Tab indents, because this is code and not a form field — but Escape
@@ -117,6 +123,10 @@
 
         fit(area);
         editorKeys(area);
+        /* code.js turns this textarea into the editor a moment later; when
+           it does, the height has to be recomputed against the editor's own
+           line metrics rather than the bare textarea's. */
+        requestAnimationFrame(function () { fit(area); });
         area.addEventListener("input", function () { fit(area); });
 
         restore.addEventListener("click", function () {
