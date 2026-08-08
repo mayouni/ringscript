@@ -12,13 +12,12 @@
     article p { color: var(--ink-soft); }
     article p.first { font-size: var(--read); color: var(--ink); }
 
-    /* Two ways in, both showing the same three categories: a row of
-       filters at the top, where a reader who has just arrived looks, and a
-       rail on the right that stays put while they scroll. Neither hides
-       anything — filtering narrows the list, it never removes a category
-       from view, so the shape of the blog is always legible. */
-    .blog-layout { display: grid; grid-template-columns: 1fr 15rem; gap: 2.5rem; align-items: start; }
-    @media (max-width: 899px) { .blog-layout { grid-template-columns: 1fr; gap: 1.5rem; } }
+    /* One way in: a row of filters at the top, where a reader who has just
+       arrived is already looking. A second copy in a rail on the right was
+       the same four choices said twice on one screen — and it cost the
+       posts a quarter of their width to say it. Every category stays in
+       the row whatever is selected, so filtering narrows the list without
+       ever hiding the shape of the blog. */
 
     .filters { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1.6rem 0 .5rem; }
     .filters button {
@@ -34,25 +33,6 @@
        the opacity this used to carry measured 4.07:1. */
     .filters .count { font-weight: 400; }
 
-    /* The rail. It is navigation, so it sticks; it holds its own space in
-       the layout rather than floating over the reading (rule 110). */
-    .rail { position: sticky; top: 5rem; }
-    @media (max-width: 899px) { .rail { position: static; } }
-    .rail h2 { font-size: var(--read); margin: 0 0 .6rem; }
-    .rail ul { list-style: none; margin: 0; padding: 0; }
-    .rail li { margin: 0 0 .1rem; }
-    .rail a {
-        display: block; padding: .45rem .7rem; border-radius: 8px;
-        color: var(--ink-soft); text-decoration: none; font-size: var(--floor);
-        border-left: 3px solid transparent;
-    }
-    .rail a:hover { background: var(--accent-soft); color: var(--ink); }
-    .rail a[aria-current="true"] {
-        color: var(--accent); font-weight: 700;
-        border-left-color: var(--accent); background: var(--accent-soft);
-    }
-    .rail .n { float: right; font-weight: 400; color: var(--muted); }
-    .rail .note { margin: 1rem 0 0; font-size: var(--floor); color: var(--muted); }
 
     .cat { margin: 2.8rem 0 0; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
     .cat:first-of-type { border-top: 0; padding-top: 0; margin-top: 2rem; }
@@ -111,8 +91,6 @@ page you are reading.</p>
   <button type="button" data-filter="technical" aria-pressed="false">Deep technical <span class="count"></span></button>
 </div>
 
-<div class="blog-layout">
-<div class="posts">
 
 <div class="cat" id="cat-vision" data-cat="vision">
   <p class="label">Vision &amp; direction</p>
@@ -182,22 +160,6 @@ page you are reading.</p>
     touching the VM's most-used code path safe.</p>
   </div>
 </div>
-</div>
-
-<aside class="rail">
-  <h2>Categories</h2>
-  <nav aria-label="Post categories">
-    <ul>
-      <li><a href="#" data-filter="all" aria-current="true">All posts <span class="n"></span></a></li>
-      <li><a href="#cat-vision" data-filter="vision">Vision &amp; direction <span class="n"></span></a></li>
-      <li><a href="#cat-practical" data-filter="practical">For app programmers <span class="n"></span></a></li>
-      <li><a href="#cat-technical" data-filter="technical">Deep technical <span class="n"></span></a></li>
-    </ul>
-  </nav>
-  <p class="note">Choosing a category narrows the list. Nothing is hidden
-  from the menu itself, so the shape of the blog stays visible.</p>
-</aside>
-</div>
 
 </article>
 </section>
@@ -221,7 +183,6 @@ page you are reading.</p>
     "use strict";
     var cats = [].slice.call(document.querySelectorAll(".cat"));
     var buttons = [].slice.call(document.querySelectorAll(".filters button"));
-    var links = [].slice.call(document.querySelectorAll(".rail a"));
     if (!cats.length) return;
 
     /* counts come from the page, never from a number typed twice */
@@ -234,38 +195,24 @@ page you are reading.</p>
     buttons.forEach(function (b) {
         b.querySelector(".count").textContent = "(" + counts[b.dataset.filter] + ")";
     });
-    links.forEach(function (a) {
-        a.querySelector(".n").textContent = counts[a.dataset.filter];
-    });
 
-    function apply(which, scrollTo) {
+    function apply(which) {
         cats.forEach(function (c) { c.hidden = (which !== "all" && c.dataset.cat !== which); });
         buttons.forEach(function (b) {
             b.setAttribute("aria-pressed", String(b.dataset.filter === which));
-        });
-        links.forEach(function (a) {
-            if (a.dataset.filter === which) { a.setAttribute("aria-current", "true"); }
-            else { a.removeAttribute("aria-current"); }
         });
         /* the address bar remembers the choice, so a filtered view is a
            link someone can send */
         var url = which === "all" ? location.pathname : location.pathname + "?c=" + which;
         history.replaceState(null, "", url);
-        if (scrollTo) {
-            var top = document.querySelector(".filters");
-            if (top) window.scrollTo(0, Math.max(0, top.getBoundingClientRect().top + window.scrollY - 90));
-        }
     }
 
     buttons.forEach(function (b) {
-        b.addEventListener("click", function () { apply(b.dataset.filter, false); });
-    });
-    links.forEach(function (a) {
-        a.addEventListener("click", function (e) { e.preventDefault(); apply(a.dataset.filter, true); });
+        b.addEventListener("click", function () { apply(b.dataset.filter); });
     });
 
     var want = new URLSearchParams(location.search).get("c");
-    if (want && counts[want] !== undefined) apply(want, false);
+    if (want && counts[want] !== undefined) apply(want);
 })();
 </script>
 </body>
