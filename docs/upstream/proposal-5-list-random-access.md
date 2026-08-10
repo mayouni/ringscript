@@ -1,6 +1,6 @@
 # Two O(n²) behaviours in `rlist.c`, and one root cause
 
-**Status: prepared, not sent.** Nothing about these findings has been filed
+**Status: SENT** as PR [#1642](https://github.com/ring-lang/ring/pull/1642) on 2026-08-10. Nothing about these findings has been filed
 upstream. Checked before writing (2026-08-10):
 
 | where | what is there |

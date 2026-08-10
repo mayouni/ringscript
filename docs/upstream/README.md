@@ -23,7 +23,7 @@ item 5.
 | 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | same PR, same reply | **do not refile** |
 | 3 | [string argument copy](discussion-3-string-argument-copy.md) | **not sent, and the one genuinely new finding** | send as [a Google Group message](group-message-string-copy.md) |
 | 4 | [computed-goto](offer-4-computed-goto.md) | **obsolete — withdraw** | **do not send** |
-| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **prepared, not sent.** Found Aug 7 while driving a 50,000-row application — after this table was first written. Reproduced on stock Ring **1.27**; #1641 offered them and the offer was never taken up | send as a PR (issues are disabled) |
+| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **sent** as PR [#1642](https://github.com/ring-lang/ring/pull/1642), Aug 10. Reproduced on stock Ring **1.27**; framed as a finding, with the diff offered as illustration since Ring is authored in PWCT | **do not refile** |
 
 ### Why item 4 is obsolete
 
