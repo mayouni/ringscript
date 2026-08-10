@@ -3,7 +3,8 @@
 Findings from RingScript prepared for the Ring project, plus what
 happened to each. **Checked against the live repository on August 7,
 2026 — before any of it was sent** — which changed the picture
-considerably. Read this before posting anything.
+considerably. Read this before posting anything. Re-checked August 10 for
+item 5.
 
 ## Two facts about the channel
 
@@ -22,6 +23,7 @@ considerably. Read this before posting anything.
 | 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | same PR, same reply | **do not refile** |
 | 3 | [string argument copy](discussion-3-string-argument-copy.md) | **not sent, and the one genuinely new finding** | send as [a Google Group message](group-message-string-copy.md) |
 | 4 | [computed-goto](offer-4-computed-goto.md) | **obsolete — withdraw** | **do not send** |
+| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **prepared, not sent.** Found Aug 7 while driving a 50,000-row application — after this table was first written. Reproduced on stock Ring **1.27**; #1641 offered them and the offer was never taken up | send as a PR (issues are disabled) |
 
 ### Why item 4 is obsolete
 
