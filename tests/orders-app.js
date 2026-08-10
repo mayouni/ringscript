@@ -14,10 +14,11 @@ const path = require("path");
 const RingScript = require(path.join(__dirname, "..", "playground", "ringscript.js"));
 
 const root = path.join(__dirname, "..", "playground");
+const sample = path.join(__dirname, "..", "samples", "route-orders");
 const wasm = fs.readFileSync(path.join(root, "ringscript.wasm"));
 const bytes = wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength);
-const source = fs.readFileSync(path.join(root, "orders.ring"), "utf8");
-const reference = fs.readFileSync(path.join(root, "orders-reference.json"), "utf8");
+const source = fs.readFileSync(path.join(sample, "orders.ring"), "utf8");
+const reference = fs.readFileSync(path.join(sample, "reference.json"), "utf8");
 
 let failures = 0;
 function check(name, cond, detail) {

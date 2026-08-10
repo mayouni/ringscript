@@ -1,0 +1,172 @@
+/*
+** app.css — the interface. Ordinary CSS, no framework, no build step.
+**
+** Nothing in this file knows that Ring exists. Swap it for your own design
+** system and the application is unchanged: the rules live in orders.ring,
+** and this only decides how the answers look.
+*/
+
+:root {
+    --bg: #ffffff;
+    --ink: #1c2126;
+    --ink-soft: #4a5560;
+    --muted: #6a737d;
+    --line: #e2e8ee;
+    --panel: #f7f9fc;
+    --accent: #1a7f5a;
+    --accent-soft: #eef6f2;
+    --wire: #0b6bcb;
+    --warn: #8a5a00;
+    --bad: #b3261e;
+    --ok: #12703a;
+    --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 17px/1.6 system-ui, "Segoe UI", -apple-system, sans-serif;
+}
+
+.sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ header */
+.topbar {
+    border-bottom: 1px solid var(--line);
+    padding: 1.6rem 1.25rem 1.4rem;
+}
+.topbar h1 { margin: 0 0 .3rem; font-size: 1.8rem; letter-spacing: -.01em; }
+.topbar p { margin: 0; color: var(--ink-soft); max-width: 46rem; }
+.topbar a { color: var(--accent); }
+
+main { max-width: 72rem; margin: 0 auto; padding: 1.6rem 1.25rem 4rem; }
+
+/* -------------------------------------------------------- the wire */
+.wire {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    border: 2px solid var(--line); border-radius: var(--radius);
+    padding: 1rem 1.2rem; margin: 0 0 1.4rem;
+}
+.wire--up   { border-color: var(--accent); background: var(--accent-soft); }
+.wire--down { border-color: #e6c9c4; background: #fdf3f1; }
+.wire__state { margin: 0; font-weight: 700; font-size: 1.1rem; }
+.wire--up   .wire__state { color: var(--accent); }
+.wire--down .wire__state { color: var(--bad); }
+.wire__said { margin: 0; flex: 1 1 18rem; color: var(--ink-soft); font-size: 1rem; }
+
+/* ------------------------------------------------------- counters */
+.stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: .7rem; margin: 0 0 1.4rem;
+}
+.stats div {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: .7rem .8rem;
+}
+.stats b { display: block; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.stats span { color: var(--ink-soft); font-size: 1rem; }
+
+/* --------------------------------------------------------- layout */
+.layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 1.4rem; align-items: start; }
+/* a grid item is min-width:auto by default, so a wide table would push the
+   column — and the page — past the viewport */
+.layout > * { min-width: 0; }
+@media (max-width: 899px) { .layout { grid-template-columns: 1fr; } }
+
+.panel {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1.1rem 1.2rem; margin: 0 0 1.2rem;
+}
+.panel--filled { background: var(--panel); }
+.panel h2 {
+    margin: 0 0 .9rem; font-size: 1rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft);
+}
+
+/* --------------------------------------------------------- forms */
+.field { margin: 0 0 .8rem; }
+.field label { display: block; font-weight: 600; font-size: 1rem; color: var(--ink-soft); margin: 0 0 .3rem; }
+.field input {
+    width: 100%; padding: .5rem .6rem; font: inherit; font-size: 1rem;
+    color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px;
+}
+.fieldrow { display: flex; gap: .8rem; flex-wrap: wrap; }
+.fieldrow .field { flex: 1 1 12rem; }
+.fieldrow .field--narrow { flex: 0 0 7rem; }
+
+.actions { display: flex; gap: .7rem; flex-wrap: wrap; margin: .9rem 0; }
+.btn {
+    font: inherit; font-size: 1rem; font-weight: 600; cursor: pointer;
+    padding: .5rem 1.1rem; border-radius: 8px;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+}
+.btn--quiet { background: transparent; color: var(--accent); }
+.btn:disabled { background: var(--muted); border-color: var(--muted); color: #fff; cursor: default; }
+
+/* --------------------------------------------------------- tables */
+.tablewrap { overflow-x: auto; }
+.tablewrap--short { max-height: 13rem; overflow-y: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 1rem; }
+th, td { padding: .4rem .5rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { color: var(--ink-soft); text-transform: uppercase; letter-spacing: .03em; font-size: 1rem; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr[data-pick] td { cursor: pointer; }
+tbody tr[data-pick]:hover td { background: var(--accent-soft); }
+tbody tr[aria-selected="true"] td { background: var(--accent-soft); font-weight: 600; }
+
+/* ------------------------------------------------- order summary */
+.totals { display: flex; justify-content: space-between; gap: 1rem; padding: .3rem 0; }
+.totals--grand {
+    font-size: 1.15rem; font-weight: 700;
+    border-top: 1px solid var(--line); margin-top: .4rem; padding-top: .6rem;
+}
+.credit { margin: .9rem 0 0; }
+.meter { height: .6rem; border-radius: 100px; background: var(--line); overflow: hidden; margin: .35rem 0; }
+.meter span { display: block; height: 100%; background: var(--accent); }
+.meter--over span { background: var(--bad); }
+.verdict { font-weight: 700; font-size: 1rem; }
+.verdict--ok  { color: var(--ok); }
+.verdict--bad { color: var(--bad); }
+.warnings {
+    border-left: 3px solid var(--warn); padding: .2rem 0 .2rem .8rem;
+    margin: .7rem 0 0; color: var(--ink-soft); font-size: 1rem;
+}
+.note { color: var(--ink-soft); font-size: 1rem; margin: 0 0 .5rem; }
+
+/* ---------------------------------------------------------- pills */
+.pill {
+    display: inline-block; padding: .05rem .55rem; border-radius: 100px;
+    font-size: 1rem; font-weight: 600; border: 1px solid var(--line);
+}
+.pill--pending  { color: var(--warn); border-color: #e3d3ac; background: #fdf8ec; }
+.pill--sent     { color: var(--ink-soft); }
+.pill--accepted { color: var(--ok); border-color: #bfe0cc; background: #f0f9f4; }
+.pill--rejected { color: var(--bad); border-color: #e6c9c4; background: #fdf3f1; }
+
+/* ------------------------------------------------------ wire log */
+.log { max-height: 19rem; overflow-y: auto; margin: 0; padding: 0; list-style: none; font-size: 1rem; }
+.log li { padding: .35rem 0; border-bottom: 1px solid var(--line); color: var(--ink-soft); }
+.log li:last-child { border-bottom: 0; }
+.log time { font-variant-numeric: tabular-nums; color: var(--muted); margin-right: .5rem; }
+.log b { font-weight: 700; }
+.log .is-local { color: var(--accent); }
+.log .is-wire  { color: var(--wire); }
+.log .is-fail  { color: var(--bad); }
+
+/* ------------------------------------------------------- the map */
+.where { margin: 0; display: grid; grid-template-columns: 14rem 1fr; gap: .5rem 1.2rem; }
+@media (max-width: 640px) { .where { grid-template-columns: 1fr; gap: .1rem 0; } }
+.where dt { font-weight: 700; }
+.where dd { margin: 0 0 .5rem; color: var(--ink-soft); }
+.where code { background: var(--accent-soft); padding: .05em .3em; border-radius: 4px; }
+
+.foot { border-top: 1px solid var(--line); padding: 1.4rem 1.25rem 3rem; }
+.foot p { margin: 0; color: var(--ink-soft); font-size: 1rem; }
+.foot a { color: var(--accent); }

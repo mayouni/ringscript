@@ -107,6 +107,19 @@ back office later. It is the most ordinary application there is, which is
 why it was chosen: whatever you build, it probably does these same
 things.</p>
 
+<p>It is laid out as the web project it is — <code>index.html</code>,
+<code>app.css</code>, <code>app.js</code>, <code>orders.ring</code> — and
+<b>Ring draws none of it</b>. Ring does not touch the DOM and has never
+heard of <code>localStorage</code>. It answers questions; the page decides
+how the answers look:</p>
+
+<pre><code>const view = ask("OrderView");   // what does this order come to?
+renderOrder(view);               // ...and the page decides how that looks</code></pre>
+
+<p>Rewrite <code>app.js</code> in React, Vue or Svelte tomorrow and
+<code>orders.ring</code> does not change. That is the boundary the whole
+sample is built to show.</p>
+
 <div class="split">
   <div class="here">
     <p class="cap">In Ring, on the device</p>
@@ -127,15 +140,16 @@ things.</p>
   <div>
     <p class="cap">Everywhere else</p>
     <ul>
-      <li><b>JavaScript:</b> <code>fetch</code>,
-          <code>localStorage</code>, the DOM. That is the entire list.</li>
+      <li><b>HTML and CSS:</b> the whole interface. Every screen in the
+          sample is ordinary markup and an ordinary stylesheet — the ones
+          you already write.</li>
+      <li><b>JavaScript:</b> the wires — <code>fetch</code>,
+          <code>localStorage</code>, the DOM, the event handlers.</li>
       <li><b>Your server:</b> two HTTP endpoints that speak JSON —
           one that hands out reference data, one that accepts finished
-          orders.</li>
+          orders. Django, Laravel, Spring, Rails, Node, Go, .NET or Ring;
+          the device does not know and does not care.</li>
     </ul>
-    <p style="margin-top:1rem; color:var(--ink-soft)">Written in Django,
-    Laravel, Spring, Rails, Node, Go, .NET or Ring. The device does not
-    know and does not care.</p>
   </div>
 </div>
 
@@ -146,7 +160,7 @@ things.</p>
   watch the tier price and the case discount apply, watch the credit bar
   fill, queue the order. Nothing degrades. Restore the line and the queue
   goes out.</p>
-  <a class="btn primary" href="playground/orders.html" target="_blank" rel="noopener">Open Route Orders <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn primary" href="samples/route-orders/" target="_blank" rel="noopener">Open Route Orders <span class="newtab" aria-hidden="true">&#8599;</span></a>
 </div>
 
 <h2>The measurement that makes the argument</h2>
@@ -404,10 +418,12 @@ and deciding is what stops working when the line does.</p>
 <table class="m">
   <thead><tr><th>The piece</th><th>What to look at</th></tr></thead>
   <tbody>
-    <tr><td><a href="playground/orders.html" target="_blank" rel="noopener">The application</a></td>
+    <tr><td><a href="samples/route-orders/" target="_blank" rel="noopener">The application</a></td>
         <td>run it, cut the connection, read the wire log</td></tr>
-    <tr><td><a href="https://github.com/mayouni/ringscript/blob/main/playground/orders.ring" target="_blank" rel="noopener">orders.ring</a></td>
-        <td>every rule, in one commented file</td></tr>
+    <tr><td><a href="https://github.com/mayouni/ringscript/tree/main/samples/route-orders" target="_blank" rel="noopener">The project folder</a></td>
+        <td>index.html, app.css, app.js, orders.ring — six files, no build step</td></tr>
+    <tr><td><a href="https://github.com/mayouni/ringscript/blob/main/samples/route-orders/orders.ring" target="_blank" rel="noopener">orders.ring</a></td>
+        <td>every business rule, and nothing else, in one commented file</td></tr>
     <tr><td><a href="https://github.com/mayouni/ringscript/blob/main/tests/orders-app.js" target="_blank" rel="noopener">tests/orders-app.js</a></td>
         <td>the same rules asserted — pricing, credit, outbox, sync, restart</td></tr>
     <tr><td><a href="start.html">The starter kit</a></td>

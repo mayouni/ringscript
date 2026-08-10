@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Orders — a local-first sample built with RingScript</title>
+<meta name="description" content="A field-sales order pad. The interface is plain HTML and CSS; the business rules are Ring, running in the browser. The server is used twice: pull the reference data, push the finished orders.">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Route Orders</h1>
+  <p>A field-sales order pad — <b>HTML and CSS for the interface, Ring for
+  the rules</b>. <a href="README.md">Read the sample's notes</a></p>
+</header>
+
+<main>
+
+  <!-- The connection. Everything below keeps working when it is down. -->
+  <section class="wire wire--up" id="wire" aria-live="polite">
+    <p class="wire__state" id="wire-state">Connection: up</p>
+    <p class="wire__said" id="wire-said">The server is reachable.</p>
+    <button type="button" class="btn btn--quiet" id="toggle">Cut the connection</button>
+  </section>
+
+  <section class="stats" id="stats" aria-label="Session counters"></section>
+
+  <div class="layout">
+  <div class="layout__main">
+
+    <section class="panel">
+      <h2>1 · The customer</h2>
+      <div class="field">
+        <label for="customer-search">Find a shop — by name or town</label>
+        <input id="customer-search" type="search" autocomplete="off"
+               placeholder="Niamey, Maradi, Salamatou…">
+      </div>
+      <div class="tablewrap">
+        <table id="customers">
+          <thead>
+            <tr><th scope="col">Shop</th><th scope="col">Town</th>
+                <th scope="col">Tier</th><th scope="col" class="num">Credit left</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>2 · The order</h2>
+      <div class="fieldrow">
+        <div class="field">
+          <label for="product-search">Add a product</label>
+          <input id="product-search" type="search" autocomplete="off"
+                 placeholder="rice, oil, SKU-004…">
+        </div>
+        <div class="field field--narrow">
+          <label for="qty">Quantity</label>
+          <input id="qty" type="number" min="1" value="1">
+        </div>
+      </div>
+      <div class="tablewrap tablewrap--short">
+        <table id="products">
+          <thead>
+            <tr><th scope="col">Product</th><th scope="col" class="num">Case</th>
+                <th scope="col" class="num">Stock</th><th scope="col" class="num">Price</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="tablewrap">
+        <table id="lines">
+          <thead>
+            <tr><th scope="col">Line</th><th scope="col" class="num">Qty</th>
+                <th scope="col" class="num">Unit</th><th scope="col" class="num">Disc.</th>
+                <th scope="col" class="num">Net</th><th scope="col"><span class="sr">Remove</span></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="order-summary"></div>
+    </section>
+
+  </div>
+  <div class="layout__side">
+
+    <section class="panel panel--filled">
+      <h2>3 · The outbox</h2>
+      <p class="note">Orders taken but not yet acknowledged. They survive a
+      closed tab, a flat battery and a week without signal.</p>
+      <div class="actions">
+        <button type="button" class="btn" id="send">Send to the server</button>
+        <button type="button" class="btn btn--quiet" id="pull">Pull reference data</button>
+      </div>
+      <div class="tablewrap">
+        <table id="outbox">
+          <thead>
+            <tr><th scope="col">Order</th><th scope="col" class="num">Total</th>
+                <th scope="col">State</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>4 · What crossed the wire</h2>
+      <p class="note">Local work is green; the network is blue. Count them.</p>
+      <ul class="log" id="log"></ul>
+    </section>
+
+  </div>
+  </div>
+
+  <section class="panel panel--filled">
+    <h2>Where the pieces live</h2>
+    <dl class="where">
+      <dt>index.html · app.css</dt>
+      <dd>the interface — ordinary markup and ordinary stylesheet, exactly
+          what you already write</dd>
+      <dt>app.js</dt>
+      <dd>the wires — <code>fetch</code>, <code>localStorage</code>, the DOM,
+          the event handlers</dd>
+      <dt>orders.ring</dt>
+      <dd>the business logic and the data — price tiers, the case discount,
+          tax, the stock check, the credit limit, the order, the outbox, the
+          sync payload, the reconciliation</dd>
+      <dt>your server</dt>
+      <dd>two HTTP endpoints that speak JSON, in whatever language you
+          already use</dd>
+    </dl>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>A RingScript sample · MIT ·
+  <a href="https://github.com/mayouni/ringscript/tree/main/samples/route-orders">source</a> ·
+  <a href="https://mayouni.github.io/ringscript/blog-local-first-app.html">the write-up</a></p>
+</footer>
+
+<script src="../../playground/ringscript.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

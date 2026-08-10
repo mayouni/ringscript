@@ -70,11 +70,15 @@ aPackageInfo = [
 		# it stops the whole editor script on the first line.
 		"playground/ring-highlight.js",
 
-		# The local-first sample application (docs/blog: "Build the
-		# application on the device"). Three files, no build step.
-		"playground/orders.html",
-		"playground/orders.ring",
-		"playground/orders-reference.json",
+		# The community samples: ordinary web projects with the business
+		# logic in Ring. See samples/README.md.
+		"samples/README.md",
+		"samples/route-orders/README.md",
+		"samples/route-orders/index.html",
+		"samples/route-orders/app.css",
+		"samples/route-orders/app.js",
+		"samples/route-orders/orders.ring",
+		"samples/route-orders/reference.json",
 
 		# Scaffolding template used by `ring main.ring new <folder>`
 		"cli/starter.html",

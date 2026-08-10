@@ -15,6 +15,7 @@ on:
     paths:
       - 'site/**'
       - 'playground/**'
+      - 'samples/**'
       - 'starter/**'
       - 'bin/**'
       - '*.png'
@@ -42,6 +43,11 @@ jobs:
           cp -r site/. _site/
           mkdir -p _site/playground
           cp -r playground/. _site/playground/
+          # The community samples. They reach the runtime as
+          # ../../playground/, which resolves here exactly as it does in
+          # the repository — one layout, no rewriting.
+          mkdir -p _site/samples
+          cp -r samples/. _site/samples/
           # Repo-root images used by the site; anything already inside site/
           # (the announcement screenshot, favicon) came across with site/. above.
           cp ringscript-logo.png playground.png _site/
