@@ -76,16 +76,30 @@ nav {
     border-bottom: 1px solid var(--border);
 }
 nav .wrap { display: flex; align-items: center; gap: 1.4rem; padding-top: .7rem; padding-bottom: .7rem; }
-/* Seven stops and one call to action — rule 27 caps a horizontal menu at
-   eight, and a menu that wraps has stopped orienting anybody. The tutorial
-   is not one of them: it belongs inside Start here, which links it, and a
-   menu does not grow by promotion (rule 116).
+/* FIVE stops and one call to action. Rule 27 caps a horizontal menu at
+   eight; this sits well under it, because the menu is a claim about how
+   the site is built and the site has five branches, not seven:
 
-   There is no breadcrumb trail, deliberately. Rules 108 and 115 ask every
-   page to show its path — written for applications with real depth. This
-   site is eight flat pages under one menu that already names them all, so
-   a trail here repeats the menu one line lower and adds a step to every
-   read for nothing. Reported back to the constitution as evidence. */
+       Start here        · and the tutorial inside it
+       Local-first apps  · and "Working with data" inside it
+       Why Ring?         · and "The story" inside it
+       Q&A
+       Blog              · the posts, and "What's new" inside it
+
+   Four pages left the bar without leaving the site. Two of them were one
+   subject told twice (Why Ring? / The story), one was a demo that now has
+   a parent naming the whole idea, and one is release notes, which belong
+   with the reading. A menu does not grow by promotion (rule 116): where a
+   page matters but sits inside a branch, the branch names it.
+
+   The active stop is the BRANCH, not the page — so a child marks its
+   parent and the highlight never claims a structure that is not there.
+
+   There is no breadcrumb trail, deliberately: the branches are one level
+   deep and each parent names its children in its own text, so a trail
+   would repeat the menu one line lower. Reported back to the constitution
+   as evidence, and it is why rules 108 and 115 now say "interfaces that
+   have depth". */
 nav a { color: var(--ink-soft); text-decoration: none; font-size: var(--floor); }
 nav a:hover { color: var(--ink); }
 nav a.active { color: var(--accent); font-weight: 600; }
@@ -142,17 +156,22 @@ nav .cta:hover { color: var(--accent-ink); opacity: .9; }
 }
 a:hover .newtab { opacity: 1; }
 
-/* Measured, not guessed: brand + seven stops + the call to action stop
-   fitting on one row between 975px and 980px of viewport — and a menu is
-   never allowed to wrap by ACCIDENT (rule 27). So the switch is pulled up
-   to 1023px, below the laptop class and with ~45px of slack, because
-   system-ui is a different font on every platform and a breakpoint tuned
-   to this machine's metrics is a breakpoint that wraps on someone else's.
-   Under it the bar becomes a deliberate two-row layout, brand on its own
-   line, which is what rule 27 permits on a small viewport. It also stops
-   being pinned there: stacked rows would eat a sixth of a phone screen
-   for the whole scroll. */
-@media (max-width: 1023px) {
+/* Measured, not guessed. The bar is brand + five stops + the call to
+   action, and it needs 710px of row — so it fits from a 751px viewport.
+   The switch sits at 849px rather than 751: system-ui is a different font
+   on every platform, and a breakpoint tuned to this machine's metrics is
+   a breakpoint that wraps on someone else's. 100px of slack buys that,
+   and a menu is never allowed to wrap by ACCIDENT (rule 27).
+
+   (It was 1023px when the menu carried seven stops. Cutting the menu to
+   five gave ~270px back, and leaving the old value would have stacked the
+   bar on tablets that can now hold it in one line.)
+
+   Under the breakpoint it becomes a deliberate two-row layout, brand on
+   its own line, which is what rule 27 permits on a small viewport. It also
+   stops being pinned there: stacked rows would eat a sixth of a phone
+   screen for the whole scroll. */
+@media (max-width: 849px) {
     nav { position: static; }
     nav .wrap { flex-wrap: wrap; gap: .15rem 1rem; }
     nav .brand { width: 100%; margin-right: 0; }

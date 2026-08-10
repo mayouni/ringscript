@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local-first apps — build on the device, not on the network</title>
+<meta name="description" content="Why the rules of a business application belong on the device, and two working applications that show it: a field-sales order pad you can cut the connection on, and a 20,000-record register measured against how a page has to feel.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.26">
+<style>
+    article { max-width: 46rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+
+    /* the two applications, given equal weight */
+    .apps { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.8rem 0; }
+    @media (max-width: 767px) { .apps { grid-template-columns: 1fr; } }
+    .app {
+        border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem;
+        display: flex; flex-direction: column;
+    }
+    .app.lead { background: var(--accent-soft); border-color: transparent; }
+    .app h3 { margin: 0 0 .2rem; }
+    .app .kind {
+        font-size: var(--floor); font-weight: 700; text-transform: uppercase;
+        letter-spacing: .05em; color: var(--accent); margin: 0 0 .5rem;
+    }
+    .app p { margin: 0 0 .8rem; }
+    .app .go { margin-top: auto; display: flex; gap: .7rem; flex-wrap: wrap; }
+
+    .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+             gap: 1rem; background: var(--accent-soft); border-radius: 12px;
+             padding: 1.3rem; margin: 1.8rem 0; text-align: center; }
+    .facts b { display: block; font-size: 1.8rem; font-weight: 700; color: var(--accent); line-height: 1.1; }
+    .facts span { color: var(--ink-soft); font-size: var(--floor); }
+
+    .where { display: grid; grid-template-columns: 13rem 1fr; gap: .5rem 1.2rem; margin: 1.4rem 0; }
+    @media (max-width: 640px) { .where { grid-template-columns: 1fr; gap: .1rem 0; } }
+    .where dt { font-weight: 700; color: var(--ink); }
+    .where dd { margin: 0 0 .6rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a class="active" href="local-first.html">Local-first apps</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a href="blog.html">Blog</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>Local-first apps</h1>
+
+<p class="first">A business application whose rules live on the server is an
+application that stops working when the connection does. Not degrades —
+stops. This page is about building the other way round, and the two working
+applications that show what it costs and what it buys.</p>
+
+<h2>Where do the rules of your application live?</h2>
+
+<p>Not the screens — the <em>rules</em>. Whether this customer may take more
+on credit. What price this customer pays. Whether this discount applies.
+Whether this form is complete.</p>
+
+<p>In most applications those rules sit on a server and the client asks
+permission for everything. A sales representative standing in a shop with no
+signal cannot find out whether the shop may order 40,000 more on credit, so
+either they promise and hope, or they leave without the order. A nurse, a
+teacher, a stock clerk, an inspector — all the same.</p>
+
+<blockquote>The network is not a component of your application. It is a
+guest, and a guest that is sometimes late and sometimes does not
+come.</blockquote>
+
+<p>This is obvious to anyone who has shipped software in West Africa. It is
+becoming obvious everywhere else for a different reason: customers
+increasingly want to know their data is <em>theirs</em>, held on their
+device or their premises. Bad connections and data ownership are different
+arguments that point at exactly the same architecture.</p>
+
+<h2>Two working applications</h2>
+
+<p>Both run on this site, on the real Ring virtual machine compiled to
+WebAssembly. Neither is a mock-up.</p>
+
+<div class="apps">
+  <div class="app lead">
+    <p class="kind">The pattern, complete</p>
+    <h3>Route Orders</h3>
+    <p>A field-sales order pad. Price tiers, the full-case discount, tax,
+    the stock check and the credit limit all decided on the device; the
+    server used exactly twice — pull the reference data, push the finished
+    orders. <b>There is a switch marked “Cut the connection”.</b> Press it
+    and keep working.</p>
+    <p>It is laid out as the web project it is: <code>index.html</code>,
+    <code>app.css</code>, <code>app.js</code>, <code>orders.ring</code>.
+    Six files, no build step.</p>
+    <div class="go">
+      <a class="btn primary" href="samples/route-orders/" target="_blank" rel="noopener">Open it <span class="newtab" aria-hidden="true">&#8599;</span></a>
+      <a class="btn ghost" href="blog-local-first-app.html">Read the write-up</a>
+    </div>
+  </div>
+
+  <div class="app">
+    <p class="kind">The load question</p>
+    <h3>A savings-circle register</h3>
+    <p>Once the rules are on the device, the next question is whether the
+    device can carry the data. This one holds <b>20,000 records</b> inside
+    the VM and is filtered, sorted and totalled live — every interaction
+    timed against how people actually perceive delay, every answer checked
+    against an independent computation.</p>
+    <p>Building it found four things worth fixing, two of them bugs in the
+    Ring VM itself.</p>
+    <div class="go">
+      <a class="btn ghost" href="data.html">Working with data</a>
+    </div>
+  </div>
+</div>
+
+<h2>What it measures out at</h2>
+
+<p>A session with Route Orders — loading the route, searching, taking two
+orders with one of them entirely offline, then syncing:</p>
+
+<div class="facts">
+  <div><b>9</b><span>actions on the device</span></div>
+  <div><b>2</b><span>times the network was used</span></div>
+  <div><b>3 KB</b><span>total over the wire</span></div>
+  <div><b>0</b><span>actions that failed for want of a line</span></div>
+</div>
+
+<h2>Where each piece goes</h2>
+
+<p>The division is the whole idea, and it is smaller than people expect.</p>
+
+<dl class="where">
+  <dt>HTML and CSS</dt>
+  <dd>the entire interface — ordinary markup and an ordinary stylesheet,
+      the ones you already write. <b>Ring draws nothing.</b></dd>
+  <dt>JavaScript</dt>
+  <dd>the wires: <code>fetch</code>, <code>localStorage</code>, the DOM,
+      the event handlers</dd>
+  <dt>Ring</dt>
+  <dd>the business logic and the data processing — the part that
+      <em>decides</em>, and therefore the part that must not need a network</dd>
+  <dt>Your server</dt>
+  <dd>two HTTP endpoints that speak JSON. Django, Laravel, Spring, Rails,
+      Node, Go, .NET or Ring — <b>it stays exactly where it is</b></dd>
+</dl>
+
+<p>Ring never touches the DOM and has never heard of
+<code>localStorage</code>. It answers questions; the page decides how the
+answers look:</p>
+
+<pre><code>const view = ask("OrderView");   // what does this order come to?
+renderOrder(view);               // ...and the page decides how that looks</code></pre>
+
+<p>Rewrite the front end in React, Vue or Svelte tomorrow and the Ring file
+does not change. Neither does your back end.</p>
+
+<h2>The three ideas worth stealing</h2>
+
+<p><b>An outbox, with ids the device generates.</b> Finished work goes into
+a queue before it goes anywhere near the network. The id existed before the
+first attempt, so a retry cannot double-book — idempotency stops being a
+distributed-systems problem and becomes one line of code.</p>
+
+<p><b>A send that never arrived is not a send.</b> When the request fails,
+everything marked <code>sent</code> goes back to <code>pending</code> and
+will be tried again. Nothing is ever in a state where the device believes it
+is done and the server never heard.</p>
+
+<p><b>One verdict per order, not per batch.</b> The server answers each item
+separately, so one rejection cannot lose the other nine — and the device
+reconciles each answer, including handing back credit an order had
+provisionally taken.</p>
+
+<h2>What this pattern does not solve</h2>
+
+<p>It is not a synchronisation framework, and you should be suspicious of
+anything claiming to be one in four hundred lines. Real conflict resolution
+— two people editing the same record, merges, vector clocks — is a larger
+subject. The honest position is that this handles the <b>append-only</b>
+case completely and says nothing about the rest.</p>
+
+<p>Fortunately an enormous share of business software is append-only:
+orders, readings, attendance, deliveries, payments, visits, inspections. If
+your application is one of those, the two applications above are the whole
+answer.</p>
+
+<div class="actions" style="justify-content:flex-start; margin-top:2rem">
+  <a class="btn primary" href="samples/route-orders/" target="_blank" rel="noopener">Open Route Orders <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn ghost" href="blog-local-first-app.html">The full write-up</a>
+  <a class="btn ghost" href="start.html">Start building</a>
+</div>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+
+</body>
+</html>

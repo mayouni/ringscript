@@ -34,6 +34,13 @@
     .filters .count { font-weight: 400; }
 
 
+    /* What's new is a child of this page rather than a sixth stop in the
+       menu: both are reading, and the menu should name the branch, not
+       every page in it (Zui rule 116). */
+    .whatsnew {
+        margin: 1.4rem 0 0; padding: .9rem 1.1rem;
+        background: var(--accent-soft); border-radius: 10px;
+    }
     .cat { margin: 2.8rem 0 0; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
     .cat:first-of-type { border-top: 0; padding-top: 0; margin-top: 2rem; }
     .cat[hidden] { display: none; }
@@ -63,12 +70,10 @@
   <div class="wrap">
     <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
     <a href="start.html">Start here</a>
-    <a href="story.html">The story</a>
+    <a href="local-first.html">Local-first apps</a>
     <a href="why-ring.html">Why Ring?</a>
-    <a href="data.html">Working with data</a>
     <a href="faq.html">Q&amp;A</a>
     <a class="active" href="blog.html">Blog</a>
-    <a href="whats-new.html">What's new</a>
     <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
   </div>
 </nav>
@@ -83,6 +88,11 @@ posts: where this project is going and why, how to build things with it
 today, and the decisions underneath, with links into the real source and
 the design documents they came from. Two of them run live Ring inside the
 page you are reading.</p>
+
+<p class="whatsnew"><b>Looking for the release notes?</b> Dated entries for
+everything that has landed — the runtime, the performance work, the
+applications, the fixes sent upstream — live on
+<a href="whats-new.html">What&rsquo;s new</a>.</p>
 
 <div class="filters" role="group" aria-label="Filter the posts by category">
   <button type="button" data-filter="all" aria-pressed="true">Show all <span class="count"></span></button>
