@@ -1,7 +1,9 @@
 # Two O(n²) behaviours in `rlist.c`, and one root cause
 
-**Status: SENT** as PR [#1642](https://github.com/ring-lang/ring/pull/1642) on 2026-08-10. Nothing about these findings has been filed
-upstream. Checked before writing (2026-08-10):
+**Status: SENT** — PR
+[#1642](https://github.com/ring-lang/ring/pull/1642), 2026-08-10.
+
+Nothing had been filed about these findings before that. Checked first:
 
 | where | what is there |
 |---|---|
@@ -17,9 +19,16 @@ request is the only written channel besides the group.
 
 ---
 
-## The proposal, ready to paste
+## The proposal
 
-**Title:** `rlist.c: random list access is O(n²) — one-line reproduction, and the fix`
+Kept here as the working draft. **The version actually sent is on
+[#1642](https://github.com/ring-lang/ring/pull/1642)** and is softer in two
+places: it leads by calling itself a note rather than a report, and it says
+outright that closing it and reimplementing in PWCT is a perfectly good
+outcome — Ring is authored there, and a diff from outside is illustration,
+not a recommendation about how the language should be written.
+
+**Title as sent:** `Reading a list out of order is O(n²) — a note, with one possible fix`
 
 ---
 
