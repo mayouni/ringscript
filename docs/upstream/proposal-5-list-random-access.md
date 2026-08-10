@@ -195,3 +195,55 @@ pathological (2,202 ms at 20,000 rows against 1 ms on 1.27). That would have
 buried finding 2 in noise and made the whole table look like a Ring-wide
 slowdown rather than a specific quadratic. Everything above is 1.27 — the
 version RingScript vendors and the version the report is about.
+
+---
+
+## What came back — and why he was right
+
+Mahmoud accepted the `sort()` change and **rejected the accessor change**,
+with reasons worth keeping:
+
+- generating the array has a cost of its own;
+- a program that *mixes* adding and reading would create and delete the
+  array over and over;
+- Ring's memory pool checks, on every free, whether the pointer belongs to
+  an array created this way — so many such arrays make every free slower;
+- and: you cannot measure one access pattern and generalise from it.
+
+He also named the failure mode directly — that this is a common shape of
+mistake in generated code: solving the stated problem without seeing what
+else it touches.
+
+**Checked rather than taken on trust.** Two builds of RingScript, identical
+but for the accessor change:
+
+| scenario | with the change | without |
+|---|---:|---:|
+| mixed add+read, 20,000 × 2,000 | 37.5 ms | 21.5 ms |
+| mixed add+read, 50,000 × 2,000 | 125.1 ms | 53.7 ms |
+| permuted read, 20,000 | 5.8 ms | 207.9 ms |
+| permuted read, 80,000 | 22.7 ms | 1,161.6 ms |
+
+So it is a large win on read-heavy work and a **1.7–2.3× loss on mixed
+add/read, widening with n**. The ~850-program oracle battery never caught it
+because none of those programs does that pattern at scale — the corpus
+proves *correctness*, not the absence of a performance regression.
+
+## The consequence for RingScript
+
+Ring already ships the answer, and it is opt-in: **`ringvm_genarray(aList)`**.
+On a build with **no** vendor patch at all:
+
+| permuted read, 80,000 | |
+|---|---:|
+| plain | 962 ms |
+| after `ringvm_genarray(aList)` | **20.6 ms** |
+| (with the accessor patch, for comparison) | 22.1 ms |
+
+The whole win, with no VM change and no regression for anybody else's code.
+
+**Vendor patch 8 should therefore be dropped**, and the places that need it
+— the register app after a load or a sort — should call `ringvm_genarray()`
+themselves. One fewer patch to carry across a vendor upgrade, and the
+language author's own mechanism instead of a private one. Not done yet; it
+touches the shipped artifact and wants the full battery re-run.

@@ -6,7 +6,22 @@ happened to each. **Checked against the live repository on August 7,
 considerably. Read this before posting anything. Re-checked August 10 for
 item 5.
 
-## Two facts about the channel
+## The channel — settled, and not a judgement call
+
+**Findings go to the Ring Google Group, and Mansour posts them himself.**
+No pull requests on `ring-lang/ring`, and nothing else filed there
+directly. Decided 2026-08-10; it does not expire and it is not reopened by
+a finding that feels important enough.
+
+What this repository does is prepare the text: the finding, a reproduction
+that runs on stock Ring, and the measurements. Draft it here, show it, and
+stop. Write it as **plain text** — the group does not render markdown.
+
+The reason is not technical. The conversation with the Ring project is
+Mansour's, in his voice, and it is not for an assistant to conduct. See the
+note under item 5 for what happened when that line was crossed.
+
+## Two further facts about the channel
 
 - **`ring-lang/ring` has issues disabled** (`has_issues: false`), and
   **Discussions are disabled too**. There is no tracker. The only
@@ -23,7 +38,7 @@ item 5.
 | 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | same PR, same reply | **do not refile** |
 | 3 | [string argument copy](discussion-3-string-argument-copy.md) | **not sent, and the one genuinely new finding** | send as [a Google Group message](group-message-string-copy.md) |
 | 4 | [computed-goto](offer-4-computed-goto.md) | **obsolete — withdraw** | **do not send** |
-| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **sent** as PR [#1642](https://github.com/ring-lang/ring/pull/1642), Aug 10. Reproduced on stock Ring **1.27**; framed as a finding, with the diff offered as illustration since Ring is authored in PWCT | **do not refile** |
+| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **merged** as PR [#1642](https://github.com/ring-lang/ring/pull/1642), Aug 10 — but only the `sort()` half. Mahmoud rejected the accessor change with reasons that measured out correct (see below), and merged the rest himself. **The last PR to this project**: see the channel note above. Reproduced on stock Ring **1.27**; framed as a finding, with the diff offered as illustration since Ring is authored in PWCT | **do not refile** |
 
 ### Why item 4 is obsolete
 
