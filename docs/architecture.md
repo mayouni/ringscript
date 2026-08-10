@@ -165,6 +165,7 @@ ringscript/
 │   ├── rivals/                  Lua + QuickJS through the same scenarios (see rivals.md)
 │   ├── bench.js                 speed and size vs a recorded, calibrated baseline
 │   ├── stress-app.js            a real application under load, oracle-checked
+│   ├── orders-app.js            the local-first sample application's rules
 │   ├── bench-baseline.json      what a regression is measured from
 │   ├── examples-oracle.js       Playground examples vs native ring
 │   ├── samples-sweep.js         bulk corpus sweep vs native ring
@@ -238,6 +239,8 @@ node tests/boot.js              # boot(): fetching, ordering, failures, early cl
 # cd tests/rivals && npm install && node run.js     (docs/rivals.md)
 node tests/bench.js             # speed and size vs the recorded baseline
 node tests/stress-app.js        # 50,000-record ledger vs a JavaScript oracle
+node tests/orders-app.js        # the local-first sample: pricing, credit,
+                                #   outbox, per-order sync, restart
 node tests/samples-sweep.js     # ~284 official Ring samples vs native
 node tests/extract-doc-snippets.js && \
 node tests/samples-sweep.js --root=tests/doc-snippets --dirs=.

@@ -1,0 +1,32 @@
+{
+  "catalogueDate": "2026-08-09",
+  "currency": "XOF",
+  "taxRate": 0.19,
+  "deviceId": "REP-014",
+  "customers": [
+    ["C-101", "Alimentation Bonkoukou", "Niamey", "A", 900000, 240000],
+    ["C-102", "Boutique Salamatou", "Niamey", "B", 400000, 355000],
+    ["C-103", "Superette Gaweye", "Niamey", "A", 1500000, 120000],
+    ["C-104", "Kiosque Yantala", "Niamey", "C", 150000, 18000],
+    ["C-105", "Marche Katako - Halle 3", "Niamey", "B", 600000, 90000],
+    ["C-106", "Alimentation Sahel", "Dosso", "B", 500000, 410000],
+    ["C-107", "Boutique Tillaberi Centre", "Tillaberi", "C", 200000, 5000],
+    ["C-108", "Grossiste Maradi Sud", "Maradi", "A", 2000000, 640000],
+    ["C-109", "Epicerie Zinder Est", "Zinder", "B", 450000, 12000],
+    ["C-110", "Cooperative Agadez", "Agadez", "C", 250000, 233000]
+  ],
+  "products": [
+    ["SKU-001", "Rice, long grain 25 kg", "sack", 10, 140, 14500, 15200, 15900],
+    ["SKU-002", "Cooking oil 5 L", "carton", 6, 80, 9800, 10300, 10800],
+    ["SKU-003", "Sugar, cube 1 kg", "carton", 12, 240, 1150, 1210, 1280],
+    ["SKU-004", "Tomato paste 400 g", "carton", 24, 60, 620, 660, 700],
+    ["SKU-005", "Wheat flour 50 kg", "sack", 5, 32, 22000, 23100, 24200],
+    ["SKU-006", "Powdered milk 900 g", "carton", 12, 95, 4300, 4550, 4800],
+    ["SKU-007", "Green tea 200 g", "carton", 20, 310, 850, 900, 950],
+    ["SKU-008", "Laundry soap, bar", "carton", 48, 500, 260, 280, 300],
+    ["SKU-009", "Bottled water 1.5 L", "pack", 12, 420, 240, 255, 270],
+    ["SKU-010", "Instant coffee 100 g", "carton", 24, 18, 2900, 3050, 3200],
+    ["SKU-011", "Salt, iodised 1 kg", "carton", 25, 260, 210, 225, 240],
+    ["SKU-012", "Spaghetti 500 g", "carton", 30, 175, 380, 405, 430]
+  ]
+}

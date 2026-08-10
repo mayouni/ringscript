@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build the application on the device, not on the network — RingScript blog</title>
+<meta name="description" content="A working field-sales application with every business rule running in Ring on the device, and the server used exactly twice. The two HTTP endpoints it needs, in whatever language your back end already uses.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.26">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem;
+                             border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .scroll { overflow-x: auto; }
+
+    .try-it { border: 1px solid var(--accent); border-radius: 12px;
+              background: var(--accent-soft); padding: 1.3rem 1.4rem; margin: 2rem 0; }
+    .try-it h3 { margin: 0 0 .5rem; }
+    .try-it p { margin: 0 0 1rem; color: var(--ink-soft); }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.6rem 0; }
+    @media (max-width: 640px) { .split { grid-template-columns: 1fr; } }
+    .split > div { border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.2rem; }
+    .split .here { background: var(--accent-soft); border-color: transparent; }
+    .split .cap { margin: 0 0 .6rem; font-weight: 700; color: var(--ink); }
+    .split .here .cap { color: var(--accent); }
+    .split ul { margin: 0; padding-left: 1.1rem; }
+    .split li { color: var(--ink-soft); margin-bottom: .4rem; }
+    .split li:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="story.html">The story</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="data.html">Working with data</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a href="whats-new.html">What's new</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>Build the application on the device, not on the network</h1>
+
+<p class="meta"><span class="label">For app programmers</span> August 2026 · Mansour Ayouni</p>
+
+<p class="first">Most business applications are written as if the network
+were part of the computer. Take that assumption away — a market in Niamey, a
+warehouse basement in Lyon, a train, a hospital corridor, a customer who
+will not let their data leave the building — and what is left is usually a
+spinner. This is a working application built the other way round, and the
+whole of it fits in one article.</p>
+
+<h2>The assumption worth questioning</h2>
+
+<p>Ask where the rules of your application live. Not the screens — the
+<em>rules</em>. Whether this customer may take more on credit. What price
+this customer pays. Whether this discount applies. Whether this form is
+complete.</p>
+
+<p>In most applications those rules live on the server, and the client asks
+permission for everything. That design has one property that nobody writes
+in the specification: <b>every rule stops working when the connection
+does</b>. Not degrades — stops. A sales representative standing in a shop
+with no signal cannot find out whether the shop may order 40,000 more on
+credit, so either they promise and hope, or they leave without the order.</p>
+
+<blockquote>The network is not a component of your application. It is a
+guest, and a guest that is sometimes late and sometimes does not
+come.</blockquote>
+
+<p>This is obvious to anyone who has shipped software in West Africa, and
+it is becoming obvious everywhere else for a different reason: customers
+increasingly want to know that their data is <em>theirs</em>, held on their
+device or their premises, not because the connection is bad but because it
+is their data. The two arguments point at exactly the same architecture.</p>
+
+<h2>What was built</h2>
+
+<p><b>Route Orders</b> — a field-sales order pad. A representative walks a
+route of shops, takes orders from a catalogue, and the orders reach the
+back office later. It is the most ordinary application there is, which is
+why it was chosen: whatever you build, it probably does these same
+things.</p>
+
+<div class="split">
+  <div class="here">
+    <p class="cap">In Ring, on the device</p>
+    <ul>
+      <li>the catalogue and the customer file</li>
+      <li>price tiers per customer</li>
+      <li>the full-case discount</li>
+      <li>tax, at the rate the server sent</li>
+      <li>the stock check</li>
+      <li><b>the credit limit</b></li>
+      <li>the order and its lines</li>
+      <li>the outbox and its ids</li>
+      <li>the sync payload</li>
+      <li>reconciling the server's verdicts</li>
+      <li>the state written to storage</li>
+    </ul>
+  </div>
+  <div>
+    <p class="cap">Everywhere else</p>
+    <ul>
+      <li><b>JavaScript:</b> <code>fetch</code>,
+          <code>localStorage</code>, the DOM. That is the entire list.</li>
+      <li><b>Your server:</b> two HTTP endpoints that speak JSON —
+          one that hands out reference data, one that accepts finished
+          orders.</li>
+    </ul>
+    <p style="margin-top:1rem; color:var(--ink-soft)">Written in Django,
+    Laravel, Spring, Rails, Node, Go, .NET or Ring. The device does not
+    know and does not care.</p>
+  </div>
+</div>
+
+<div class="try-it">
+  <h3>Open it and cut the connection</h3>
+  <p>There is a switch at the top of the page marked <b>Cut the
+  connection</b>. Press it, then keep working: pick a shop, add products,
+  watch the tier price and the case discount apply, watch the credit bar
+  fill, queue the order. Nothing degrades. Restore the line and the queue
+  goes out.</p>
+  <a class="btn primary" href="playground/orders.html" target="_blank" rel="noopener">Open Route Orders <span class="newtab" aria-hidden="true">&#8599;</span></a>
+</div>
+
+<h2>The measurement that makes the argument</h2>
+
+<p>The application counts what it does locally and what it sends. A short
+session — loading the route, searching, taking two orders, one of them
+entirely offline, then syncing:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>In one session</th><th class="n">Count</th></tr></thead>
+  <tbody>
+    <tr><td>actions performed on the device</td><td class="n"><b>9</b></td></tr>
+    <tr><td>times the network was used</td><td class="n"><b>2</b></td></tr>
+    <tr><td>total bytes over the wire</td><td class="n"><b>3 KB</b></td></tr>
+    <tr><td>actions that failed because the line was down</td><td class="n"><b>0</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Two round trips for a working session. On a metered connection in a rural
+town that is the difference between an application people use and one they
+give up on.</p>
+
+<h2>The rule that has to be local</h2>
+
+<p>Of everything in the application, the credit limit is the one that
+proves the point. It is a real business constraint with money behind it, it
+is checked on every order, and a representative cannot phone the office
+from a market. Here it is, in the Ring that runs on the device:</p>
+
+<pre><code># RULE: the credit limit. This is the one that has to work with the
+# cable out — a representative cannot phone the office from a market.
+nRowC = CustomerRowOf(cOrderCustomer)
+nLimit = 0  nBalance = 0
+if nRowC &gt; 0
+    nLimit = aCustLimit[nRowC]
+    nBalance = aCustBalance[nRowC]
+ok
+nHeadroom = nLimit - nBalance
+lBlocked = 0
+if nTotal &gt; nHeadroom
+    lBlocked = 1
+ok</code></pre>
+
+<p>Note what happens after an order is queued: the customer's balance goes
+up <em>immediately, on the device</em>. The second order of the morning is
+checked against the first one, hours before any server hears about either.
+That is not a cache. It is the application being the authority on its own
+work until it hands it over.</p>
+
+<h2>The outbox is the reliability story</h2>
+
+<p>A finished order does not go to the network. It goes into a queue, with
+an id the <b>device</b> generated:</p>
+
+<pre><code>cId = cDeviceId + "-" + nNextSeq        # REP-014-7
+nNextSeq = nNextSeq + 1
+aOutId + cId
+aOutStatus + "pending"</code></pre>
+
+<p>Three consequences, and each is a bug you do not have to fix later:</p>
+
+<p><b>A retry cannot double-book.</b> The id was made before the first
+attempt, so the server can reject a duplicate by id. Idempotency stops
+being a distributed-systems problem and becomes one line of code.</p>
+
+<p><b>A send that never arrived is not a send.</b> When the request fails,
+everything marked <code>sent</code> goes back to <code>pending</code> and
+will be tried again. Nothing is ever in a state where the device thinks it
+is done and the server never heard.</p>
+
+<p><b>One rejection does not lose the other nine.</b> The server answers per
+order, not per batch — and the device reconciles each verdict, including
+handing back the credit that a rejected order had provisionally taken.</p>
+
+<h2>The two endpoints — this is the whole back-end contract</h2>
+
+<p>Your server does not need to know that Ring exists. It needs to answer
+these two, in JSON.</p>
+
+<p><b>1 — Reference data.</b> <code>GET /reference</code>. Everything the
+device needs to work alone, sent once and refreshed when convenient:</p>
+
+<pre><code>{
+  "catalogueDate": "2026-08-09",
+  "currency": "XOF",
+  "taxRate": 0.19,
+  "deviceId": "REP-014",
+  "customers": [
+    ["C-101", "Alimentation Bonkoukou", "Niamey", "A", 900000, 240000]
+  ],
+  "products": [
+    ["SKU-001", "Rice, long grain 25 kg", "sack", 10, 140, 14500, 15200, 15900]
+  ]
+}</code></pre>
+
+<p>Rows, not objects — the same data as <code>{"id": …, "name": …}</code>
+costs about four times the memory and fifteen times the load time in a
+decoder, for reasons <a href="blog-data-pages.html">measured here</a>. On a
+catalogue this small it does not matter; at twenty thousand rows it is the
+difference between instant and eight seconds.</p>
+
+<p><b>2 — Finished work.</b> <code>POST /orders</code>, with what the
+device built:</p>
+
+<pre><code>{ "device": "REP-014", "catalogue": "2026-08-09", "count": 2,
+  "orders": [ { "id": "REP-014-1", "customer": "C-101",
+                "total": 163923, "order": "…the priced order…" } ] }</code></pre>
+
+<p>And the answer, <b>one verdict per order</b>:</p>
+
+<pre><code>{ "results": [
+    { "id": "REP-014-1", "status": "accepted", "note": "" },
+    { "id": "REP-014-2", "status": "rejected",
+      "note": "account on hold — settle the balance first" } ] }</code></pre>
+
+<p>That is the entire interface. Two endpoints, plain JSON over plain HTTP.
+Note <code>catalogue</code> in the payload: the device tells the server
+which price list it used, so the server can refuse an order priced against
+a stale catalogue. That single field replaces a great deal of anxiety about
+clients being out of date.</p>
+
+<h2>How the two languages meet</h2>
+
+<p>The seam is smaller than people expect. Ring holds the data and the
+rules; JavaScript holds the wires. They exchange JSON and nothing else:</p>
+
+<pre><code>// JavaScript: the wires
+const text = await (await fetch("/reference")).text();
+ring.call("RefLoad", text);                      // hand it to Ring
+
+const v = ring.call("OrderView", 1);             // ask Ring for a decision
+render(JSON.parse(v.result));
+
+localStorage.setItem(KEY, ring.call("StateExport", 1).result);</code></pre>
+
+<p>Two practical notes that will save you an hour. Every function you call
+from the page takes <b>exactly one parameter</b> — that is what
+<code>ring.call</code> passes. And an atom key is <b>lowercased</b> on its
+way out: write <code>:stillQueued</code> in Ring and JavaScript reads
+<code>stillqueued</code>. The sample uses <code>snake_case</code> for every
+key it returns, which survives verbatim, so what is written in the Ring file
+is exactly what the page receives.</p>
+
+<h2>Why Ring, if the back end stays where it is</h2>
+
+<p>This is the honest question, so here is the honest answer. You keep your
+back end. Nothing here asks you to move it. What changes is that the
+front of your application stops being a second codebase in a second
+language with a second set of rules that must be kept in step with the
+first.</p>
+
+<p>And the runtime is not a toy. RingScript is
+<a href="blog-measured-against.html">measured against Lua and QuickJS</a> —
+two C interpreters compiled to WebAssembly, same weight class — under the
+same discipline:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>Against the strongest small interpreters</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>heap growth over 10,000 evaluations with errors mixed in</td>
+        <td><b>+0.00 MB</b>, as for both peers</td></tr>
+    <tr><td>deaths across 1,200 hostile inputs</td>
+        <td><b>0</b>, as for both peers</td></tr>
+    <tr><td>JSON encode, 8.7 KB</td>
+        <td><b>0.134 ms</b> — ahead of QuickJS's <em>native</em> codec</td></tr>
+    <tr><td>a megabyte through JSON</td>
+        <td><b>1.53 ms</b>, against 14.2 and 154.7</td></tr>
+    <tr><td>the whole runtime</td><td><b>397 KB</b>, no dependencies</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>It loses rows too, and they are published with their causes on that page.
+The point is not that Ring wins; it is that a local-first application asks a
+runtime for endurance and for JSON, and those are exactly the two things
+this one is strongest at. An application that runs unattended in a branch
+office for a year needs a heap that does not grow and a parser that does not
+stall — not a benchmark trophy.</p>
+
+<h2>What this is not</h2>
+
+<p>It is not a synchronisation framework, and you should be suspicious of
+anything that claims to be one in four hundred lines. Real
+conflict resolution — two representatives editing the same customer,
+merges, vector clocks — is a larger subject, and the honest position is that
+this pattern handles the <b>append-only</b> case completely and says nothing
+about the rest. Fortunately, an enormous share of business software is
+append-only: orders, readings, attendance, deliveries, payments, visits,
+inspections. If your application is one of those, you already have the whole
+answer above.</p>
+
+<p>It is also not a claim that everything belongs on the device. Reference
+data comes from the server because the server owns it. Orders go to the
+server because the business owns them. What moved is the <em>deciding</em>,
+and deciding is what stops working when the line does.</p>
+
+<h2>Take it apart</h2>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>The piece</th><th>What to look at</th></tr></thead>
+  <tbody>
+    <tr><td><a href="playground/orders.html" target="_blank" rel="noopener">The application</a></td>
+        <td>run it, cut the connection, read the wire log</td></tr>
+    <tr><td><a href="https://github.com/mayouni/ringscript/blob/main/playground/orders.ring" target="_blank" rel="noopener">orders.ring</a></td>
+        <td>every rule, in one commented file</td></tr>
+    <tr><td><a href="https://github.com/mayouni/ringscript/blob/main/tests/orders-app.js" target="_blank" rel="noopener">tests/orders-app.js</a></td>
+        <td>the same rules asserted — pricing, credit, outbox, sync, restart</td></tr>
+    <tr><td><a href="start.html">The starter kit</a></td>
+        <td>one folder, one click, no toolchain</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Everything in this article is running code. If you build business
+software for people whose connection is a guest — or for customers who want
+their data to stay theirs — the pattern is worth an afternoon of your time,
+whichever language your server speaks.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+
+</body>
+</html>
