@@ -1,79 +1,46 @@
-# LinkedIn post — Route Orders, the local-first sample
+# LinkedIn post — the local-first argument, for developers on any back end
 
-Ready to paste. Roughly 1,300 characters, which is under LinkedIn's
-"see more" fold on most screens for the first three lines and reads
-cleanly on a phone.
+Written to be posted **with a screenshot of a real application** — the
+client-visit app running at a bank in Niger, with its "Hors ligne" badge
+visible. The image carries the proof; the words only have to frame it.
 
 ---
 
-Most business applications are written as if the network were part of the
-computer.
+That badge in the corner says **Hors ligne**. The application doesn't care.
 
-Take that assumption away — a market in Niamey, a warehouse basement in
-Lyon, a train, a hospital corridor, a client who will not let their data
-leave the building — and what is left is usually a spinner.
+This is a client-visit app running at a bank in Niger. The agent's list,
+the filters, the statuses, the rules — all of it works with no signal. When
+the connection comes back, it synchronises. That's not a feature we added
+at the end. It's the architecture.
 
-So I built the opposite, and put it online to be tried rather than
-described.
+Here's what I'd put to developers anywhere: **local-first isn't a
+nice-to-have.** For most of the world it's a requirement, and everywhere
+else clients are starting to ask who actually holds their data. Both
+questions have the same answer.
 
-**Route Orders** is a field-sales order pad: a representative walks a route
-of shops and takes orders. Every rule that decides whether an order is
-valid — the customer's price tier, the full-case discount, the tax, the
-stock check, the credit limit — runs **on the device**, written in Ring,
-executing in the browser on the real Ring virtual machine compiled to
-WebAssembly.
+The obstacle is usually the front end. So I built **RingScript** — the Ring
+language, compiled to WebAssembly, running in the browser. You write the
+screens and the business rules in Ring, which is genuinely readable, and
+**your back end stays exactly where it is**: Django, Laravel, Spring, Node,
+Go. It only ever sees JSON.
 
-The server is used exactly twice: once to pull the reference data, once to
-push the finished orders.
-
-There is a switch on the page marked **Cut the connection**. Press it and
-keep working. Nothing degrades. A measured session: **9 actions on the
-device, 2 network calls, 3 KB over the wire, and zero actions that failed
-for want of a line.**
-
-The part I would ask you to steal is not the language. It is the shape:
-
-→ the rules live where the work happens
-→ finished work goes into an outbox with an id the device generated, so a
-retry can never double-book
-→ the server answers per order, so one rejection never loses the other nine
-→ two HTTP endpoints, plain JSON — your back end stays in Django, Laravel,
-Spring, Node, Go, whatever you already run
-
-For those of us building for places where the connection is a guest, this
-is not an optimisation. It is the difference between software people use
-and software they abandon. And for everyone else, it is increasingly what
-clients mean when they ask who holds their data.
-
-Try it, cut the line, and read the wire log:
-https://mayouni.github.io/ringscript/playground/orders.html
-
-The write-up, with both endpoints in full:
+A working sample you can cut the connection on, plus the two HTTP endpoints
+it needs:
 https://mayouni.github.io/ringscript/blog-local-first-app.html
 
-#LocalFirst #OfflineFirst #WebAssembly #SoftwareArchitecture #Africa
+#LocalFirst #OfflineFirst #WebAssembly
 
 ---
 
-## A shorter variant, if you prefer under 900 characters
+## Notes on why it is shaped this way
 
-Most business apps assume the network is part of the computer. Remove that
-assumption — a market in Niamey, a basement in Lyon, a hospital corridor —
-and what is left is a spinner.
-
-So I built the opposite. **Route Orders**: a field-sales order pad where
-every business rule (price tiers, discounts, tax, stock, the credit limit)
-runs on the device, in Ring, on the real virtual machine compiled to
-WebAssembly. The server is used exactly twice — pull the reference data,
-push the finished orders.
-
-There is a switch marked **Cut the connection**. Press it and keep working.
-9 actions on the device, 2 network calls, 3 KB, zero failures.
-
-Steal the shape, not the language: rules where the work happens, an outbox
-with device-made ids so retries cannot double-book, one verdict per order,
-two JSON endpoints — your back end stays exactly where it is.
-
-https://mayouni.github.io/ringscript/playground/orders.html
-
-#LocalFirst #OfflineFirst #WebAssembly
+- **The screenshot is the argument.** The first two lines only work because
+  the image is there — they point at it rather than describing it.
+- **It leads with a real deployment, not with the runtime.** A developer
+  scrolling past stops for a production application at a bank, not for a
+  language announcement.
+- **The reassurance is explicit and early.** "Your back end stays exactly
+  where it is" is the sentence that decides whether a Django or Spring
+  developer keeps reading, so it is not left to the article.
+- **One link, not two.** The article carries the sample, the endpoints and
+  the measurements; sending people to two places splits the click.

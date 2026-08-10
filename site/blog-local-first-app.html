@@ -292,15 +292,67 @@ way out: write <code>:stillQueued</code> in Ring and JavaScript reads
 key it returns, which survives verbatim, so what is written in the Ring file
 is exactly what the page receives.</p>
 
-<h2>Why Ring, if the back end stays where it is</h2>
+<h2>Your back end does not move</h2>
 
-<p>This is the honest question, so here is the honest answer. You keep your
-back end. Nothing here asks you to move it. What changes is that the
-front of your application stops being a second codebase in a second
-language with a second set of rules that must be kept in step with the
-first.</p>
+<p>This is the honest question, so let it be answered before anything else:
+<b>nothing here asks you to change your server.</b> If your business logic
+lives in Django, Laravel, Spring, Rails, .NET, Node or Go, it stays there,
+untouched, doing what it already does well — persistence, authorisation,
+reporting, integration, the things a server is for.</p>
 
-<p>And the runtime is not a toy. RingScript is
+<p>What the device needs from it is two endpoints and plain JSON. Your
+server never learns that Ring exists. There is no bridge to install, no
+runtime to deploy beside your application, no protocol to adopt. If you
+can already return JSON — and you can — you are already compatible.</p>
+
+<blockquote>Keep the back end you have. The question this article is asking
+is only about the other half: what language decides things on the
+device.</blockquote>
+
+<h2>The other half: a front end you can still read next year</h2>
+
+<p>The reason local-first projects stall is rarely the idea. It is that the
+client becomes the hard part. Rules that were three lines on the server
+turn into state management, a build pipeline, a framework whose major
+version will move under you, and a second codebase in a second language
+that must be kept in step with the first — forever.</p>
+
+<p>Here is the credit-limit rule as it is actually written, in the file
+that runs on the device:</p>
+
+<pre><code>nHeadroom = aCustLimit[nRow] - aCustBalance[nRow]
+if nTotal &gt; nHeadroom
+    lBlocked = 1
+ok</code></pre>
+
+<p>A colleague who does not write code can read that and tell you whether
+it matches the policy. That is not a small property in software that
+enforces business rules — it is the property that keeps rules correct after
+the person who wrote them has moved on.</p>
+
+<p>And notice what is <em>not</em> in this project: no <code>npm install</code>,
+no <code>node_modules</code>, no bundler, no transpiler, no framework, no
+lock file, no build step at all. The application you just ran is three
+files served as they are — an HTML page, a Ring file, and a JSON
+document — on a runtime of <b>397&nbsp;KB with zero dependencies</b>.
+Every dependency you do not take is a promise somebody else does not have
+to keep for the next ten years.</p>
+
+<p>This is not an argument that JavaScript is bad. It is an argument about
+where complexity should sit. A field application that must run for years in
+a branch office, maintained by whoever is there, is exactly the wrong place
+to put a toolchain that needs attention every quarter.</p>
+
+<p>And none of this is theoretical. The pattern did not start on this
+website: it comes out of applications built for a bank and a high school in
+Niger and a restaurant in France — places where the connection is a guest
+and the software still has to work on Monday morning. The sample above is
+that experience reduced to something small enough to read in one
+sitting.</p>
+
+<h2>And the runtime is not a toy</h2>
+
+<p>RingScript is
 <a href="blog-measured-against.html">measured against Lua and QuickJS</a> —
 two C interpreters compiled to WebAssembly, same weight class — under the
 same discipline:</p>
