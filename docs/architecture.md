@@ -143,7 +143,7 @@ ringscript/
 │       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
 │
-├── ringvm/                      vendored Ring 1.27 (src + include) + 8 patches
+├── ringvm/                      vendored Ring 1.27 (src + include) + 7 patches
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
@@ -218,7 +218,7 @@ contract that makes them portable into the browser unchanged.
 ### Upgrading the vendored Ring
 
 Replace `ringvm/` with the new version's `ringvm/src` +
-`ringvm/include`, re-apply the eight patches from
+`ringvm/include`, re-apply the seven live patches from
 [VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and run the full test
 battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
 1.26 → 1.27 upgrades in this repository's history each took minutes.

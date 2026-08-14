@@ -301,29 +301,6 @@ RING_API Item *ring_list_getitem_gc(void *pState, List *pList, unsigned int nInd
 				return pItem;
 			}
 		}
-		/*
-		**  RINGSCRIPT PATCH: reaching here means a LINEAR WALK of a list
-		**  the cursor cache could not serve — i.e. random access. The
-		**  cursor is a sequential-access device; against a permuted index
-		**  (the shape every "sort a table, then read the rows" produces)
-		**  every access walks, and a single pass over n rows becomes
-		**  O(n^2). Measured on a 20,000-row ledger: after sorting, one
-		**  aggregate pass took 1.16 s, and at 50,000 rows 19.8 s.
-		**
-		**  Build the items array once and answer from it instead. Every
-		**  structural mutation already calls ring_list_clearcache_gc,
-		**  which frees it, so it cannot go stale; genarray does not call
-		**  back into this function, so there is no recursion. The cost is
-		**  one n-pointer allocation on the first random access, repaid on
-		**  the second. Small lists keep walking — an allocation would cost
-		**  more than the walk saves.
-		*/
-		if (lUseListCache && pList->nSize > RING_LIST_ARRAYONRANDOMACCESS) {
-			ring_list_genarray_gc(pState, pList);
-			if (pList->pItemsArray != NULL) {
-				return pList->pItemsArray[nIndex - 1];
-			}
-		}
 		if (nIndex < (pList->nSize - nIndex)) {
 			/* Linear Search  From Start */
 			pItems = pList->pFirst;

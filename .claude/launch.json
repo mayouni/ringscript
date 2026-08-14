@@ -4,8 +4,23 @@
     {
       "name": "ringscript-demo",
       "runtimeExecutable": "zig",
-      "runtimeArgs": ["build", "serve"],
+      "runtimeArgs": [
+        "build",
+        "serve"
+      ],
       "port": 8377
+    },
+    {
+      "name": "ringscript-site",
+      "runtimeExecutable": "zig",
+      "runtimeArgs": [
+        "build",
+        "serve",
+        "--",
+        "8378",
+        "_site"
+      ],
+      "port": 8378
     }
   ]
 }

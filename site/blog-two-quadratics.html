@@ -182,9 +182,58 @@ Column sort at 20,000 rows: <span class="hot">257&nbsp;ms</span> →
 
 <p><b>In the accessor itself</b> (<code>ring_list_getitem_gc</code>): when
 a random access falls past the cursor into the walk — and the list is big
-enough for it to matter — build the items array once and answer from it.
-Every structural mutation already frees the array, so it cannot go stale;
-the walk was pure waste.</p>
+enough for it to matter — build the items array once and answer from it.</p>
+
+<p>We proposed both to Ring. The first was merged. <b>The second was
+rejected, and the rejection was right.</b></p>
+
+<h2>Being wrong in public, and measuring it</h2>
+
+<p>Mahmoud Fayed's objection was that building the array inside the
+accessor is not free: a program that <em>mixes</em> adding and reading
+would create and destroy it over and over, and you cannot measure one
+access pattern and generalise from it.</p>
+
+<p>So we measured it, with two runtimes identical but for that one change.
+He was right:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>20,000 rows</th><th class="n">with the accessor patch</th><th class="n">without</th></tr></thead>
+  <tbody>
+    <tr><td>permuted read</td><td class="n cool">5.8 ms</td><td class="n hot">207.9 ms</td></tr>
+    <tr><td>mixed add + read</td><td class="n hot">37.5 ms</td><td class="n cool">21.5 ms</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>A large win on read-heavy work, and <b>1.7–2.3× slower</b> when adds
+and reads interleave — because any structural change frees the array and
+the next random read rebuilds it whole. The patch turned an occasional
+O(n) rebuild into a per-iteration one.</p>
+
+<p>And the answer was already in the language. Ring ships
+<code>ringvm_genarray(aList)</code>: the same items array, built when
+<em>you</em> say so. The register app now calls it after loading and after
+adding, and never inside a read:</p>
+
+<pre><code>func LedgerIndex
+	if nRows &gt; 64 and lIndexed = 0
+		ringvm_genarray(aRowAmount)
+		# ...one call per column
+	ok
+	lIndexed = 1</code></pre>
+
+<p>Marked stale on a write, rebuilt at most once before the next read that
+needs it. Rebuilding on <em>every</em> add instead costs 824&nbsp;µs a row
+on a 20,000-row ledger — worse than the problem it solves. That is the
+whole of Mahmoud's objection, reproduced in our own application.</p>
+
+<p><b>RingScript now carries no accessor patch at all</b>, and the numbers
+below are unchanged: measured against a build that still had it, the two
+agree to within noise at 20,000 and 50,000 rows. One fewer patch to carry
+across a Ring upgrade, and the language author's own mechanism instead of
+a private one.</p>
 
 <div class="scroll">
 <table class="m">
@@ -201,14 +250,24 @@ the walk was pure waste.</p>
 <h2>Why it was safe to touch</h2>
 
 <p><code>ring_list_getitem</code> is the most-used accessor in the entire
-VM — everything reads lists. The reason we could patch it with confidence
-is the safety net this project maintains for exactly this purpose: Ring's
-own sample corpus plus every runnable example in its documentation — about
-850 programs — run through the modified VM and compared
-<b>byte-for-byte</b> against native <code>ring.exe</code>, alongside the
-soak, the fuzzer, and the permanent gates. All of it green, twice: once
-per patch. When the diff touches the hot core, the oracle is the
-review.</p>
+VM — everything reads lists. The safety net this project maintains for
+exactly that reason is Ring's own sample corpus plus every runnable
+example in its documentation — about 850 programs — run through the
+modified VM and compared <b>byte-for-byte</b> against native
+<code>ring.exe</code>, alongside the soak, the fuzzer, and the permanent
+gates. All of it green.</p>
+
+<p><b>And it told us nothing about the regression.</b> Not one of those
+850 programs interleaves adds and reads on a list large enough to matter,
+so the corpus was as green with the bad patch as without it. It proved the
+VM still computed the right answers; it could not prove the VM was still
+fast, because that was never what it measured.</p>
+
+<p>That is the correction worth carrying away. A differential oracle is a
+correctness instrument. Against a performance change it is silent, and
+silence reads like approval. What catches a regression is an A/B on two
+builds differing in exactly one thing — including the access pattern the
+change would <em>hurt</em>, not only the one it helps.</p>
 
 <h2>The lesson we keep relearning</h2>
 
@@ -221,7 +280,7 @@ drive it like a user, and believe what it shows you.</p>
 
 <p>The full trail, for the source-inclined:
 <a href="https://github.com/mayouni/ringscript/blob/main/docs/VENDOR_PATCHES.md" target="_blank" rel="noopener">VENDOR_PATCHES.md<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
-(patches 7 and 8),
+(patch 7, and 8 for why it was withdrawn),
 <a href="https://github.com/mayouni/ringscript/blob/main/docs/ledger-app.md" target="_blank" rel="noopener">the app write-up<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>,
 and <a href="https://github.com/mayouni/ringscript/blob/main/tests/samples-sweep.js" target="_blank" rel="noopener">the oracle that guards it all<svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>.</p>
 

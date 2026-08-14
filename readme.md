@@ -293,7 +293,7 @@ ring.reset();                             // explicit fresh state
 ## Verification
 
 ```bash
-zig build -Drelease=true       # build
+zig build                      # build (release is the default)
 node tests/gates.js            # 66 gates
 node tests/soak.js             # endurance: 40,000 evaluations, nothing accumulates
 node tests/fuzz.js             # robustness: 4,000 hostile inputs, no exceptions

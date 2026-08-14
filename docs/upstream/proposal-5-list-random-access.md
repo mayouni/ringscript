@@ -245,5 +245,33 @@ The whole win, with no VM change and no regression for anybody else's code.
 **Vendor patch 8 should therefore be dropped**, and the places that need it
 — the register app after a load or a sort — should call `ringvm_genarray()`
 themselves. One fewer patch to carry across a vendor upgrade, and the
-language author's own mechanism instead of a private one. Not done yet; it
-touches the shipped artifact and wants the full battery re-run.
+language author's own mechanism instead of a private one.
+
+## Done — 2026-08-14
+
+The patch is out of `ringvm/`, and `playground/ledger.ring` calls
+`ringvm_genarray()` through a `LedgerIndex()` helper that marks the index
+stale on a write and rebuilds at most once before the next read that needs
+it. Rebuilding on *every* add instead costs **824 µs a row** at 20,000 rows
+— Mahmoud's objection reproduced in our own application, which is why the
+call is not simply put at the top of each reader.
+
+Same Ring code on a build that still had the patch and one without, so the
+only variable is the patch:
+
+| 20,000 rows | patch 8 | genarray, no patch |
+|---|---:|---:|
+| totals | 13 ms | 14 ms |
+| leaderboard | 107 ms | 103 ms |
+| paging | 18 ms | 21 ms |
+| per add | 116 µs | 114 µs |
+
+and at 50,000 rows the leaderboard is 277 / 271 ms, with identical
+checksums throughout. Without either mechanism the same reads are 133 ms,
+532 ms and 186 ms — so the win is real and it is now the programmer's to
+ask for.
+
+Full battery re-run and green: gates, soak, fuzz, WASI, boot, the examples
+oracle, 237 + 257 sweep programs byte-exact against native with **0
+mismatches**, stress app clean, no bench regressions, wasm 331 bytes
+smaller. `docs/VENDOR_PATCHES.md` §8 keeps the slot and the reasoning.

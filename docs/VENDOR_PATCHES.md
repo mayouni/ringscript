@@ -1,11 +1,13 @@
 # Vendor patches to ringvm/
 
 `ringvm/` is the vendored Ring VM source (currently **1.27**, from
-the official 1.27 distribution). It carries two deliberate RingScript patches, both marked
-with `RINGSCRIPT PATCH` comments at the site. **Any future vendor swap
-must re-apply them** — then run `zig build -Drelease=true` and
-`node tests/gates.js` (the P2 line-number gates fail if either patch is
-missing).
+the official 1.27 distribution). It carries seven live RingScript patches, each marked with a
+`RINGSCRIPT PATCH` comment at the site. **Any future vendor swap must
+re-apply them** — then run `zig build` and `node tests/gates.js` (the P2
+line-number gates fail if the eval patches are missing).
+
+An eighth was carried and then withdrawn; see section 8 for why, and for
+what replaced it.
 
 ## 1. `ringvm/src/vmeval.c` — keep line numbers in eval'd bytecode
 
@@ -100,25 +102,53 @@ sorting the same values as a flat list stayed linearithmic (0.4 / 0.6 /
 rebuild when `nColumn != 0`. After it: **0.9 / 2.1 / 6.0 / 16.4 ms**.
 Sorting rows by a column is what every data table does; worth upstreaming.
 
-## 8. `ringvm/src/rlist.c` — random list access built the array instead of walking
+## 8. WITHDRAWN — random list access building the items array
 
-The list cache (`pLastItem` / `nNextItem`) is a **cursor**: it makes
-sequential access O(1) and does nothing for random access, which falls
-through to a linear walk. So any pass over a large list through a
-permuted index — exactly what "sort the table, then total the visible
-rows" produces — is O(n²).
+*Carried from 2026-08-08, removed 2026-08-14. The slot is kept so the
+numbering in older writing still resolves.*
 
-Measured on a ledger app, after sorting: one aggregate pass over 20,000
-rows took **1.16 s**, and over 50,000 rows **19.8 s**. The patch makes
-the fallback build the items array once (above
-`RING_LIST_ARRAYONRANDOMACCESS`, 64 items) and answer from it, instead of
-walking. Every structural mutation already calls
-`ring_list_clearcache_gc`, which frees the array, so it cannot go stale;
-`ring_list_genarray_gc` does not call back into the accessor, so there is
-no recursion.
+The patch made `ring_list_getitem_gc` build the items array when a random
+access fell past the cursor, instead of walking. It worked: a leaderboard
+pass over 20,000 sorted rows went 1,162 → 96 ms.
 
-After: **11.3 ms** at 20,000 rows (33×) and **31.3 ms** at 50,000 (184×);
-the leaderboard pass went 1162 → 96 ms and 19,758 → 277 ms. Cost is one
-n-pointer allocation on the first random access, repaid on the second.
-Held by the full oracle battery — ~850 programs still byte-exact — since
-this is the VM's most-used accessor.
+It was proposed upstream alongside patch 7 and **rejected**. Mahmoud
+Fayed's reason: building the array is not free, a program that mixes
+adding and reading creates and destroys it repeatedly, and one access
+pattern does not generalise.
+
+Checked rather than taken on trust — two runtimes identical but for the
+change:
+
+| 20,000 rows | patched | stock |
+|---|---:|---:|
+| permuted read | 5.8 ms | 207.9 ms |
+| mixed add + read | 37.5 ms | 21.5 ms |
+| mixed add + read, 50,000 | 125.1 ms | 53.7 ms |
+
+**1.7–2.3× slower** when adds and reads interleave, widening with n. Any
+structural change frees the array and the next random read rebuilds it
+whole, so the patch turns an occasional O(n) rebuild into a per-iteration
+one. The ~850-program oracle never caught it because none of those
+programs does that at scale — the corpus proves correctness, not the
+absence of a performance regression.
+
+**What replaces it.** Ring already ships the mechanism, opt-in:
+`ringvm_genarray(aList)`. `playground/ledger.ring` calls it through
+`LedgerIndex()`, which marks the index stale on a write and rebuilds at
+most once before the next read that needs it. Rebuilding on every add
+instead costs 824 µs a row at 20,000 rows.
+
+Measured against a build that still carried the patch, same Ring code,
+the two agree to within noise:
+
+| 20,000 rows | patch 8 | genarray, no patch |
+|---|---:|---:|
+| totals | 13 ms | 14 ms |
+| leaderboard | 107 ms | 103 ms |
+| paging | 18 ms | 21 ms |
+| per add | 116 µs | 114 µs |
+
+and at 50,000: leaderboard 277 / 271 ms, identical checksums. Full battery
+green — gates, soak, fuzz, WASI, boot, examples oracle, 237 + 257 sweep
+programs byte-exact with 0 mismatches, no bench regressions, and the wasm
+331 bytes smaller.
