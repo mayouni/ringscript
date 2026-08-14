@@ -1,3 +1,21 @@
+**Status: SENT** as PR
+[#1648](https://github.com/ring-lang/ring/pull/1648), 2026-08-14, at
+Mansour's direction — as a pull request rather than a group message,
+since that is the channel Mahmoud has been answering on.
+
+Re-measured on 1.27 the same day before sending: 20,000 `len()` calls cost
+0.00 s on a 10-byte string and **4.91 s** on a 1 MB one. The reproduction
+went with it as
+`language/tests/scripts/performance/stringargument.ring`. Checked for
+duplicates first — nothing upstream covers it; #1440 is a different
+string-allocation fix.
+
+The draft below is kept as written. The PR body is a tightened version of
+it: same measurement, same three directions, same refusal to propose a
+patch.
+
+---
+
 **Where:** the Ring Google Group (issues and discussions are both
 disabled on ring-lang/ring, so this is the place for a design question).
 
