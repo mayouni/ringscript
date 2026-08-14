@@ -151,10 +151,16 @@ guesses.*
 > - creating an items array has a cost of its own;
 > - a program that *mixes* adding and reading would create and delete it
 >   over and over;
-> - Ring's memory pool checks, on every free, whether a pointer belongs to
->   such an array — so many of them make **every free in the program**
->   slower;
+> - Ring's memory pool makes non-pool frees cost more than pool frees, so
+>   the allocation shape a change encourages is a cost borne by the whole
+>   program;
 > - **you cannot measure one access pattern and generalise from it.**
+>
+> *(That third point is his argument as I first recorded it. The findings
+> document corrects the mechanism — the arrays are never registered with
+> the pool, and the real cost is a full O(n) rebuild on every mutation.
+> His conclusion held; my paraphrase of why did not. Use the corrected
+> version.)*
 >
 > He also named the failure mode: this is a common shape of mistake in
 > generated code — solving the stated problem without seeing what else it
