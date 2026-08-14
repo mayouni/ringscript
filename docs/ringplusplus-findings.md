@@ -179,6 +179,44 @@ sugar layer never touches them.** It also answers the independence question
 in the prompt — Ring++ wants the same two-layer split, and can be a peer of
 `stk*` rather than a layer inside Softanza.
 
+## 8. The safety story is already written — by you
+
+A background search turned up
+`base/doc/references/softanza-memory-framework-redesign.md`, and the code it
+describes exists: **2,018 lines** across `stkMemory.ring` (387),
+`stkBuffer.ring` (871) and `stkPointer.ring` (760).
+
+It is a borrow model expressed in Ring:
+
+```
+stkMemory (container)
+└── stkBuffer (owned, never orphaned)
+    ├── stkPointer (read)   — many allowed
+    └── stkPointer (write)  — exactly one
+```
+
+with views (`CreatePointerView(id, "read", 0, 64)`), automatic invalidation
+when a buffer dies, and no buffer able to exist outside a container.
+
+Two things follow.
+
+**Ring++ should not invent a safety model.** Item 4 of the kickoff prompt
+asks for one; the answer is to adopt this, not design a rival.
+
+**It converges with finding 4 by accident, and that is the interesting
+part.** The VM says registrations with `ring_state_registerblock()` must be
+few, large and long-lived, because every non-pool free walks the list. The
+Softanza design says every buffer must be owned by exactly one `stkMemory`.
+Those are the same constraint reached from opposite directions — **one
+`stkMemory` is one arena is one registration.** The ownership rule that
+exists for safety is also the rule that keeps the VM fast.
+
+The layering is sharper than I reported in finding 7, too. It is three
+tiers, not two: `stkMemory` is pure bookkeeping and touches **no**
+primitives at all; they are concentrated in `stkPointer`. Ownership,
+storage, and raw access are separated, and only the innermost one is
+dangerous.
+
 ---
 
 ## The thesis, proven before designing on it
