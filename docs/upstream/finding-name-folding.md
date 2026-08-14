@@ -1,8 +1,15 @@
 # Name folding: four functions, one root cause
 
-**Status: SENT** — posted to the [#1645 thread]
+**Status: SENT, and the PR now carries the fix.** Reply posted to the
+[#1645 thread]
 (https://github.com/ring-lang/ring/pull/1645#issuecomment-5290940185) on
 2026-08-14, on Mansour's explicit instruction.
+
+On 2026-08-14 the PR was re-scoped from one function to four:
+[namefolding.ring](../../tests/upstream/namefolding.ring) replaces the
+narrower test, the patch moved from copy-and-fold to `ring_general_lower()`
+in place to match `meta_e.c`, and the description carries the sweep and the
+cost table. Youssef is `@ysdragon` on GitHub.
 
 Youssef commented on [#1645](https://github.com/ring-lang/ring/pull/1645)
 that `varptr` has the same problem. He is right, and there is more of it
