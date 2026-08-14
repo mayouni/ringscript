@@ -8,10 +8,17 @@ item 5.
 
 ## The channel — settled, and not a judgement call
 
-**Findings go to the Ring Google Group, and Mansour posts them himself.**
-No pull requests on `ring-lang/ring`, and nothing else filed there
-directly. Decided 2026-08-10; it does not expire and it is not reopened by
-a finding that feels important enough.
+**Mansour decides the channel, every time. Nothing goes to
+`ring-lang/ring` without him saying so for that specific thing.**
+
+The default is the Google Group, and he posts it himself — decided
+2026-08-10 after a PR was revised and force-pushed without being asked.
+It is not reopened by a finding that feels important enough.
+
+**Amended 2026-08-14:** he has since directed two pull requests himself
+(#1645, and its follow-up comment), and Mahmoud applied the result. So the
+rule is not "never a PR" — it is "never without being told". Ask; do not
+infer from the last time.
 
 What this repository does is prepare the text: the finding, a reproduction
 that runs on stock Ring, and the measurements. Draft it here, show it, and
@@ -38,7 +45,7 @@ note under item 5 for what happened when that line was crossed.
 | 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | same PR, same reply | **do not refile** |
 | 3 | [string argument copy](discussion-3-string-argument-copy.md) | **not sent, and the one genuinely new finding** | send as [a Google Group message](group-message-string-copy.md) |
 | 4 | [computed-goto](offer-4-computed-goto.md) | **obsolete — withdraw** | **do not send** |
-| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **merged** as PR [#1642](https://github.com/ring-lang/ring/pull/1642), Aug 10 — but only the `sort()` half. Mahmoud rejected the accessor change with reasons that measured out correct (see below), and merged the rest himself. **The last PR to this project**: see the channel note above. Reproduced on stock Ring **1.27**; framed as a finding, with the diff offered as illustration since Ring is authored in PWCT | **do not refile** |
+| 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **merged** as PR [#1642](https://github.com/ring-lang/ring/pull/1642), Aug 10 — but only the `sort()` half. Mahmoud rejected the accessor change with reasons that measured out correct (see below), and merged the rest himself. See the channel note above; #1645 later followed, at Mansour's direction. Reproduced on stock Ring **1.27**; framed as a finding, with the diff offered as illustration since Ring is authored in PWCT | **do not refile** |
 
 ### Why item 4 is obsolete
 
