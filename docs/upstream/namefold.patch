@@ -1,0 +1,48 @@
+--- stock-src/genlib_e.c	2026-08-14 08:58:59.660322300 +0100
++++ patched-src/genlib_e.c	2026-08-14 09:05:53.170839300 +0100
+@@ -1283,13 +1283,16 @@
+ }
+ 
+ void ring_vm_generallib_varptr(void *pPointer) {
+-	const char *cStr, *cStr2;
++	char *cStr;
++	const char *cStr2;
+ 	if (RING_API_PARACOUNT != 2) {
+ 		RING_API_ERROR(RING_API_MISS2PARA);
+ 		return;
+ 	}
+ 	if (RING_API_ISSTRING(1) && RING_API_ISSTRING(2)) {
+-		cStr = RING_API_GETSTRING(1);
++		/* Fold the name -- identifiers are stored folded, so an unfolded
++		** name can never match. Same idiom as islocal()/ismethod(). */
++		cStr = ring_general_lower(RING_API_GETSTRING(1));
+ 		cStr2 = RING_API_GETSTRING(2);
+ 		RING_API_RETCPOINTER(ring_vm_api_varptr(pPointer, cStr, cStr2), cStr2);
+ 	} else {
+@@ -1576,7 +1579,7 @@
+ 		RING_API_ERROR(RING_VM_ERROR_VMISNOTREADY);
+ 		return;
+ 	}
+-	pList = ring_state_findvar(pRingState, RING_API_GETSTRING(2));
++	pList = ring_state_findvar(pRingState, ring_general_lower(RING_API_GETSTRING(2)));
+ 	/* Check Variable before usage */
+ 	if (pList == NULL) {
+ 		RING_API_RETNUMBER(0);
+@@ -1603,7 +1606,7 @@
+ 		RING_API_ERROR(RING_VM_ERROR_VMISNOTREADY);
+ 		return;
+ 	}
+-	pList = ring_state_newvar(pRingState, RING_API_GETSTRING(2));
++	pList = ring_state_newvar(pRingState, ring_general_lower(RING_API_GETSTRING(2)));
+ 	RING_API_RETLIST(pList);
+ }
+ 
+@@ -1675,7 +1678,7 @@
+ 		RING_API_ERROR(RING_VM_ERROR_VMISNOTREADY);
+ 		return;
+ 	}
+-	pList = ring_state_findvar(pRingSubState, RING_API_GETSTRING(2));
++	pList = ring_state_findvar(pRingSubState, ring_general_lower(RING_API_GETSTRING(2)));
+ 	/* Check Variable before usage */
+ 	if (pList == NULL) {
+ 		RING_API_ERROR(RING_VM_ERROR_NOTVARIABLE);
