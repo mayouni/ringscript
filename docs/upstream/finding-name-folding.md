@@ -1,9 +1,12 @@
 # Name folding: four functions, one root cause
 
-**Status: NOT SENT.** Youssef commented on
-[#1645](https://github.com/ring-lang/ring/pull/1645) that `varptr` has the
-same problem. He is right, and there is more of it than either of us said.
-Text prepared here; Mansour decides whether and where it goes.
+**Status: SENT** — posted to the [#1645 thread]
+(https://github.com/ring-lang/ring/pull/1645#issuecomment-5290940185) on
+2026-08-14, on Mansour's explicit instruction.
+
+Youssef commented on [#1645](https://github.com/ring-lang/ring/pull/1645)
+that `varptr` has the same problem. He is right, and there is more of it
+than either of us said.
 
 ## What Youssef reported
 
@@ -94,7 +97,10 @@ ring tests/upstream/namefold.ring
 
 ---
 
-## Draft reply — not posted
+## The reply, as posted
+
+Sent with the four-row table, the `newvar` consequence, and the full
+reproduction inline. What follows is the substance of it.
 
 > Thank you Youssef — you are right, and it is wider than I had it.
 >
