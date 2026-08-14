@@ -1,9 +1,15 @@
 # Name folding: four functions, one root cause
 
-**Status: SENT, and the PR now carries the fix.** Reply posted to the
-[#1645 thread]
-(https://github.com/ring-lang/ring/pull/1645#issuecomment-5290940185) on
-2026-08-14, on Mansour's explicit instruction.
+**Status: APPLIED UPSTREAM.** Mahmoud closed
+[#1645](https://github.com/ring-lang/ring/pull/1645) and applied the fix in
+[b6aea3d](https://github.com/ring-lang/ring/commit/b6aea3d58fce7b544bd2381f7c1b27655ce2c094)
+and [ed69e68](https://github.com/ring-lang/ring/commit/ed69e6824652025651638e6ee7d7262b2accba08)
+on 2026-08-14, credited to *Mansour Ayouni and Youssef Saeed*.
+
+All four call sites landed as written, and he carried them into every
+vendored copy - ringlibsdl, ringqt, ringpico, the WebAssembly ringqt - and
+regenerated the PWCT visual source. The test went in as
+`varnameinstatefuncs.ring`.
 
 On 2026-08-14 the PR was re-scoped from one function to four:
 [namefolding.ring](../../tests/upstream/namefolding.ring) replaces the
