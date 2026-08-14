@@ -5,6 +5,12 @@ self-contained: it names the real sources, the real function surface, and
 the constraints, so the session can start from facts rather than from
 guesses.*
 
+> **Stage one is already done** (2026-08-14) and its results are in
+> [`ringplusplus-findings.md`](ringplusplus-findings.md). The prompt below
+> now sends the new session straight to the design and tells it to read
+> those findings first rather than rediscover them. One of them overturns
+> the premise the prompt was originally written on, so do not skip it.
+
 ---
 
 ## The prompt
@@ -218,20 +224,54 @@ guesses.*
 > 8. **The honest risks** — what could make this a bad idea, and what
 >    would make me abandon it.
 >
+> ### Start here — the reading is already done
+>
+> **Read `docs/ringplusplus-findings.md` in the RingScript repository
+> before anything else.** A previous session did the source study and
+> measured it. Four of its results change what you would otherwise design:
+>
+> 1. **The premise above is wrong, and the measurements say so.** Ring++ is
+>    not a pointer and buffer library. An empty Ring `for` loop already
+>    costs ~17 ns an iteration, and `list(n)` — which uses a bulk two-`calloc`
+>    path — is exactly as fast as appending in a loop, because allocation is
+>    not where the time goes. The interpreter loop is the floor. Moving one
+>    identical scan from Ring into C measured **23.5×–26.9×**. So Ring++ is
+>    **a catalogue of removed iterations**; the pointer surface is an
+>    implementation detail, not the product.
+> 2. **The memory pool is a one-shot arena.** Classes of 48/256/512 bytes,
+>    one block each, allocated once per state and never again. Over 512
+>    bytes is never pooled; an exhausted level falls to `malloc` forever.
+>    Allocate few and large, or small and pooled — never many medium.
+> 3. **`ring_state_registerblock()`** is the sanctioned way to hand Ring a
+>    foreign range, and every non-pool free walks the registered list — so
+>    registrations must be few, large and long-lived.
+> 4. **The safety model already exists and is implemented**: 2,018 lines of
+>    `stkMemory` / `stkBuffer` / `stkPointer` in Softanza, a borrow model
+>    with many readers or one writer, views, and automatic invalidation.
+>    Adopt it. Do not design a rival. Note that its ownership rule and the
+>    VM's registration rule are the same constraint reached from opposite
+>    directions.
+>
+> Then produce the design. If you believe any of those four findings is
+> wrong, say so and re-measure it rather than quietly designing around it —
+> but do not repeat the study for its own sake.
+>
 > ### How to work
 >
 > Read before proposing. Measure before claiming. When you are unsure what
 > Mahmoud intended, look at what the code does under load rather than at
 > what the name suggests. Tell me what you do not know.
 >
-> Start by reading the three sources and reporting **what you found that
-> surprised you** — before any design. I would rather spend this session
-> understanding the VM properly than producing a plan that reads well and
-> rests on air.
+> I would rather have a plan that rests on measurements than one that reads
+> well and rests on air.
 
 ---
 
 ## Two things to hand the session yourself
+
+**Point the session at the RingScript repository** (`D:\GitHubingscript`)
+so it can actually read `docs/ringplusplus-findings.md`. Without that the
+prompt above references a file it cannot open.
 
 **The Google Group thread** you mentioned —
 <https://groups.google.com/g/ring-lang/c/kHAlmVcP1tU> — cannot be fetched
