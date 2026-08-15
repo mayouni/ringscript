@@ -15,13 +15,11 @@
    shared by every sample; in your project it would sit beside the app. */
 var RUNTIME = "../../playground/";
 var STORAGE_KEY = "ringscript.sample.stock-count.v1";
-var OUTBOX_CACHE = "stock-count-v1-outbox";
 
 var $ = function (id) { return document.getElementById(id); };
 var ring = null;
 var online = true;
-var swReg = null;
-var deferredInstall = null;
+var pwa = null;
 
 /* ===================================================================
    Ring
@@ -82,7 +80,7 @@ function renderStats() {
         cell(p.counted + " / " + p.items, "items counted") +
         cell(p.flagged, "need investigating") +
         cell(money(p.net_value), "net variance") +
-        cell(ask("StockStillQueued", 0), "waiting to send");
+        cell(pwa.pending(), "waiting to send");
     $("finish-hint").textContent = p.remaining > 0
         ? p.remaining + " item" + (p.remaining === 1 ? "" : "s") + " still to count."
         : "Every item is counted. This can be queued.";
@@ -124,16 +122,19 @@ function renderWorst() {
 }
 
 function renderOutbox() {
-    var o = ask("StockOutbox", 0);
+    var o = pwa.list();
     $("outbox").innerHTML = o.length === 0
         ? '<li class="empty">Nothing waiting.</li>'
         : o.map(function (e) {
-            return '<li class="out out--' + e.state + '"><b>' + esc(e.counted_by) + "</b>" +
-                   "<span>" + e.lines + " lines · " + e.state + "</span></li>";
+            return '<li class="out out--' + e.state + '"><b>' + esc(e.kind) + "</b>" +
+                   "<span>" + esc(e.id) + " · " + e.state + "</span></li>";
         }).join("");
 }
 
-function renderAll() { renderStats(); renderSheet(); renderWorst(); renderOutbox(); save(); }
+function renderAll() {
+    renderStats(); renderSheet(); renderWorst(); renderOutbox(); save();
+    $("install").hidden = !pwa.install.available;
+}
 
 /* ===================================================================
    Storage — the page's job, not Ring's
@@ -142,18 +143,6 @@ function renderAll() { renderStats(); renderSheet(); renderWorst(); renderOutbox
 function save() {
     try { localStorage.setItem(STORAGE_KEY, ring.call("StockSnapshot", 0).result); }
     catch (e) { /* a full or private-mode store is not fatal */ }
-}
-
-/* What the service worker will send if the app is closed. Written to the
-   Cache API because a worker cannot read localStorage. */
-function publishPending() {
-    if (!window.caches) { return Promise.resolve(); }
-    var queued = ask("StockOutbox", 0).filter(function (e) { return e.state === "queued"; });
-    var payloads = queued.map(function (e) { return ask("StockPayload", e.id); });
-    return caches.open(OUTBOX_CACHE).then(function (c) {
-        return c.put("pending", new Response(JSON.stringify(payloads),
-            { headers: { "Content-Type": "application/json" } }));
-    });
 }
 
 /* ===================================================================
@@ -183,44 +172,25 @@ function record(e) {
 }
 
 function finish() {
-    var q = ask("StockQueue", $("who").value || "unknown");
+    /* Ring decides whether the count MAY be submitted -- that is a stock
+       rule. The library decides what queueing means. */
+    var q = ask("StockFinish", $("who").value || "unknown");
     if (!q.ok) { log("bad", esc(q.problem)); return; }
-    log("queue", "Queued <b>" + esc(q.id) + "</b> — " + q.lines + " lines, on the device.");
-    renderAll();
-    publishPending().then(registerSync);
-}
 
-/* Ask the browser to flush the outbox later, even if this tab is gone.
-   Where Background Sync is missing (Safari today) the app falls back to
-   flushing on the online event, which needs the tab open — so the feature
-   degrades rather than disappears. */
-function registerSync() {
-    if (swReg && "sync" in swReg) {
-        return swReg.sync.register("flush-counts").then(function () {
-            log("sync", "Handed to the browser: it will send this when a connection returns, app open or not.");
-        }).catch(function () { /* permission or policy; the manual path still works */ });
-    }
-    log("note", "Background Sync is unavailable here — the outbox flushes when the app is open and online.");
-    return Promise.resolve();
+    var r = pwa.queue("count", q);
+    log("queue", "Queued <b>" + esc(r.id) + "</b> — " + q.items + " lines, on the device.");
+    renderAll();
 }
 
 function syncNow() {
-    var queued = ask("StockOutbox", 0).filter(function (e) { return e.state === "queued"; });
-    if (queued.length === 0) { log("note", "Nothing waiting."); return; }
+    if (pwa.pending() === 0) { log("note", "Nothing waiting."); return; }
     if (!online) { log("bad", "Still offline — the count stays queued."); return; }
-
-    queued.forEach(function (e) {
-        var payload = ask("StockPayload", e.id);
-        Server.send(payload).then(function (r) {
-            ask("StockSent", e.id);
-            log("sent", "Sent <b>" + esc(e.id) + "</b> — " + r.bytes + " bytes over the wire.");
-            renderAll();
-            publishPending();
-        }).catch(function () {
-            ask("StockRollback", e.id);
-            log("bad", "Send failed — <b>" + esc(e.id) + "</b> put back in the queue.");
-            renderAll();
+    pwa.flush().then(function (results) {
+        results.forEach(function (r) {
+            if (r.sent) { log("sent", "Sent <b>" + esc(r.id) + "</b>"); }
+            else { log("bad", "Send failed — <b>" + esc(r.id) + "</b> put back in the queue."); }
         });
+        renderAll();
     });
 }
 
@@ -231,20 +201,6 @@ function setWire(up, why) {
     $("wire-said").textContent = why;
     $("toggle").textContent = up ? "Cut the connection" : "Restore the connection";
 }
-
-/* ===================================================================
-   Install
-   =================================================================== */
-
-window.addEventListener("beforeinstallprompt", function (e) {
-    e.preventDefault();
-    deferredInstall = e;
-    $("install").hidden = false;
-});
-window.addEventListener("appinstalled", function () {
-    $("install").hidden = true;
-    log("install", "Installed. It now opens from the home screen with no network.");
-});
 
 /* ===================================================================
    Boot
@@ -270,6 +226,27 @@ async function boot() {
         log("note", "Restored the session from the last time this app was open.");
     }
 
+    /* Everything a PWA needs -- service worker, install prompt, connection,
+       the outbox and its storage, Background Sync -- in one call. This
+       replaced about eighty lines of this file and all of sw.js but its
+       cache list. See lib/pwa/. */
+    pwa = await Pwa.attach(ring, {
+        device: $("who").value || "device",
+        sw: "sw.js",
+        storageKey: STORAGE_KEY + ".outbox",
+        syncTag: "pwa-flush",
+        send: Server.send,
+        onChange: function () { if (pwa) { renderAll(); } }
+    });
+
+    if (pwa.swError) {
+        log("bad", "Service worker refused: " + esc(pwa.swError) + " (it needs https or localhost).");
+    } else if (pwa.registration) {
+        log("install", "Service worker registered. The runtime and rules are cached — the next open needs no network.");
+    } else {
+        log("note", "No service worker here — the app runs, but will not install or work offline.");
+    }
+
     $("entry").addEventListener("submit", record);
     $("finish").addEventListener("click", finish);
     $("sync").addEventListener("click", syncNow);
@@ -279,15 +256,15 @@ async function boot() {
         if (online) { syncNow(); }
     });
     $("install-go").addEventListener("click", function () {
-        if (!deferredInstall) { return; }
-        deferredInstall.prompt();
-        deferredInstall = null;
-        $("install").hidden = true;
+        pwa.install.prompt().then(function (accepted) {
+            if (accepted) {
+                log("install", "Installed. It now opens from the home screen with no network.");
+            }
+        });
     });
 
     window.addEventListener("online", function () {
         setWire(true, "The browser reports a connection.");
-        syncNow();
     });
     window.addEventListener("offline", function () {
         setWire(false, "The browser reports no connection — keep counting.");
@@ -298,30 +275,8 @@ async function boot() {
     renderAll();
 }
 
-/* The service worker is what makes this installable and offline-capable.
-   Registered after boot so a failure here cannot stop the app working. */
-function registerWorker() {
-    if (!("serviceWorker" in navigator)) {
-        log("note", "No service worker here — the app runs, but will not install or work offline.");
-        return;
-    }
-    navigator.serviceWorker.register("sw.js").then(function (reg) {
-        swReg = reg;
-        log("install", "Service worker registered. The runtime and rules are cached — the next open needs no network.");
-    }).catch(function (e) {
-        log("bad", "Service worker refused: " + esc(e.message) + " (it needs https or localhost).");
-    });
-
-    navigator.serviceWorker.addEventListener("message", function (e) {
-        if (!e.data || !ring) { return; }
-        if (e.data.type === "sent") { ask("StockSent", e.data.id); log("sent", "Sent in the background: <b>" + esc(e.data.id) + "</b>"); }
-        if (e.data.type === "failed") { ask("StockRollback", e.data.id); log("bad", "Background send failed — still queued."); }
-        renderAll();
-    });
-}
-
 var s = document.createElement("script");
 s.src = RUNTIME + "ringscript.js";
-s.onload = function () { boot().then(registerWorker); };
+s.onload = boot;
 s.onerror = function () { log("bad", "Could not load the runtime from " + RUNTIME); };
 document.head.appendChild(s);

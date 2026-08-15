@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "packages": [
+    { "name": "pwa", "version": "1.0.1", "source": "registry", "files": ["lib/pwa/pwa.ring", "lib/pwa/pwa.js", "lib/pwa/sw-pwa.js"] }
+  ]
+}

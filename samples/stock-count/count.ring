@@ -30,9 +30,6 @@ nSkus     = 0
 aCounted  = []
 aHasCount = []
 
-# Finished counts waiting for a connection.
-aOutbox   = []
-
 # A shortage worth more than this is not a miscount, it is a question for
 # somebody. The threshold is a business rule, so it lives here.
 nInvestigateOver = 5000
@@ -170,11 +167,14 @@ func StockSheet p
 	next
 	return JsonEncode(aOut)
 
-# ----------------------------------------------------------- 6. the outbox
-# A finished count becomes one immutable entry with an id made HERE. The
-# device names its own work, so a retry after a dropped connection cannot
-# create a second count.
-func StockQueue cCountedBy
+# ------------------------------------------------- 6. finishing a count
+# Deciding whether a count MAY be submitted is a stock rule, so it stays
+# here. Queueing it, naming it, retrying it and rolling it back are not -
+# they are the local-first pattern, and ringscript-pwa owns them.
+#
+# This used to be six functions in this file. The samples that needed them
+# had each written their own; that is what a library is for.
+func StockFinish cCountedBy
 	nDone = 0
 	for i = 1 to nSkus
 		if aHasCount[i] = 1
@@ -190,67 +190,14 @@ func StockQueue cCountedBy
 	for i = 1 to nSkus
 		aLines + [ aSkuCode[i], aCounted[i], aCounted[i] - aSkuExpect[i] ]
 	next
-
-	cId = "count-" + cCountedBy + "-" + len(aOutbox) + "-" + clock()
-	aOutbox + [ cId, cCountedBy, aLines, "queued" ]
-	return JsonEncode([ :ok = 1, :id = cId, :lines = nSkus ])
-
-func StockOutbox p
-	aOut = []
-	for i = 1 to len(aOutbox)
-		aOut + [ :id = aOutbox[i][1], :counted_by = aOutbox[i][2],
-			 :lines = len(aOutbox[i][3]), :state = aOutbox[i][4] ]
-	next
-	return JsonEncode(aOut)
-
-# What actually crosses the wire. Asked for one entry at a time, so a
-# half-successful sync leaves the rest queued rather than lost.
-func StockPayload cId
-	for i = 1 to len(aOutbox)
-		if aOutbox[i][1] = cId
-			return JsonEncode([ :id = aOutbox[i][1],
-					    :counted_by = aOutbox[i][2],
-					    :lines = aOutbox[i][3] ])
-		ok
-	next
-	return JsonEncode([ :ok = 0, :problem = "no such entry" ])
-
-func StockSent cId
-	for i = 1 to len(aOutbox)
-		if aOutbox[i][1] = cId
-			aOutbox[i][4] = "sent"
-			return JsonEncode([ :ok = 1, :id = cId ])
-		ok
-	next
-	return JsonEncode([ :ok = 0, :problem = "no such entry" ])
-
-# A send that failed is not a send. Put it back, so the next connection
-# tries again — this is the half people forget, and it is why a queue is
-# safe to trust.
-func StockRollback cId
-	for i = 1 to len(aOutbox)
-		if aOutbox[i][1] = cId
-			aOutbox[i][4] = "queued"
-			return JsonEncode([ :ok = 1, :id = cId ])
-		ok
-	next
-	return JsonEncode([ :ok = 0, :problem = "no such entry" ])
-
-func StockStillQueued p
-	nQ = 0
-	for i = 1 to len(aOutbox)
-		if aOutbox[i][4] = "queued"
-			nQ = nQ + 1
-		ok
-	next
-	return nQ
+	return JsonEncode([ :ok = 1, :counted_by = cCountedBy,
+			    :items = nSkus, :lines = aLines ])
 
 # ------------------------------------------------- 7. save and restore
 # The page owns storage; Ring owns the shape of what is stored. Handing
 # the whole session back as one value keeps that boundary honest.
 func StockSnapshot p
-	return JsonEncode([ :counted = aCounted, :has_count = aHasCount,
-			    :outbox = aOutbox ])
+	return JsonEncode([ :counted = aCounted, :has_count = aHasCount ])
 
 func StockRestore cJson
 	aIn = JsonDecode(cJson)
@@ -259,8 +206,6 @@ func StockRestore cJson
 			aCounted = aIn[i][2]
 		but aIn[i][1] = "has_count"
 			aHasCount = aIn[i][2]
-		but aIn[i][1] = "outbox"
-			aOutbox = aIn[i][2]
 		ok
 	next
-	return len(aOutbox)
+	return nSkus

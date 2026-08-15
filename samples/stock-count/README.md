@@ -132,3 +132,28 @@ a capability the platform may not have.
   field-sales order pad, with pricing tiers, credit limits and an outbox.
   Start there if you want the local-first argument; start here if you want
   to know how it gets installed.
+
+## Built on ringscript-pwa
+
+The installability, the offline shell and the outbox are not written here.
+They come from a library:
+
+```bash
+ringscript add pwa
+```
+
+`count.ring` keeps the stock rules — what a variance is worth, whether one
+needs investigating, whether the count may be submitted. The library owns
+what queueing *means*: the id made on the device before anything is sent,
+one entry at a time, and rollback when a send fails.
+
+That split removed **191 lines** from this sample, and all of `sw.js` except
+the list of files to cache — which is the one thing only this application
+can know.
+
+It also found a bug. Restoring the connection calls `flush()`, clicking
+*Send now* calls `flush()`, and doing both within 100 ms had each read the
+same entry as queued and send it. Fixed in
+[ringscript-pwa 1.0.1](https://github.com/mayouni/ringscript-pwa/releases/tag/v1.0.1);
+every application that uses the library gets the fix, which is the argument
+for a library in one sentence.
