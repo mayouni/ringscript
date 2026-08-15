@@ -196,7 +196,15 @@ function stripEchoes(out, input) {
         if (!native.ok) {
             tally.nativefail++;
             if (VERBOSE) console.log("NATFAIL   " + rel + "  (" + native.err + ")");
-            continue; // native itself can't run it (missing data files etc.)
+            // Usually benign — a sample wanting a data file or a GUI. But not
+            // always: a VM bug bad enough to kill the interpreter lands here
+            // too, and then the sample is dropped from the comparison rather
+            // than flagged. That is the oracle's blind spot, and it is exactly
+            // where the worst bugs sit, so record these rather than only
+            // counting them. (arrayvector2.ring was one: operator overloading
+            // with a list element as the right operand, ring-lang/ring#1647.)
+            failures.push({ rel, kind: "NATIVE FAIL", detail: native.err });
+            continue;
         }
 
         const res = await wasmEval(src, input, 15000);
@@ -243,7 +251,7 @@ function stripEchoes(out, input) {
     console.log("ran (nondet): " + tally.ran);
     console.log("mismatch    : " + tally.mismatch);
     console.log("wasm fail   : " + tally.wasmfail);
-    console.log("native fail : " + tally.nativefail + "  (oracle could not run; not counted)");
+    console.log("native fail : " + tally.nativefail + "  (oracle could not run; named in sweep-failures.json)");
     console.log("skipped     : " + tally.skip + "  (by-design exclusions)");
 
     if (failures.length) {

@@ -152,3 +152,45 @@ and at 50,000: leaderboard 277 / 271 ms, identical checksums. Full battery
 green — gates, soak, fuzz, WASI, boot, examples oracle, 237 + 257 sweep
 programs byte-exact with 0 mismatches, no bench regressions, and the wasm
 331 bytes smaller.
+
+---
+
+# Upstream fixes to pick up at the next vendor swap
+
+Bugs fixed in Ring after 1.27 that the vendored tree here still has. These
+are **not** patches to re-apply — they arrive for free with a newer Ring —
+but they are worth knowing about while we are still on 1.27.
+
+## Operator overloading with a list element as the right operand
+
+`o1 + a[1]` reads a type-confused pointer. On native 1.27 the process dies
+silently; **in RingScript it is worse** — `eval()` returns `ok: true` with
+no output and no error, so a program that produces nothing looks like a
+program that succeeded:
+
+```
+output   : ""
+ok       : true
+error    : (none)
+VM alive : true
+```
+
+The shipped sample `samples/ProblemSolving/Lists/arrayvector2.ring` is
+affected. Objects in plain variables are fine, and a list element as the
+*left* operand is fine; only the right-operand path is broken.
+
+Reported as [ring-lang/ring#1647](https://github.com/ring-lang/ring/pull/1647)
+and fixed by Mahmoud in
+[3482b57](https://github.com/ring-lang/ring/commit/3482b57) (revise
+`ring_vm_oop_operatoroverloading2()`) and
+[05dc3f4](https://github.com/ring-lang/ring/commit/05dc3f4) (use
+`ring_vm_pushv()` rather than `ring_vm_varpushv()`, which is designed for
+*variables* and not for *items* — the distinction the first attempt at a
+fix missed).
+
+**What it cost us to learn:** our sweep had been dropping this sample. A
+native failure meant "the oracle could not run it", so the program was
+excluded from comparison rather than flagged — and a VM bug bad enough to
+kill the interpreter lands in exactly that bucket. `samples-sweep.js` now
+records native failures in `sweep-failures.json` by name instead of only
+counting them.
