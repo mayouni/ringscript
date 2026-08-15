@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A local-first app has to get onto the device — RingScript blog</title>
-<meta name="description" content="Local-first says the rules live on the device. A PWA is how they get there and stay there: a manifest, a service worker that caches the Ring runtime itself, and Background Sync that pushes finished work even when the app is closed.">
+<title>How to make a PWA in RingScript: a local-first app has to get onto the device — RingScript blog</title>
+<meta name="description" content="A PWA in RingScript, start to finish: the manifest, a service worker that caches the 397 KB Ring runtime itself, and Background Sync that pushes finished work even when the app is closed. With a working sample you can install, and the offline test that proves it.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=0.9.26">
 <style>
@@ -29,6 +29,9 @@
                  color: var(--ink-soft); font-weight: 600; }
     table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .scroll { overflow-x: auto; }
+    /* the deck under the headline: the thesis the title no longer carries */
+    .standfirst { font-size: var(--read); color: var(--ink-soft);
+                  margin: -.2rem 0 .9rem; }
     .try-it { border: 1px solid var(--accent); border-radius: 12px;
               background: var(--accent-soft); padding: 1.3rem 1.4rem; margin: 2rem 0; }
     .try-it h3 { margin: 0 0 .5rem; }
@@ -62,7 +65,9 @@
 <section class="wrap">
 <article>
 
-<h1>A local-first app has to get onto the device</h1>
+<h1>How to make a PWA in RingScript</h1>
+
+<p class="standfirst">Because a local-first app has to get onto the device.</p>
 
 <p class="meta"><span class="label">Local-first</span> August 2026 · from the RingScript project</p>
 
