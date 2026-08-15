@@ -229,12 +229,28 @@ install. TLS was proved by pointing the registry URL at a real file and
 parsing it.
 
 **Not built yet:** `add <name>` from the registry. Resolving a name needs
-the tarball path — download, sha256, gunzip, untar — and the pieces are all
-in Zig's standard library (`std.compress.flate`, `std.tar`,
-`std.crypto.hash.sha2`), but it is the one part with no test to run against
-until a library is actually published. `add <path>` covers the author's
-loop today, which is what a library needs before there is anything to
-publish.
+the download path — fetch, sha256, gunzip, untar — and the pieces are all in
+Zig's standard library (`std.compress.flate`, `std.tar`,
+`std.crypto.hash.sha2`). `add <path>` covers the author's loop meanwhile.
 
-The registry itself is `ringscript-registry`, committed and empty — a
-registry with an unverifiable entry is worse than an empty one.
+## 11. The ecosystem, live
+
+| | |
+|---|---|
+| registry | [ringscript-registry](https://github.com/mayouni/ringscript-registry) — one JSON file, a pull request is the review |
+| first library | [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) v1.0 |
+
+```
+$ ringscript search offline
+  pwa  Install to the home screen, work offline, and a durable outbox with rollback.
+```
+
+The registry pins an **uploaded release asset**, not GitHub's auto-generated
+source archive: those are produced on demand and are not guaranteed
+byte-stable, so pinning a hash to one pins it to something that can change
+underneath. The published asset was downloaded back and re-hashed before the
+row went in — 10,755 bytes, `2899a17a…`, match.
+
+`libs/pwa` no longer lives here. A library consumed by many projects belongs
+in none of them, which is the same rule that moved the upstream register to
+RingUpstream.
