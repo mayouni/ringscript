@@ -165,6 +165,26 @@ Bugs fixed in Ring after 1.27 that the vendored tree here still has. These
 are **not** patches to re-apply — they arrive for free with a newer Ring —
 but they are worth knowing about while we are still on 1.27.
 
+**Six of them, not one.** Updated 2026-08-15, after RingUpstream verified
+every outcome against Ring's commit log and found four contributions that
+had landed while being recorded as rejected. Worth scheduling as **one**
+swap rather than six errands:
+
+| fix | landed as | what the vendored 1.27 still does |
+|---|---|---|
+| `private` inside `eval()` | [`7acf95bf`](https://github.com/ring-lang/ring/commit/7acf95bf) | crashes — currently covered by vendor patch 3 |
+| `strtod`/errno on musl | [`4014382a`](https://github.com/ring-lang/ring/commit/4014382a) | misparses at the edges — currently covered by vendor patch 4 |
+| `memcpy()` zero-byte source | [`8675fe3a`](https://github.com/ring-lang/ring/commit/8675fe3a) | aborts the process |
+| empty `catch` stack slot | [`cda2ecf0`](https://github.com/ring-lang/ring/commit/cda2ecf0) | leaks one slot per caught raise; R4 at ~1003 |
+| name folding in four lookups | [`b6aea3d5`](https://github.com/ring-lang/ring/commit/b6aea3d5) | `varptr("nTotal")` raises R6; `ring_state_findvar` silently misses |
+| operator overloading with a list element | [`05dc3f49`](https://github.com/ring-lang/ring/commit/05dc3f49) | the section below |
+
+Two of these matter more here than elsewhere. **The empty-`catch` leak is a
+RingScript problem specifically**: this project wraps *every* eval in a
+try/catch shim, so a page evaluating ~1000 failing snippets hits `R4` in the
+browser. And patches 3 and 4 below can be **dropped** at the swap — they are
+now upstream.
+
 ## Operator overloading with a list element as the right operand
 
 `o1 + a[1]` reads a type-confused pointer. On native 1.27 the process dies

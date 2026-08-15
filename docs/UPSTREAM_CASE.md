@@ -10,22 +10,35 @@ Items 1 and 2 follow the route of
 [ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639),
 which contributed two earlier fixes from the same work.*
 
-> **Checked against the live repository on August 7, 2026, before
-> anything was sent — and most of this page turned out to be already
-> handled or already done. Read
-> [upstream/README.md](upstream/) first; it has the current status of
-> every item and the reasons.**
+> **SUPERSEDED. All four items are closed, and the register moved.**
+> The status of every item, the reproductions and what came back from the
+> Ring project now live in **RingUpstream**
+> (`D:\GitHub\ringupstream`, [`REGISTER.md`](https://github.com/mayouni/ringupstream)).
+> The `docs/upstream/` directory this page used to point at was moved
+> there whole on 2026-08-15. **Nothing here is pending; nothing here
+> should be sent.**
 >
-> In short: `ring-lang/ring` **has issues and discussions disabled**, so
-> there is no tracker — only PRs and the Google Group. Items 1 and 2
-> were **already delivered** as PR
-> [#1639](https://github.com/ring-lang/ring/pull/1639) and consciously
-> deferred to a PWCT reimplementation; **do not refile them**. Item 4 is
-> **obsolete**: Ring already ships `ring_vm_computedgoto()` in
-> `language/build/vmcgoto/vmcgoto.c`, which the vendored tree here does
-> not include. **Item 3 is the one genuinely new finding**, and it is
-> ready to send as
-> [a Google Group message](upstream/group-message-string-copy.md).
+> Corrected 2026-08-15 — this page was wrong about all four:
+>
+> - **Items 1 and 2** were recorded as delivered and *"consciously
+>   deferred to a PWCT reimplementation"*. They were **applied**:
+>   [`7acf95bf`](https://github.com/ring-lang/ring/commit/7acf95bf) and
+>   test [`5eb676ca`](https://github.com/ring-lang/ring/commit/5eb676ca)
+>   for the eval crash,
+>   [`4014382a`](https://github.com/ring-lang/ring/commit/4014382a) for
+>   `ring_vm_stringtonum`, six days after #1639 closed.
+> - **Item 3** was *"the one genuinely new finding, ready to send"*. It
+>   was sent as [#1648](https://github.com/ring-lang/ring/pull/1648) and
+>   closed: *"You already shared this before in Ring Group."* The GitHub
+>   search that preceded it was clean — the group cannot be searched
+>   without a login, which is why RingUpstream's check ends with a
+>   question to Mansour rather than a query.
+> - **Item 4** is obsolete, and that part was right: Ring already ships
+>   `ring_vm_computedgoto()` in `language/build/vmcgoto/vmcgoto.c`, which
+>   the vendored tree here does not include.
+>
+> `ring-lang/ring` **has issues and discussions disabled**, so there is no
+> tracker — only pull requests and the Google Group.
 
 *The four write-ups below are kept as the full record of each finding.*
 
