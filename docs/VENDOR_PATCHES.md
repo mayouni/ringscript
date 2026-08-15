@@ -157,6 +157,10 @@ programs byte-exact with 0 mismatches, no bench regressions, and the wasm
 
 # Upstream fixes to pick up at the next vendor swap
 
+*The findings themselves, their reproductions, and what came back from the
+Ring project now live in **RingUpstream**. What stays here is only the part
+a vendor swap has to act on.*
+
 Bugs fixed in Ring after 1.27 that the vendored tree here still has. These
 are **not** patches to re-apply — they arrive for free with a newer Ring —
 but they are worth knowing about while we are still on 1.27.
