@@ -22,6 +22,10 @@
 
     /* the two applications, given equal weight */
     .apps { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.8rem 0; }
+    /* the third card spans the row rather than squeezing three into a
+       46rem article, where each column would be ~230px */
+    .app--wide { grid-column: 1 / -1; }
+    .app--wide .go { margin-top: 1rem; }
     @media (max-width: 767px) { .apps { grid-template-columns: 1fr; } }
     .app {
         border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.3rem;
@@ -94,7 +98,7 @@ increasingly want to know their data is <em>theirs</em>, held on their
 device or their premises. Bad connections and data ownership are different
 arguments that point at exactly the same architecture.</p>
 
-<h2>Two working applications</h2>
+<h2>Three working applications</h2>
 
 <p>Both run on this site, on the real Ring virtual machine compiled to
 WebAssembly. Neither is a mock-up.</p>
@@ -129,6 +133,21 @@ WebAssembly. Neither is a mock-up.</p>
     Ring VM itself.</p>
     <div class="go">
       <a class="btn ghost" href="data.html">Working with data</a>
+    </div>
+  </div>
+
+  <div class="app app--wide">
+    <p class="kind">Getting it onto the phone</p>
+    <h3>Stock Count</h3>
+    <p>Rules on the device are only half of it — if the app is a web page,
+    the device does not really have it. This one <b>installs</b>: a service
+    worker caches the Ring runtime itself, so it opens with no network, and
+    Background Sync pushes the finished count even when the app is closed.</p>
+    <p>Stop the server, reload the page, and it still opens. Under half a
+    megabyte in total.</p>
+    <div class="go">
+      <a class="btn ghost" href="samples/stock-count/" target="_blank" rel="noopener">Open it <span class="newtab" aria-hidden="true">&#8599;</span></a>
+      <a class="btn ghost" href="blog-pwa.html">Read the write-up</a>
     </div>
   </div>
 </div>

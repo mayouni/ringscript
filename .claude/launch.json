@@ -21,6 +21,18 @@
         "_site"
       ],
       "port": 8378
+    },
+    {
+      "name": "ringscript-root",
+      "runtimeExecutable": "zig",
+      "runtimeArgs": [
+        "build",
+        "serve",
+        "--",
+        "8379",
+        "."
+      ],
+      "port": 8379
     }
   ]
 }

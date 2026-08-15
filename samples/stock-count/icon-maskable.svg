@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Stock Count">
+  <rect width="512" height="512" fill="#0f766e"/>
+  <g transform="translate(256 256) scale(0.66) translate(-256 -256)">
+    <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="140" y="108" width="232" height="296" rx="24"/>
+      <path d="M196 188h120M196 252h120M196 316h64"/>
+    </g>
+    <circle cx="356" cy="332" r="72" fill="#ffffff"/>
+    <path d="M322 332l22 22 46-52" fill="none" stroke="#0f766e" stroke-width="26"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

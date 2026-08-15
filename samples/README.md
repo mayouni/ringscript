@@ -25,6 +25,7 @@ not change — and neither does your back end.
 | Sample | What it shows |
 |---|---|
 | **[route-orders](route-orders/)** | A field-sales order pad, built local-first: price tiers, discounts, tax, stock and the credit limit all decided on the device. The server is used exactly twice — pull the reference data, push the finished orders. There is a switch marked *Cut the connection*. [Open it →](https://mayouni.github.io/ringscript/samples/route-orders/) |
+| **[stock-count](stock-count/)** | The same shape, delivered as an **installable PWA**: a manifest, a service worker that caches the Ring runtime itself, and Background Sync that pushes a finished count when a connection returns *even if the app is closed*. Stop the server and reload — it still opens. [Open it →](https://mayouni.github.io/ringscript/samples/stock-count/) |
 
 More will be added here. If you build one worth sharing, a pull request is
 welcome.

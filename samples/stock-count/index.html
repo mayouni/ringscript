@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Count — an installable local-first app built with RingScript</title>
+<meta name="description" content="A stock-count pad you install on the phone. It opens with no network, holds its own rules in Ring, and pushes the finished count when a connection comes back.">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Stock Count</h1>
+  <p>An installable local-first app — <b>HTML and CSS for the screens,
+  Ring for the rules</b>. Install it, turn off the network, and it still
+  opens and still decides.</p>
+</header>
+
+<main>
+
+  <!-- Install. The browser only offers this once the app is installable,
+       so the button stays hidden until the event arrives. -->
+  <section class="install" id="install" hidden>
+    <p><b>This app can be installed.</b> Once installed it opens from the
+    home screen with no network at all.</p>
+    <button type="button" class="btn btn--primary" id="install-go">Install</button>
+  </section>
+
+  <!-- What the app knows about the network, and what it does about it. -->
+  <section class="wire" id="wire" aria-live="polite">
+    <p class="wire__state" id="wire-state">Connection: checking…</p>
+    <p class="wire__said" id="wire-said"></p>
+    <button type="button" class="btn btn--quiet" id="toggle">Cut the connection</button>
+  </section>
+
+  <section class="stats" id="stats" aria-label="Count progress"></section>
+
+  <div class="layout">
+  <div class="layout__main">
+
+    <section class="panel">
+      <h2>Count an item</h2>
+      <p class="hint">Scan or pick the item, type what is actually on the
+      shelf. The verdict comes from Ring, on this device.</p>
+      <form class="entry" id="entry" autocomplete="off">
+        <div class="field">
+          <label for="sku">Item</label>
+          <select id="sku" required></select>
+        </div>
+        <div class="field field--narrow">
+          <label for="qty">Counted</label>
+          <input id="qty" type="number" min="0" step="1" inputmode="numeric" required>
+        </div>
+        <button type="submit" class="btn btn--primary">Record</button>
+      </form>
+      <p class="verdict" id="verdict" role="status" hidden></p>
+    </section>
+
+    <section class="panel">
+      <h2>The sheet</h2>
+      <div class="tablewrap">
+        <table id="sheet">
+          <thead>
+            <tr><th scope="col">Item</th><th scope="col" class="num">Expected</th>
+                <th scope="col" class="num">Counted</th><th scope="col" class="num">Variance</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Worth a second look</h2>
+      <p class="hint">The lines that cost money, worst first. A supervisor
+      reads five rows, not sixty.</p>
+      <ul class="worst" id="worst"></ul>
+    </section>
+
+  </div>
+  <aside class="layout__side">
+
+    <section class="panel">
+      <h2>Finish the count</h2>
+      <div class="field">
+        <label for="who">Counted by</label>
+        <input id="who" type="text" value="aissata" autocomplete="off">
+      </div>
+      <button type="button" class="btn btn--primary btn--wide" id="finish">Queue this count</button>
+      <p class="hint" id="finish-hint"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Outbox</h2>
+      <p class="hint">Finished counts wait here. They are sent when a
+      connection exists — by the app if it is open, by the service worker
+      if it is not.</p>
+      <ul class="outbox" id="outbox"></ul>
+      <button type="button" class="btn btn--wide" id="sync">Send now</button>
+    </section>
+
+    <section class="panel panel--log">
+      <h2>What actually happened</h2>
+      <ol class="log" id="log"></ol>
+    </section>
+
+  </aside>
+  </div>
+
+</main>
+
+<footer>
+  <p>A RingScript sample. The runtime, the rules and the screens together
+  are under half a megabyte, cached once by the service worker and then
+  never fetched again.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

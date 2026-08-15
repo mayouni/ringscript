@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A local-first app has to get onto the device — RingScript blog</title>
+<meta name="description" content="Local-first says the rules live on the device. A PWA is how they get there and stay there: a manifest, a service worker that caches the Ring runtime itself, and Background Sync that pushes finished work even when the app is closed.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.26">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem;
+                             border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .scroll { overflow-x: auto; }
+    .try-it { border: 1px solid var(--accent); border-radius: 12px;
+              background: var(--accent-soft); padding: 1.3rem 1.4rem; margin: 2rem 0; }
+    .try-it h3 { margin: 0 0 .5rem; }
+    .try-it p { margin: 0 0 1rem; color: var(--ink-soft); }
+    .steps { counter-reset: s; list-style: none; padding: 0; margin: 1.4rem 0; }
+    .steps li { counter-increment: s; position: relative; padding-left: 2.4rem;
+                margin-bottom: .8rem; color: var(--ink-soft); }
+    .steps li::before {
+        content: counter(s); position: absolute; left: 0; top: .05rem;
+        width: 1.7rem; height: 1.7rem; border-radius: 50%;
+        background: var(--accent-soft); color: var(--accent);
+        font-weight: 700; font-size: var(--floor);
+        display: grid; place-items: center;
+    }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="local-first.html">Local-first apps</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>A local-first app has to get onto the device</h1>
+
+<p class="meta"><span class="label">Local-first</span> August 2026 · from the RingScript project</p>
+
+<p class="first">We have argued that the rules of a business application
+belong on the device rather than on a server. That argument has a hole in
+it, and it is worth naming: if the application is a web page, the device
+does not really have it. Every visit still asks the network for the app
+before it can start being independent of the network. A PWA closes that
+hole, and it turns out to fit RingScript almost too neatly.</p>
+
+<h2>The hole in the argument</h2>
+
+<p>Our <a href="samples/route-orders/" target="_blank" rel="noopener">first
+sample</a> decides everything on the device: price tiers, the credit limit,
+the stock check. Cut the connection and it keeps working. That is real, and
+it is most of what matters.</p>
+
+<p>But open it on a fresh phone in a shop with no signal and nothing
+happens at all. The rules are local; <em>the app is not</em>. Local-first
+without installation is a promise that only holds for people who already
+have the page open.</p>
+
+<blockquote>An application the user cannot start is not available, however
+well it would have worked.</blockquote>
+
+<h2>What a PWA actually adds</h2>
+
+<p>Three pieces, none of them exotic, each answering a specific gap:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>piece</th><th>what it buys</th></tr></thead>
+  <tbody>
+    <tr><td><code>manifest.webmanifest</code></td><td>the app installs — a home-screen icon, its own window, no browser chrome</td></tr>
+    <tr><td>a <b>service worker</b> cache</td><td>it opens with no network, because the runtime and the rules are already on the device</td></tr>
+    <tr><td><b>Background Sync</b></td><td>finished work is pushed when a connection returns — <em>even if the app is closed</em></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The third is the one a plain website cannot do under any circumstances,
+and it is the one that matches how field work really goes: you count the
+shelves, you put the phone in your pocket, you walk back into signal an
+hour later. Nobody reopens the app to let it sync.</p>
+
+<h2>The part that surprised us</h2>
+
+<p>A service worker caches URLs. RingScript is 397 KB of WebAssembly loaded
+with an ordinary <code>fetch</code> — no streaming compilation requirement,
+no <code>SharedArrayBuffer</code>, no cross-origin isolation headers. So it
+caches like any other file:</p>
+
+<pre><code>var SHELL = [
+	"./index.html",
+	"./app.css",
+	"./app.js",
+	"./count.ring",              # the business rules
+	"../../playground/ringscript.js",
+	"../../playground/ringscript.wasm"   # the language itself
+];</code></pre>
+
+<p>Note the last two lines. They live <em>outside</em> the app's own folder,
+and that is fine: a service worker's scope limits which <b>pages</b> it
+controls, not which <b>resources</b> it may store. So a shared runtime
+caches perfectly well from an app that does not contain it.</p>
+
+<p>The whole application — interface, rules, and the language they run in:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>cached once</th><th class="n">bytes</th></tr></thead>
+  <tbody>
+    <tr><td><code>ringscript.wasm</code></td><td class="n">396,604</td></tr>
+    <tr><td><code>ringscript.js</code></td><td class="n">39,366</td></tr>
+    <tr><td>the app — HTML, CSS, JS, Ring, data, icons</td><td class="n">~33,000</td></tr>
+    <tr><td><b>total</b></td><td class="n"><b>~469 KB</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Under half a megabyte, once. After that the network is used for exactly
+one thing: sending finished counts.</p>
+
+<h2>The test that settles it</h2>
+
+<p>Claims about offline are cheap, so here is the one we ran. Open the
+sample, count an item, then <b>stop the web server entirely</b> — not
+throttle it, not toggle a devtools checkbox: kill the process. Then reload
+the page.</p>
+
+<ol class="steps">
+  <li>The page loads. From cache.</li>
+  <li>The 397 KB Ring runtime loads, and instantiates.</li>
+  <li><code>count.ring</code> loads, and its rules answer as before.</li>
+  <li>The session comes back — the item counted before the server died is
+      still counted, still flagged.</li>
+</ol>
+
+<p>Nothing is reaching a server, because there is no server. That is the
+whole promise of the pattern, in a test anyone can repeat in a minute.</p>
+
+<h2>Where the division of labour holds</h2>
+
+<p>A service worker is JavaScript, and this is where it would be tempting
+to let it start making decisions — recompute a total before sending,
+validate a payload, drop a record that looks wrong.</p>
+
+<p>It does none of that. The worker moves an already-decided payload and
+reports back whether the send succeeded. Every judgement was made in Ring,
+on the device, at the moment the user made it:</p>
+
+<pre><code>func StockCount cJson
+	# ...
+	nVar = nQty - aSkuExpect[nRow]
+	nValue = nVar * aSkuCost[nRow]
+	cVerdict = "match"
+	if nVar &lt; 0
+		cVerdict = "short"
+		if (0 - nValue) &gt; nInvestigateOver
+			cVerdict = "investigate"
+		ok
+	but nVar &gt; 0
+		cVerdict = "over"
+	ok</code></pre>
+
+<p>One bag of rice short is 14,500 F, which is over the threshold, so it is
+not a miscount — it is a question for somebody. That rule is four lines a
+manager can read, and it runs in a back room with no signal. Putting it in
+the service worker instead would scatter the business across two languages
+and one of them would be the wrong one.</p>
+
+<div class="try-it">
+  <h3>Stock Count</h3>
+  <p>The sample: install it, cut the connection, count the shelves. Nine
+  files, no build step, no framework. The service worker and the manifest
+  are ordinary web development; the rules are Ring.</p>
+  <a class="btn primary" href="samples/stock-count/" target="_blank" rel="noopener">Open it <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  <a class="btn ghost" href="https://github.com/mayouni/ringscript/tree/main/samples/stock-count" target="_blank" rel="noopener">Read the source</a>
+</div>
+
+<h2>Two things we will not pretend about</h2>
+
+<p><b><code>navigator.onLine</code> does not mean what you want.</b> It
+says the device has a network interface, not that your server answers. With
+our server killed, the sample still reported "Connection: up", because the
+browser could still see Wi-Fi. Treat it as a hint. The real test is whether
+a request succeeded — which is why the outbox rolls back a failed send
+instead of trusting a flag.</p>
+
+<p><b>Background Sync is not everywhere.</b> Chrome and Edge have it;
+Safari does not. The sample checks, says so in its own log, and falls back
+to flushing whenever it is open and online. That is the right shape for
+anything built on a capability the platform may not have: degrade, do not
+disappear. On iOS you still get installation and offline start — the two
+that matter most — and lose the unattended send.</p>
+
+<h2>Why this belongs here rather than in a framework</h2>
+
+<p>Nothing above needed a build step, a bundler, or a PWA library. A
+manifest is twenty lines of JSON. A service worker is a hundred lines of
+plain JavaScript. The reason it is worth writing yourself is the same
+reason the rules are worth writing in Ring: you can read all of it, and in
+five years you will still be able to.</p>
+
+<p>Local-first has always been an argument about where decisions happen. A
+PWA is the part that decides where the <em>application</em> happens. Put
+them together and you get something a shop assistant in Maradi can open on
+a phone that has not seen a network since yesterday — which was the point
+all along.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+
+</body>
+</html>

@@ -131,6 +131,10 @@ fn mimeFor(path: []const u8) []const u8 {
     if (std.mem.endsWith(u8, path, ".css")) return "text/css; charset=utf-8";
     if (std.mem.endsWith(u8, path, ".wasm")) return "application/wasm";
     if (std.mem.endsWith(u8, path, ".json")) return "application/json; charset=utf-8";
+    // A PWA's manifest. Browsers accept application/json, but the correct
+    // type is what the samples/ PWA is served with in production, so serve
+    // it here too rather than have local and deployed differ.
+    if (std.mem.endsWith(u8, path, ".webmanifest")) return "application/manifest+json; charset=utf-8";
     if (std.mem.endsWith(u8, path, ".ring")) return "text/plain; charset=utf-8";
     if (std.mem.endsWith(u8, path, ".svg")) return "image/svg+xml";
     if (std.mem.endsWith(u8, path, ".png")) return "image/png";
