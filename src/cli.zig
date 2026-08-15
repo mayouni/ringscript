@@ -27,6 +27,11 @@ const serve = @import("serve.zig");
 const REGISTRY_URL = "https://raw.githubusercontent.com/mayouni/ringscript-registry/main/registry.json";
 const LOCK = "ringscript.lock";
 
+/// This runtime's version, checked against each registry entry's range so a
+/// library that needs a newer RingScript is refused here rather than failing
+/// later in a browser.
+const RINGSCRIPT_VERSION = "0.9";
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -248,8 +253,125 @@ fn cmdAdd(a: std.mem.Allocator, spec: []const u8, project: []const u8) !void {
         return install(a, spec, project, "path");
     } else |_| {}
 
-    out("  {s} is not a library folder, and registry install is not built yet.\n", .{spec});
-    out("  For now: ringscript add <path-to-library> [project]\n", .{});
+    addFromRegistry(a, spec, project) catch |e| {
+        out("  could not install {s}: {s}\n", .{ spec, @errorName(e) });
+    };
+}
+
+/// Resolve a name against the registry, download it, prove it is what the
+/// registry says it is, and only then unpack. The verify step is why the
+/// registry carries a hash at all: without it, "install" means "run whatever
+/// that URL happens to serve today".
+fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
+    var reg = try registryFetch(a);
+    defer reg.deinit();
+
+    const pkgs = blk: {
+        const v = reg.value.object.get("packages") orelse break :blk &[_]std.json.Value{};
+        if (v != .array) break :blk &[_]std.json.Value{};
+        break :blk v.array.items;
+    };
+
+    const pkg = for (pkgs) |p| {
+        if (p != .object) continue;
+        const n = if (p.object.get("name")) |v| (if (v == .string) v.string else "") else "";
+        if (std.mem.eql(u8, n, name)) break p;
+    } else {
+        out("  no library called {s} in the registry\n", .{name});
+        return;
+    };
+
+    // The newest listed version this runtime satisfies. Refusing here beats
+    // failing later in somebody's browser.
+    var chosen: ?std.json.Value = null;
+    var skipped: usize = 0;
+    if (pkg.object.get("versions")) |vs| {
+        if (vs == .array) {
+            for (vs.array.items) |v| {
+                if (v != .object) continue;
+                const need = if (v.object.get("ringscript")) |x| (if (x == .string) x.string else "") else "";
+                if (!satisfies(RINGSCRIPT_VERSION, need)) {
+                    skipped += 1;
+                    continue;
+                }
+                chosen = v;
+            }
+        }
+    }
+    const ver = chosen orelse {
+        out("  {s} has no version this runtime ({s}) satisfies", .{ name, RINGSCRIPT_VERSION });
+        if (skipped > 0) out(" — {d} newer one(s) need a newer RingScript", .{skipped});
+        out("\n", .{});
+        return;
+    };
+
+    const url = if (ver.object.get("url")) |v| (if (v == .string) v.string else "") else "";
+    const want = if (ver.object.get("sha256")) |v| (if (v == .string) v.string else "") else "";
+    const vnum = if (ver.object.get("version")) |v| (if (v == .string) v.string else "?") else "?";
+    if (url.len == 0 or want.len == 0) {
+        out("  the registry row for {s} has no url or no sha256\n", .{name});
+        return;
+    }
+
+    out("  fetching {s} v{s}\n", .{ name, vnum });
+    const tgz = try httpGet(a, url);
+    defer a.free(tgz);
+
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(tgz, &digest, .{});
+    var got: [64]u8 = undefined;
+    _ = std.fmt.bufPrint(&got, "{x}", .{digest}) catch unreachable;
+    if (!std.mem.eql(u8, &got, want)) {
+        out("  REFUSED — the download does not match the registry\n", .{});
+        out("    expected {s}\n", .{want});
+        out("    got      {s}\n", .{got});
+        return;
+    }
+    out("  verified {d} bytes against the registry hash\n", .{tgz.len});
+
+    // Unpack somewhere temporary, so a bad archive cannot leave half a
+    // library in lib/.
+    const tmp = try std.fmt.allocPrint(a, "{s}/.ringscript-unpack", .{project});
+    defer a.free(tmp);
+    std.fs.cwd().deleteTree(tmp) catch {};
+    try std.fs.cwd().makePath(tmp);
+    defer std.fs.cwd().deleteTree(tmp) catch {};
+
+    var dir = try std.fs.cwd().openDir(tmp, .{});
+    defer dir.close();
+
+    var in = std.Io.Reader.fixed(tgz);
+    var win: [std.compress.flate.max_window_len]u8 = undefined;
+    var gz = std.compress.flate.Decompress.init(&in, .gzip, &win);
+    // strip_components: the tarball holds one <name>-<version>/ directory
+    try std.tar.pipeToFileSystem(dir, &gz.reader, .{ .strip_components = 1 });
+
+    try install(a, tmp, project, "registry");
+}
+
+/// A deliberately small range check: ">=X.Y" or an exact version. Anything
+/// else is treated as unsatisfied rather than guessed at.
+fn satisfies(have: []const u8, want: []const u8) bool {
+    if (want.len == 0) return true;
+    if (std.mem.startsWith(u8, want, ">=")) {
+        return compareVersions(have, std.mem.trim(u8, want[2..], " ")) >= 0;
+    }
+    return std.mem.eql(u8, have, want);
+}
+
+/// -1, 0 or 1. Dotted numbers, compared part by part.
+fn compareVersions(a: []const u8, b: []const u8) i8 {
+    var ia = std.mem.splitScalar(u8, a, '.');
+    var ib = std.mem.splitScalar(u8, b, '.');
+    while (true) {
+        const pa = ia.next();
+        const pb = ib.next();
+        if (pa == null and pb == null) return 0;
+        const na = std.fmt.parseInt(u32, pa orelse "0", 10) catch 0;
+        const nb = std.fmt.parseInt(u32, pb orelse "0", 10) catch 0;
+        if (na < nb) return -1;
+        if (na > nb) return 1;
+    }
 }
 
 fn install(a: std.mem.Allocator, libdir: []const u8, project: []const u8, source: []const u8) !void {
@@ -486,8 +608,18 @@ fn httpGet(a: std.mem.Allocator, url: []const u8) ![]u8 {
     return sink.toOwnedSlice();
 }
 
+/// RINGSCRIPT_REGISTRY overrides the default, and may be a URL or a local
+/// file. A mirror inside an organisation, a copy on a machine that cannot
+/// reach GitHub, or a fixture under test — all the same mechanism.
 fn registryFetch(a: std.mem.Allocator) !std.json.Parsed(std.json.Value) {
-    const text = try httpGet(a, REGISTRY_URL);
+    const override = std.process.getEnvVarOwned(a, "RINGSCRIPT_REGISTRY") catch null;
+    defer if (override) |o| a.free(o);
+    const where = if (override) |o| o else REGISTRY_URL;
+
+    const text = if (std.mem.startsWith(u8, where, "http"))
+        try httpGet(a, where)
+    else
+        try std.fs.cwd().readFileAlloc(a, where, 1 << 22);
     defer a.free(text);
     return std.json.parseFromSlice(std.json.Value, a, text, .{});
 }

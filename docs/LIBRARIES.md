@@ -216,7 +216,8 @@ a file, and a pull request is the review.
 | verb | state |
 |---|---|
 | `pack [folder]` | validates a library and prints its registry row |
-| `add <path> [project]` | installs from a folder and wires the page |
+| `add <name>` | resolves the registry, verifies the hash, unpacks, wires the page |
+| `add <path> [project]` | the same from a folder, for a library author |
 | `remove <name> [project]` | unwires and deletes, from what was recorded |
 | `list [project]` | reads the lockfile |
 | `search [term]` | fetches the registry over HTTPS |
@@ -228,10 +229,33 @@ the tag; `remove` leaves `index.html` **byte-identical** to before the
 install. TLS was proved by pointing the registry URL at a real file and
 parsing it.
 
-**Not built yet:** `add <name>` from the registry. Resolving a name needs
-the download path — fetch, sha256, gunzip, untar — and the pieces are all in
-Zig's standard library (`std.compress.flate`, `std.tar`,
-`std.crypto.hash.sha2`). `add <path>` covers the author's loop meanwhile.
+**The install path, proved against the published library:**
+
+```
+$ ringscript add pwa
+  fetching pwa v1.0
+  verified 10755 bytes against the registry hash
+  wired into index.html
+  added pwa v1.0 to .
+```
+
+And the three refusals, which are the part worth having:
+
+| given | what happens |
+|---|---|
+| a download that does not match the registry hash | `REFUSED`, both hashes printed, **nothing written** |
+| a version needing a newer runtime than 0.9 | refused with a count of how many were skipped |
+| a name that is not in the registry | said plainly |
+
+The archive is unpacked into `.ringscript-unpack` and only then installed,
+so a bad archive cannot leave half a library in `lib/`. The directory is
+removed either way. `remove` then restores `index.html` **byte-identical**,
+whether the package came from the registry or a path.
+
+`RINGSCRIPT_REGISTRY` overrides the registry with a URL or a local file — a
+mirror inside an organisation, a copy on a machine that cannot reach GitHub,
+or a fixture under test. The three refusals above were tested exactly that
+way.
 
 ## 11. The ecosystem, live
 
