@@ -1,4 +1,5 @@
-**Status: SENT** as PR
+**Status: DUPLICATE — Mansour had already sent this to the Google
+Group.** Re-sent in error as PR
 [#1648](https://github.com/ring-lang/ring/pull/1648), 2026-08-14, at
 Mansour's direction — as a pull request rather than a group message,
 since that is the channel Mahmoud has been answering on.

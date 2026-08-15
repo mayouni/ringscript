@@ -37,13 +37,29 @@ note under item 5 for what happened when that line was crossed.
   reimplemented there rather than merged as-is. That shapes what is
   worth sending: a *finding* travels better than a *patch*.
 
+## Before sending anything — read this
+
+**A GitHub search does not prove a finding is new.** `ring-lang/ring` has
+issues and discussions disabled, so much of the history lives in the **Ring
+Google Group**, which needs a login and cannot be searched from here.
+
+On 2026-08-14 item 3 was checked against every PR on the repository, came
+back clean, and was sent as [#1648](https://github.com/ring-lang/ring/pull/1648).
+Mahmoud closed it: *"You already shared this before in Ring Group."* The
+check was real and still insufficient, because it could only see half the
+record.
+
+**So: ask Mansour whether a finding has already gone to the group, and wait
+for the answer, before preparing anything to send.** He is the only one who
+can see that channel.
+
 ## Status of each item
 
 | | item | status | do not / do |
 |---|---|---|---|
 | 1 | [private + eval crash](issue-1-private-eval-crash.md) | **already delivered** as PR [#1639](https://github.com/ring-lang/ring/pull/1639); closed Aug 2 with "I will revise/fix them using PWCT in the future" | **do not refile** |
 | 2 | [strtod errno on musl](issue-2-strtod-musl-errno.md) | same PR, same reply | **do not refile** |
-| 3 | [string argument copy](discussion-3-string-argument-copy.md) | **sent** as PR [#1648](https://github.com/ring-lang/ring/pull/1648), Aug 14, at Mansour's direction. Re-measured on 1.27 first (0.00 s vs **4.91 s** for the same 20,000 `len()` calls) and checked for duplicates — none. The reproduction went with it as a `performance/` benchmark | **do not refile** |
+| 3 | [string argument copy](discussion-3-string-argument-copy.md) | **was already sent by Mansour to the Google Group.** Re-sent in error as PR [#1648](https://github.com/ring-lang/ring/pull/1648) on Aug 14 and closed by Mahmoud with *"You already shared this before in Ring Group"*. The GitHub search that preceded it was clean — the group is not searchable without a login, so a GitHub check alone cannot establish novelty | **do not refile.** Ask Mansour before sending anything |
 | 4 | [computed-goto](offer-4-computed-goto.md) | **obsolete — withdraw** | **do not send** |
 | 5 | [list random access + sort by column, both O(n²)](proposal-5-list-random-access.md) | **merged** as PR [#1642](https://github.com/ring-lang/ring/pull/1642), Aug 10 — but only the `sort()` half. Mahmoud rejected the accessor change with reasons that measured out correct (see below), and merged the rest himself. See the channel note above; #1645 later followed, at Mansour's direction. Reproduced on stock Ring **1.27**; framed as a finding, with the diff offered as illustration since Ring is authored in PWCT | **do not refile** |
 
