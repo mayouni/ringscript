@@ -1,7 +1,7 @@
 # RingScript libraries — the ecosystem
 
-A design, not yet an implementation. It covers the format a library takes,
-how it is distributed, and the tool that installs it.
+The format a library takes, how it is distributed, and the tool that
+installs it. Most of it is built; section 10 says exactly what is not.
 
 ---
 
@@ -211,7 +211,30 @@ a file, and a pull request is the review.
 
 ## 10. Status
 
-Designed, not built. What exists today: the format above, and one library
-written to it in `libs/pwa/` — the outbox both samples had hand-rolled
-independently, extracted and tested. The CLI verbs and the registry are the
-work this design describes.
+**Built and working:**
+
+| verb | state |
+|---|---|
+| `pack [folder]` | validates a library and prints its registry row |
+| `add <path> [project]` | installs from a folder and wires the page |
+| `remove <name> [project]` | unwires and deletes, from what was recorded |
+| `list [project]` | reads the lockfile |
+| `search [term]` | fetches the registry over HTTPS |
+| `serve [port] [root]` | unchanged, and the old positional form still works |
+
+Verified end to end: `add` copies the declared files, injects one script tag
+before `</body>`, writes `ringscript.lock`; adding twice does not duplicate
+the tag; `remove` leaves `index.html` **byte-identical** to before the
+install. TLS was proved by pointing the registry URL at a real file and
+parsing it.
+
+**Not built yet:** `add <name>` from the registry. Resolving a name needs
+the tarball path — download, sha256, gunzip, untar — and the pieces are all
+in Zig's standard library (`std.compress.flate`, `std.tar`,
+`std.crypto.hash.sha2`), but it is the one part with no test to run against
+until a library is actually published. `add <path>` covers the author's
+loop today, which is what a library needs before there is anything to
+publish.
+
+The registry itself is `ringscript-registry`, committed and empty — a
+registry with an unverifiable entry is worse than an empty one.

@@ -178,7 +178,7 @@ pub fn build(b: *std.Build) void {
     const serve_exe = b.addExecutable(.{
         .name = "ringscript-serve",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/serve.zig"),
+            .root_source_file = b.path("src/cli.zig"),
             .target = b.graph.host,
             .optimize = .ReleaseSafe,
             .link_libc = true,
@@ -211,7 +211,7 @@ pub fn build(b: *std.Build) void {
         const e = b.addExecutable(.{
             .name = "ringscript-serve",
             .root_module = b.createModule(.{
-                .root_source_file = b.path("src/serve.zig"),
+                .root_source_file = b.path("src/cli.zig"),
                 .target = b.resolveTargetQuery(t.q),
                 .optimize = .ReleaseSmall,
                 .link_libc = true,

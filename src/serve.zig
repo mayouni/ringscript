@@ -16,20 +16,11 @@ const std = @import("std");
 /// Folder served, relative to the working directory. Set from argv.
 var g_root: []const u8 = "playground";
 
-pub fn main() !void {
-    const allocator = std.heap.page_allocator;
-
-    var port: u16 = 8377;
-    var args = try std.process.argsWithAllocator(allocator);
-    defer args.deinit();
-    _ = args.next(); // exe name
-    if (args.next()) |arg| {
-        port = std.fmt.parseInt(u16, arg, 10) catch 8377;
-    }
-    if (args.next()) |arg| {
-        // Own the string: the args iterator is freed when main returns.
-        g_root = allocator.dupe(u8, arg) catch "playground";
-    }
+/// Serve `root` on `port` until interrupted. The CLI owns argument parsing;
+/// this owns the server, so `ringscript serve` and the legacy positional
+/// form reach exactly the same code.
+pub fn run(port: u16, root: []const u8) !void {
+    g_root = root;
 
     const address = try std.net.Address.parseIp4("127.0.0.1", port);
     var server = try address.listen(.{ .reuse_address = true });
