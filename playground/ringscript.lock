@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "packages": [
+    { "name": "table", "version": "1.1.0", "source": "registry", "files": ["lib/table/table.ring", "lib/table/table.js"] }
+  ]
+}

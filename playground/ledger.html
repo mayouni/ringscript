@@ -531,6 +531,12 @@ target="_blank" rel="noopener">the Ring source is one readable file</a>.</p>
     if (!ring) {
       var wasm = await (await fetch("ringscript.wasm")).arrayBuffer();
       ring = await RingScript.load(wasm, { onOutput: function () {} });
+      /* The table itself is a library now: ringscript add table. Its Ring
+         half has to be in the VM before ledger.ring, which calls it. */
+      var lib = await (await fetch("lib/table/table.ring")).text();
+      var rl = ring.eval(lib);
+      if (!rl.ok) { $("loadnote").textContent = "table.ring failed: " + rl.error; return; }
+
       var src = await (await fetch("ledger.ring")).text();
       var r = ring.eval(src);
       if (!r.ok) { $("loadnote").textContent = "ledger.ring failed: " + r.error;
