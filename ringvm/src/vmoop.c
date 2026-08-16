@@ -18,7 +18,7 @@
 */
 #include "ring.h"
 
-/* RINGSCRIPT PATCH (6): the object template cache (src/rs_oop.c) —
+/* RINGSCRIPT PATCH (6): the object template cache (src/rs_oop.c) --
 ** attributes-only classes replay a scanned template instead of executing
 ** the class region per instantiation. Returns 1 when it built the object. */
 extern unsigned int rs_objcache_new(VM *pVM, List *pClassList, List *pStateList, unsigned int nClassPC);
@@ -515,6 +515,10 @@ void ring_vm_oop_parentmethods(VM *pVM, List *pList) {
 					ring_vm_oop_pushclasspackage(pVM, pList4);
 					ring_list_copy_gc(pVM->pRingState, pList3,
 							  ring_list_getlist(pList4, RING_CLASSMAP_METHODSLIST));
+					/* Check HashTable */
+					if (ring_list_gethashtable(pList3) != NULL) {
+						ring_list_genhashtable2_gc(pVM->pRingState, pList3);
+					}
 					cClassName = ring_list_getstring(pList4, RING_CLASSMAP_PARENTCLASS);
 					nFound = 1;
 					break;

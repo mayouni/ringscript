@@ -903,17 +903,6 @@ RING_API void ring_list_sortnum_gc(void *pState, List *pList, long low, long hig
 	}
 	/* Sort index array */
 	ring_list_general_quicksortnum(keys, idx, 0, count - 1);
-	/*
-	**  RINGSCRIPT PATCH: the rebuild below reads pList at idx[i] in SORTED
-	**  order, i.e. randomly. Without the items array ring_list_getitem()
-	**  walks the linked list, so a column sort is O(n^2): measured on
-	**  stock Ring, sorting [key,index] pairs cost 2.3 / 8 / 39 / 257 ms at
-	**  2.5k / 5k / 10k / 20k rows — quadrupling per doubling — while
-	**  sorting the same values as a flat list stayed linearithmic (0.4 /
-	**  0.6 / 1.3 / 4.0 ms). Generating the array first makes every access
-	**  O(1). Sorting rows by a column is what every data table does, so
-	**  this is worth upstreaming.
-	*/
 	if (nColumn != 0) {
 		ring_list_genarray_gc(pState, pList);
 	}
@@ -955,8 +944,6 @@ RING_API void ring_list_sortstr_gc(void *pState, List *pList, long low, long hig
 	}
 	/* Sort index array */
 	ring_list_general_quicksortstr(keys, idx, 0, count - 1);
-	/* RINGSCRIPT PATCH: see ring_list_sortnum_gc — the same random-access
-	** rebuild, and the same O(n^2) without the items array. */
 	if (nColumn != 0) {
 		ring_list_genarray_gc(pState, pList);
 	}

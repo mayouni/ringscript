@@ -82,6 +82,26 @@ typedef struct RingState {
 	char *pCustomArgv[2];
 	char cCustomPara[2][RING_LARGEBUF];
 } RingState;
+/*
+**  RINGSCRIPT PATCH (3): report 1.27, not 1.28.
+**
+**  This tree is Ring master at 8a89cc00c2, which upstream has already
+**  bumped toward the next release. But master is, today, exactly Ring
+**  1.27 plus 91 lines of fixes — measured file by file, every one of them
+**  a correction, none of them a feature. Nothing here is 1.28 in the
+**  sense a user means by it.
+**
+**  The version a user tests against matters more than the commit the
+**  source came from. They write Ring, run it against the 1.27 they can
+**  download, and expect the browser to agree; the differential oracle
+**  does the same, comparing every sample to D:\ring127\bin\ring.exe.
+**  Claiming 1.28 would make `version()` disagree with the interpreter it
+**  behaves identically to, and would make the oracle report a mismatch
+**  on every program that prints it.
+**
+**  Flip these two lines the day 1.28 ships, or the day this tree takes a
+**  1.28 feature rather than a 1.27 fix — whichever comes first.
+*/
 #define RING_VERSION_MAJOR 1
 #define RING_VERSION_MINOR 27
 #define RING_VERSION_PATCH 0

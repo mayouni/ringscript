@@ -698,6 +698,13 @@ void ring_scanner_loadsyntax(Scanner *pScanner) {
 	char cFileName3[RING_PATHSIZE];
 	lEnableTokensOutput = pScanner->lEnableTokensOutput;
 	cFileName = ring_string_get(pScanner->pActiveToken);
+	/* Check File Name/Path size */
+	ring_general_exefolder(cFileName2);
+	/* Take in mind "load/" too */
+	if ((strlen(cFileName) + strlen(cFileName2) + 6) > RING_PATHSIZE) {
+		printf("%s\n", RING_FILENAMETOOLONG);
+		return;
+	}
 	/* Remove Spaces and " " from file name */
 	x = 0;
 	while (((cFileName[x] == ' ') || (cFileName[x] == '"') || (cFileName[x] == '\r')) && (x <= strlen(cFileName))) {
@@ -723,12 +730,12 @@ void ring_scanner_loadsyntax(Scanner *pScanner) {
 			strcat(cFileName2, "load/");
 			strcat(cFileName2, cFileName);
 			if (ring_general_fexists(cFileName2) == 0) {
-				strcpy(cFileName, cFileName2);
+				strcpy(cFileName2, cFileName);
 			}
 		}
 	}
 	if (ring_general_fexists(cFileName2) == 0) {
-		printf("\nFile: %s doesn't exist!\n", cFileName);
+		printf("\nFile: %s doesn't exist!\n", cFileName2);
 		return;
 	}
 	fp = RING_OPENFILE(cFileName2, "r");

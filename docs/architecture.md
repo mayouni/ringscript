@@ -12,9 +12,9 @@ way around the repository, and change the runtime with confidence.*
 │  · WASI shim            │◄─ ringscript ─►│  · resident RingState       │
 │  · js_dispatch / js_give│   imports     │  · eval/call/error shims     │
 │  · boot()/load() API    │               │  · embedded ringlib map      │
-└─────────────────────────┘               │  Ring VM (vendored C, 1.27)  │
+└─────────────────────────┘               │  Ring VM (vendored C)        │
                                           │  · compiler + VM, unmodified │
-                                          │    except 8 marked patches   │
+                                          │    except 4 marked patches   │
                                           └──────────────────────────────┘
 ```
 
@@ -106,11 +106,12 @@ Three layers, three languages, each doing the one thing it is best at:
   later eval for the life of the page.
 - **8 MB wasm stack.** Deep parser recursion and deeply nested lists
   (2000 levels verified) need more than the 1 MB default.
-- **Vendor purity with eight exceptions.** The Ring source is compiled
-  as-is, plus eight small patches each marked `RINGSCRIPT PATCH` in
-  place and documented in [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — two
-  of them fix upstream bugs that were contributed back
-  ([ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639)).
+- **Vendor purity with four exceptions.** The Ring source is compiled
+  as-is, plus four small patches each marked `RINGSCRIPT PATCH` in place
+  and documented in [VENDOR_PATCHES.md](VENDOR_PATCHES.md). It was seven
+  until 2026-08-16, when a swap to Ring master retired three of them by
+  making them upstream code — the best outcome a vendor patch can have,
+  and the reason the count is worth watching in both directions.
 
 ## 4. Repository layout
 
@@ -143,7 +144,7 @@ ringscript/
 │       ├── stzZql.ring          the ZQL engine — see docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite
 │
-├── ringvm/                      vendored Ring 1.27 (src + include) + 7 patches
+├── ringvm/                      vendored Ring VM (src + include) + 4 patches
 │
 ├── playground/
 │   ├── index.html               the Playground (the site's single page)
@@ -247,11 +248,17 @@ contract that makes them portable into the browser unchanged.
 
 ### Upgrading the vendored Ring
 
-Replace `ringvm/` with the new version's `ringvm/src` +
-`ringvm/include`, re-apply the seven live patches from
-[VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and run the full test
-battery (§6) — the gates fail loudly if a patch is missing. The 1.25 →
-1.26 → 1.27 upgrades in this repository's history each took minutes.
+Replace `ringvm/src` + `ringvm/include` with the new version's, re-apply
+the live patches from [VENDOR_PATCHES.md](VENDOR_PATCHES.md), rebuild, and
+run the full test battery (§6) — the gates fail loudly if a line-number
+patch is missing, and the sweep is the real gate. The 1.25 → 1.26 → 1.27
+upgrades each took minutes.
+
+**Diff before you re-apply.** The 2026-08-16 swap to Ring master found
+three of the seven local patches already upstream — one of them, the `sort`
+quadratic, taken verbatim. Re-applying them blind would have carried three
+patches nobody needed, and would have hidden the fact that upstreaming had
+worked. VENDOR_PATCHES.md has the five-step recipe.
 
 ## 6. Verification
 

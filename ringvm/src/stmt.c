@@ -136,11 +136,8 @@ int ring_parser_class(Parser *pParser) {
 		ring_parser_nexttoken(pParser);
 		RING_PARSER_IGNORENEWLINE;
 		if (ring_parser_isidentifier(pParser)) {
-			/*
-			**  Generate Code
-			**  Return NULL
-			*/
-			ring_parser_icg_retnull(pParser);
+			/* Generate Code */
+			ring_parser_icg_newoperation(pParser, ICO_RETNULL);
 			ring_parser_icg_newoperation(pParser, ICO_NEWFUNC);
 			/*
 			**  Add function to Functions Table
@@ -231,17 +228,9 @@ int ring_parser_class(Parser *pParser) {
 		if (pParser->lClassStart == 1) {
 			/* Generate Code */
 			ring_parser_icg_retnull(pParser);
-			/*
-			**  Change Label After Class to BlockFlag to Jump to Private
-			**  RINGSCRIPT PATCH: nClassMark (from newlabel2) is a GLOBAL
-			**  instruction number (pGenCode size + nInstructionsCount), but
-			**  getoperationlist indexes the LOCAL pGenCode list. With prior
-			**  code in the state (any eval(), or a resident runtime) the raw
-			**  index reads past the list — crashes upstream too (native 1.27
-			**  dies on: eval("class q private b = 2")). Subtract the offset.
-			*/
-			pList = ring_parser_icg_getoperationlist(
-			    pParser, pParser->nClassMark - pParser->pRingState->nInstructionsCount);
+			/* Change Label After Class to BlockFlag to Jump to Private */
+			pList = ring_parser_icg_getoperationlist(pParser, pParser->nClassMark -
+									      pParser->pRingState->nInstructionsCount);
 			ring_parser_icg_setopcode(pParser, pList, ICO_BLOCKFLAG);
 			ring_parser_icg_addoperandint(pParser, pList, ring_parser_icg_newlabel(pParser));
 			ring_parser_icg_newoperation(pParser, ICO_PRIVATE);
@@ -1007,6 +996,7 @@ int ring_parser_stmt(Parser *pParser) {
 			nMark1 = ring_parser_icg_newlabel(pParser);
 			ring_parser_icg_addoperandint(pParser, pMark, nMark1);
 			RING_STATE_PRINTRULE(RING_RULE_CATCH);
+			ring_parser_icg_freestack(pParser);
 			RING_PARSER_ACCEPTSTATEMENTS;
 			if (ring_parser_iskeyword(pParser, K_DONE) || ring_parser_iskeyword(pParser, K_ENDTRY) ||
 			    ring_parser_iskeyword(pParser, K_END) || ring_parser_csbraceend(pParser)) {
