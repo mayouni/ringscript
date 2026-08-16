@@ -105,6 +105,14 @@ releases, and needs a different permission surface.
 7. write `ringscript.lock` — name, version, tag, hash;
 8. record what was touched, so `remove` undoes exactly that and no more.
 
+**A limitation worth knowing.** `add` wires `index.html`, because that is
+the page a one-page project has. A folder holding several pages gets the tag
+on `index.html` only — which may not be the page that wanted it. Installing
+`table` into `playground/` put a script tag on the Playground itself and
+none on the register that actually uses it. Either move the tag by hand, or
+load the library's Ring half from the page that needs it, which is what the
+register does.
+
 Gzip, tar, sha256 and TLS are all in Zig's standard library. No vendored
 dependency, consistent with how the runtime itself is built.
 
