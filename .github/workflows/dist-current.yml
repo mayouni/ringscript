@@ -1,0 +1,55 @@
+name: Shipped binaries are current
+
+# bin/ holds five cross-compiled servers, and they are committed on purpose:
+# package.ring ships one per platform and lib.ring resolves it at runtime, so
+# a RingPM user — who has Ring but not Zig — needs them to exist. That is the
+# "nothing to install" promise, in files.
+#
+# The cost of that decision is drift, and it was paid once: bin/ was last built
+# at 0cf5ad6, before six CLI verbs existed, while the documentation described a
+# CLI the shipped binary could not run. The Pages workflow copies bin/* into
+# the starter kit people download, so those stale binaries were shipping.
+#
+# Nothing could have noticed. pages.yml does not trigger on src/**, and no
+# check compared the binaries to the sources they came from. This does.
+#
+# It compares a hash, not the binaries themselves: two Zig versions do not
+# emit byte-identical output, so rebuilding in CI and diffing would fail for
+# reasons that have nothing to do with freshness.
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'build.zig', 'bin/**']
+  pull_request:
+    paths: ['src/**', 'build.zig', 'bin/**']
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The stamp must match the sources
+        run: |
+          # Same three files in the same order as `dist_sources` in build.zig,
+          # with carriage returns stripped — the working tree is CRLF on
+          # Windows and LF here, and the stamp must not depend on which.
+          want=$(cat src/cli.zig src/serve.zig build.zig | tr -d '\r' | sha256sum | cut -d' ' -f1)
+          have=$(tr -d '\r\n' < bin/SOURCES.sha256)
+          echo "sources  $want"
+          echo "stamped  $have"
+          if [ "$want" != "$have" ]; then
+            echo
+            echo "The binaries in bin/ were not built from these sources."
+            echo
+            echo "They ship to RingPM users and into the starter kit zip, so a"
+            echo "stale one is a stale product, not a stale build artifact."
+            echo
+            echo "  zig build dist"
+            echo "  git add bin/"
+            echo
+            exit 1
+          fi
+          echo "bin/ is current."

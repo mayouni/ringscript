@@ -191,6 +191,36 @@ downloads them as-is, with no build step on the user's machine), so an
 ordinary build must never leave a debug binary in their place. Refresh
 both — `zig build && zig build dist` — when bumping the version.
 
+### Why binaries are versioned, and the gate that keeps them honest
+
+Committing built files is a decision, not an oversight, and it was
+challenged on 2026-08-17. It stands, on a fact that is local to this
+repository: `package.ring` ships one binary per platform and `lib.ring`
+resolves it at runtime, so a RingPM user — who has Ring but not Zig —
+needs them to exist. Deleting them would break *nothing to install*, in
+files. The cost is 10 blobs across all history, 3.3 MB raw and 1.6 MB
+packed, in a repository that also vendors the Ring VM.
+
+The real objection was never size. **It is that a built file goes stale
+silently while the documentation describes what it used to do** — and
+that happened: `bin/` was last built at `0cf5ad6`, before six CLI verbs
+existed, and `.github/workflows/pages.yml` copies `bin/*` into the
+starter kit people download. Stale binaries were shipping. Nothing could
+have noticed, because `pages.yml` does not trigger on `src/**` and no
+check compared the binaries to their sources.
+
+So `zig build dist` now writes `bin/SOURCES.sha256` — the hash of
+`src/cli.zig`, `src/serve.zig` and `build.zig`, carriage returns stripped
+so it means the same on Windows and in CI — and
+[`dist-current.yml`](../.github/workflows/dist-current.yml) recomputes it
+on every push touching those files. A hash rather than a rebuild-and-diff,
+because two Zig versions do not emit byte-identical output and a gate that
+cries wolf is worse than none.
+
+**The generalisable shape, worth checking anywhere a repository ships a
+generated file: is there a freshness gate between the source and the
+thing that reaches the user?** Here there was not, for months.
+
 **Zig is the only dependency** — this repository builds with **0.15.2**
 (get it from <https://ziglang.org/download/>, or your package manager:
 `winget install zig.zig`, `brew install zig`, `snap install zig

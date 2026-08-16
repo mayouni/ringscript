@@ -220,4 +220,44 @@ pub fn build(b: *std.Build) void {
         const install = b.addInstallFile(e.getEmittedBin(), b.fmt("../bin/{s}", .{t.name}));
         dist_step.dependOn(&install.step);
     }
+
+    // A freshness stamp beside the binaries, so the drift that happened once
+    // cannot happen quietly again: bin/ was last built before six CLI verbs
+    // existed, while the documentation described a CLI the shipped binary
+    // could not run — and the Pages workflow copies bin/* straight into the
+    // starter kit people download. Nothing could have caught it: pages.yml
+    // does not even trigger on src/**.
+    //
+    // The hash goes over the sources the binaries are built from. CI
+    // recomputes it and fails if it disagrees, which turns "somebody
+    // remembered to run zig build dist" into something checked.
+    const stamp_file = b.addWriteFiles().add("SOURCES.sha256", distStamp(b));
+    const install_stamp = b.addInstallFile(stamp_file, "../bin/SOURCES.sha256");
+    dist_step.dependOn(&install_stamp.step);
+}
+
+/// Sources the shipped binaries are built from, in the order they are hashed.
+/// CI repeats this in three lines of shell, so the order is part of the
+/// contract — see .github/workflows/dist-current.yml.
+const dist_sources = [_][]const u8{ "src/cli.zig", "src/serve.zig", "build.zig" };
+
+/// Computed here rather than in a custom build step, because build.zig is
+/// itself a Zig program with a filesystem and this runs at configure time.
+///
+/// **Carriage returns are stripped before hashing.** These files are CRLF in
+/// the working tree on Windows and LF when CI checks them out; hashing raw
+/// bytes would make the stamp disagree with itself across platforms, which is
+/// a freshness gate that cries wolf — worse than none.
+fn distStamp(b: *std.Build) []const u8 {
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    for (dist_sources) |rel| {
+        const bytes = b.build_root.handle.readFileAlloc(b.allocator, rel, 1 << 22) catch
+            std.debug.panic("dist stamp: cannot read {s}", .{rel});
+        for (bytes) |c| {
+            if (c != '\r') h.update(&[_]u8{c});
+        }
+    }
+    var digest: [32]u8 = undefined;
+    h.final(&digest);
+    return b.fmt("{x}\n", .{digest});
 }
