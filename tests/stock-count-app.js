@@ -7,9 +7,22 @@ const ok=(n,c,d)=>{console.log((c?"  PASS  ":"  FAIL  ")+n+(c||d===undefined?"":
   const vm=await RingScript.load(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),{onOutput:()=>{}});
   const ev=vm.eval(fs.readFileSync(path.join(REPO,"samples","stock-count","count.ring"),"utf8"));
   if(!ev.ok){console.log("EVAL FAILED:",ev.error);process.exit(1);}
+  // The outbox lives in ringscript-pwa now, and Pwa.attach() evals this in
+  // the page. Without it the harness tests an app the browser never runs.
+  const lib=vm.eval(fs.readFileSync(path.join(REPO,"samples","stock-count","lib","pwa","pwa.ring"),"utf8"));
+  if(!lib.ok){console.log("PWA EVAL FAILED:",lib.error);process.exit(1);}
   const call=(f,a)=>{const r=vm.call(f,a===undefined?1:a);
     if(!r.ok)throw new Error(f+": "+r.error);
     return typeof r.result==="string"?JSON.parse(r.result):r.result;};
+  vm.call("PwaOutboxDevice","aissata");   // answers a bare string, not JSON
+
+  // What app.js does on Finish: count.ring decides whether the sheet may be
+  // sent, the library names and stores it. One call each, which is the
+  // boundary the library exists to draw.
+  const queue=who=>{const q=call("StockFinish",who||"unknown");
+    if(!q.ok)return q;
+    const e=call("PwaOutboxAdd",JSON.stringify({kind:"count",payload:q}));
+    return {ok:e.ok,id:e.id,lines:q.lines.length};};
 
   // sku, name, expected, unit cost
   const ref=[["SAV-01","Savon de Marseille",120,350],["RIZ-25","Riz 25kg",40,14500],
@@ -41,7 +54,7 @@ const ok=(n,c,d)=>{console.log((c?"  PASS  ":"  FAIL  ")+n+(c||d===undefined?"":
   ok("progress flags the serious one", p.flagged===1&&p.short===2&&p.over===1,p);
   ok("not finishable until every line is counted", p.finishable===0||p.finishable===false,p);
 
-  let q=call("StockQueue","aissata");
+  let q=queue("aissata");
   ok("queueing an unfinished count is refused", q.ok===0,q);
 
   call("StockCount",JSON.stringify([["sku","THE-VT"],["counted",300]]));
@@ -51,27 +64,34 @@ const ok=(n,c,d)=>{console.log((c?"  PASS  ":"  FAIL  ")+n+(c||d===undefined?"":
   const d=call("StockDiscrepancies",3);
   ok("worst discrepancy first, by money", d[0].sku==="RIZ-25"&&d.length===3,d);
 
-  q=call("StockQueue","aissata");
+  q=queue("aissata");
   ok("queue accepted when complete", q.ok===1&&q.lines===5,q);
-  ok("one entry still queued", call("StockStillQueued",0)===1);
+  ok("one entry still queued", call("PwaOutboxPending")===1);
 
-  const pay=call("StockPayload",q.id);
-  ok("payload carries every line and the device id", pay.lines.length===5&&pay.id===q.id,{id:pay.id});
+  const pay=call("PwaOutboxPayload",q.id);
+  ok("payload carries every line, wrapped with the id the device made",
+     pay.id===q.id&&pay.kind==="count"&&pay.payload.lines.length===5,
+     {id:pay.id,lines:pay.payload&&pay.payload.lines&&pay.payload.lines.length});
 
-  call("StockSent",q.id);
-  ok("sent leaves nothing queued", call("StockStillQueued",0)===0);
-  call("StockRollback",q.id);
-  ok("a failed send goes back to queued", call("StockStillQueued",0)===1);
+  call("PwaOutboxSent",q.id);
+  ok("sent leaves nothing queued", call("PwaOutboxPending")===0);
+  call("PwaOutboxRollback",q.id);
+  ok("a failed send goes back to queued", call("PwaOutboxPending")===1);
 
-  // restart: a new VM, restored from the snapshot the page had stored
+  // Restart: a new VM, restored from what the page had stored. Two blobs,
+  // because there are two owners -- the sheet is count.ring's, the queue is
+  // the library's. The page keeps both, so the test restores both.
   const snap=vm.call("StockSnapshot",0).result;
+  const qsnap=vm.call("PwaOutboxSnapshot",0).result;
   const vm2=await RingScript.load(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),{onOutput:()=>{}});
   vm2.eval(fs.readFileSync(path.join(REPO,"samples","stock-count","count.ring"),"utf8"));
+  vm2.eval(fs.readFileSync(path.join(REPO,"samples","stock-count","lib","pwa","pwa.ring"),"utf8"));
   vm2.call("StockLoad",JSON.stringify(ref));
   vm2.call("StockRestore",snap);
+  vm2.call("PwaOutboxRestore",qsnap);
   const p2=typeof vm2.call("StockProgress",0).result==="string"?JSON.parse(vm2.call("StockProgress",0).result):null;
   ok("a restart keeps the counts", p2&&p2.counted===5,p2);
-  const o2=JSON.parse(vm2.call("StockOutbox",0).result);
+  const o2=JSON.parse(vm2.call("PwaOutboxList",0).result);
   ok("a restart keeps the outbox", o2.length===1&&o2[0].state==="queued",o2);
 
   console.log(bad?"\n"+bad+" FAILED":"\nAll count.ring checks passed.");
