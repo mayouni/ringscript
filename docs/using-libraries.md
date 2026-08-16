@@ -1,0 +1,324 @@
+# Using and writing libraries
+
+A tutorial. By the end you will have installed a library into a page, used
+it, removed it again, written one of your own, tested it with no browser,
+and know exactly what publishing involves.
+
+For the format's specification and the reasoning behind it, see
+[LIBRARIES.md](LIBRARIES.md). This document is the hands-on half.
+
+---
+
+## 1. What a RingScript library is
+
+Two halves, and the split is the whole idea:
+
+| | |
+|---|---|
+| `ring/` | the rules — no DOM, no `fetch`, no `localStorage`. It decides things and returns values. |
+| `web/` | the wiring — moves data between your page and the VM. Makes no business decisions. |
+
+That is the same division your own application should already have. A
+library is just that division, packaged.
+
+Distribution is **not** RingPM. A RingScript library is JavaScript, CSS and
+Ring aimed at a browser; RingPM installs Ring source for the desktop, and
+needs a Ring installation you probably do not have. RingScript ships its own
+registry and its own installer, and the installer is the binary already in
+your folder.
+
+## 2. Install one
+
+Start from any folder with an `index.html`. From inside it:
+
+```bash
+ringscript search offline
+```
+
+```
+  pwa  Install to the home screen, work offline, and a durable outbox with rollback.
+```
+
+Then:
+
+```bash
+ringscript add pwa
+```
+
+```
+  fetching pwa v1.1.0
+  verified 12684 bytes against the registry hash
+  wired into index.html
+  added pwa v1.1.0 to .
+  service-worker half at lib/pwa/sw-pwa.js — importScripts it from your sw.js
+```
+
+Four things happened, and the third is the one other package managers leave
+to you:
+
+1. the download was checked against the registry's sha256 **before**
+   anything was unpacked;
+2. the library's files landed in `lib/pwa/`;
+3. `<script src="lib/pwa/pwa.js"></script>` went into your `index.html`
+   before `</body>`;
+4. `ringscript.lock` recorded what was installed and which files were
+   touched.
+
+If the hash had not matched, nothing would have been written at all.
+
+> **Where does `ringscript` come from?** It is the same binary that serves
+> your pages — `server/ringscript-serve-*` in the starter kit. Rename it,
+> alias it, or call it by path; there is nothing to install.
+
+## 3. Use it
+
+A library exposes one global and loads its own Ring half, so your page does
+not fetch or `eval` anything:
+
+```js
+const pwa = await Pwa.attach(ring, {
+    device: "van-3",                    // stable per device or user
+    sw: "sw.js",                        // your service worker, or null
+    send: (payload) => fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    }).then(r => { if (!r.ok) throw new Error("rejected"); }),
+    onChange: render                    // called whenever the queue changes
+});
+
+pwa.queue("order", { shop: "m03", total: 4200 });   // works with no network
+```
+
+Note `ring` is passed **in**. One page has one VM, and the library uses
+yours rather than starting its own.
+
+The library's Ring functions are part of its public surface too — they are
+declared in its manifest — so calling them directly is legitimate when you
+need something the JavaScript wrapper does not expose:
+
+```js
+const entry = ring.call("PwaOutboxPayload", id);
+```
+
+## 4. Remove it
+
+```bash
+ringscript remove pwa
+```
+
+It undoes exactly what the install recorded and nothing else: the files, the
+script tag, the lockfile entry. After an add and a remove, your
+`index.html` is byte-identical to before.
+
+That is worth trying once, precisely because it is the part you will
+otherwise never trust.
+
+## 5. Write one
+
+```bash
+ringscript pack .
+```
+
+Run it in an empty folder and it will tell you there is no manifest. Here is
+the layout to create:
+
+```
+my-lib/
+  ringscript.json
+  ring/tally.ring
+  web/tally.js
+  README.md
+```
+
+**`ringscript.json`**
+
+```json
+{
+  "name": "tally",
+  "version": "0.1",
+  "ringscript": ">=0.9",
+  "summary": "Running totals with a rule about when a total is suspicious.",
+  "ring": ["ring/tally.ring"],
+  "web": ["web/tally.js"],
+  "css": [],
+  "sw": "",
+  "assets": [],
+  "provides": ["TallyAdd", "TallyTotal", "TallySuspicious"],
+  "global": "Tally"
+}
+```
+
+**`ring/tally.ring`** — the rules. No browser here at all:
+
+```ring
+aTallyRows = []
+nTallyLimit = 100000
+
+func TallyAdd cJson
+	aIn = JsonDecode(cJson)
+	aTallyRows + aIn
+	return len(aTallyRows)
+
+func TallyTotal p
+	n = 0
+	for i = 1 to len(aTallyRows)
+		n = n + aTallyRows[i][2]
+	next
+	return n
+
+# A rule, not a calculation: what counts as worth a second look.
+func TallySuspicious p
+	return JsonEncode([ :total = TallyTotal(1),
+			    :suspicious = (TallyTotal(1) > nTallyLimit) ])
+```
+
+**`web/tally.js`** — the wiring, and it loads its own Ring half:
+
+```js
+(function (global) {
+    "use strict";
+    function ownBase() {
+        var s = document.currentScript;
+        return (s && s.src) ? s.src.replace(/[^/]*$/, "") : "lib/tally/";
+    }
+    var BASE = ownBase();
+
+    global.Tally = {
+        attach: async function (ring) {
+            var src = await (await fetch(BASE + "tally.ring")).text();
+            var ev = ring.eval(src);
+            if (!ev.ok) { throw new Error("tally: " + ev.error); }
+            return {
+                add: function (row) { return ring.call("TallyAdd", JSON.stringify(row)).result; },
+                suspicious: function () {
+                    return JSON.parse(ring.call("TallySuspicious", 1).result);
+                }
+            };
+        }
+    };
+})(window);
+```
+
+Now validate it:
+
+```bash
+ringscript pack my-lib
+```
+
+```
+  tally v0.1
+  ok — 3 functions, global Tally
+```
+
+`pack` refuses more than missing files. It checks that every name in
+`provides` actually exists in your Ring source, and that those names share a
+prefix. Ring has **one flat function namespace** and a page has one
+`window`; without that rule, the second library somebody installs breaks the
+first in a way nobody can debug.
+
+Try breaking it on purpose — add a name to `provides` that is not in the
+source — and watch it refuse. Then put it back.
+
+## 6. Test the Ring half with no browser
+
+This is what the split buys you. The rules are callable from Node against
+any RingScript checkout:
+
+```js
+const fs = require("fs"), path = require("path");
+const RUNTIME = path.join(process.env.RINGSCRIPT_HOME, "playground");
+const RingScript = require(path.join(RUNTIME, "ringscript.js"));
+
+(async () => {
+    const b = fs.readFileSync(path.join(RUNTIME, "ringscript.wasm"));
+    const vm = await RingScript.load(
+        b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength),
+        { onOutput: () => {} });
+    vm.eval(fs.readFileSync("ring/tally.ring", "utf8"));
+
+    vm.call("TallyAdd", JSON.stringify(["rent", 60000]));
+    vm.call("TallyAdd", JSON.stringify(["stock", 50000]));
+    const v = JSON.parse(vm.call("TallySuspicious", 1).result);
+    console.log(v.total === 110000 && v.suspicious ? "PASS" : "FAIL");
+})();
+```
+
+```bash
+RINGSCRIPT_HOME=../ringscript node test.js
+```
+
+No page, no server, no browser. If a rule is hard to test this way, it is
+probably in the wrong half.
+
+## 7. Publish
+
+Three steps, and there is no account to make.
+
+**1. Tag it and attach a tarball you built yourself.**
+
+```bash
+git tag -a v0.1 -m "tally 0.1"
+git push origin v0.1
+git archive --format=tar.gz --prefix=tally-0.1/ -o tally-0.1.tar.gz v0.1
+sha256sum tally-0.1.tar.gz
+gh release create v0.1 tally-0.1.tar.gz
+```
+
+Attach your own tarball rather than pointing at GitHub's auto-generated
+source archive. Those are produced on demand and are **not guaranteed
+byte-stable**; pinning a hash to one pins it to something that can change
+underneath you. An asset you upload cannot.
+
+**2. Download it back and re-hash it.** It takes a moment and it is the only
+way to know the row you are about to write is true.
+
+**3. Open a pull request** on
+[ringscript-registry](https://github.com/mayouni/ringscript-registry)
+adding one row:
+
+```json
+{
+  "name": "tally",
+  "summary": "Running totals with a rule about when a total is suspicious.",
+  "repo": "you/ringscript-tally",
+  "license": "MIT",
+  "versions": [
+    { "version": "0.1", "tag": "v0.1", "ringscript": ">=0.9",
+      "url": "https://github.com/you/ringscript-tally/releases/download/v0.1/tally-0.1.tar.gz",
+      "sha256": "…" }
+  ]
+}
+```
+
+`ringscript pack` prints most of that for you.
+
+## 8. Two rules that keep an ecosystem survivable
+
+**Prefix everything, and declare it.** `provides` and `global` are not
+bureaucracy. They are what lets a page load two libraries without one
+silently redefining the other's functions.
+
+**Never ship the runtime.** `ringscript.js` and `ringscript.wasm` belong to
+the application. A page has one VM, and a library that brings its own would
+give it a second.
+
+## 9. Where to go from here
+
+- [LIBRARIES.md](LIBRARIES.md) — the format specification and why the
+  ecosystem is separate from Ring's.
+- [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) — a real
+  library written to this format, with its tests.
+- [`samples/route-orders`](../samples/route-orders/) and
+  [`samples/stock-count`](../samples/stock-count/) — two applications
+  sharing it, which is what found its last two bugs.
+
+## 10. A last word on why
+
+Both samples had written the same outbox before this existed. Extracting it
+did not just remove 383 lines; installing it into the *second* application
+found a duplicate send that the first had been hiding, and the *third* forced
+the API to change shape.
+
+A library is not code you moved. It is code that now has more than one
+reader — and the second reader is the one who tells you what you got wrong.

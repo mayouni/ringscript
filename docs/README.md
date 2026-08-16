@@ -29,9 +29,10 @@ Read them in order — each builds on the previous one:
 | 1 | [Getting started](getting-started.md) | Host two files, run your first Ring code in a page |
 | 2 | [Scripting pages in Ring](scripting-pages.md) | Ring instead of JavaScript: `text/ring` blocks, the DOM seam, a complete mini-app |
 | 3 | [The JavaScript API](api.md) | Every call and option: `boot`, `load`, `eval`, `call`, `on`, input, errors |
-| 4 | [Architecture](architecture.md) | How it works inside, the repository layout, building and extending the runtime |
-| 5 | [Compatibility & scope](compatibility.md) | What works (verified against native Ring), what's excluded and why, the full-stack picture |
-| 6 | [The ZQL payload](zql-payload.md) | The library baked into the wasm: why it is there, and the grammar it accepts |
+| 4 | [Using and writing libraries](using-libraries.md) | Install one and use it, write your own, test it with no browser, publish it |
+| 5 | [Architecture](architecture.md) | How it works inside, the repository layout, building and extending the runtime |
+| 6 | [Compatibility & scope](compatibility.md) | What works (verified against native Ring), what's excluded and why, the full-stack picture |
+| 7 | [The ZQL payload](zql-payload.md) | The library baked into the wasm: why it is there, and the grammar it accepts |
 
 Worked examples and measurement:
 
@@ -46,8 +47,11 @@ Worked examples and measurement:
 
 Reference material:
 
-- [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — the eight deliberate patches
-  carried by the vendored Ring source, and why each exists.
+- [LIBRARIES.md](LIBRARIES.md) — the library format's specification, and
+  why the ecosystem is separate from Ring's.
+- [VENDOR_PATCHES.md](VENDOR_PATCHES.md) — the seven deliberate patches
+  carried by the vendored Ring source, and why each exists — plus the one
+  that was withdrawn, and what replaced it.
 - [REPAIR_PLAN.md](REPAIR_PLAN.md) — the original design plan and its
   execution record (August 2026).
 
