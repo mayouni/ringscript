@@ -29,6 +29,11 @@
                  color: var(--ink-soft); font-weight: 600; }
     table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .scroll { overflow-x: auto; }
+    figure { margin: 2rem 0; }
+    figure img { width: 100%; height: auto; display: block;
+                 border: 1px solid var(--border); border-radius: 12px; }
+    figcaption { font-size: var(--floor); color: var(--ink-soft);
+                 margin-top: .7rem; text-align: center; line-height: 1.6; }
     /* the deck under the headline: the thesis the title no longer carries */
     .standfirst { font-size: var(--read); color: var(--ink-soft);
                   margin: -.2rem 0 .9rem; }
@@ -112,6 +117,26 @@ well it would have worked.</blockquote>
 and it is the one that matches how field work really goes: you count the
 shelves, you put the phone in your pocket, you walk back into signal an
 hour later. Nobody reopens the app to let it sync.</p>
+
+<figure>
+<img src="local-first-diagram-2-pwa.png" width="1408" height="768" loading="lazy"
+     alt="The three stages of a local-first PWA, drawn for a restaurant. Stage
+          one, on the server: the restaurant server updates a menu and price
+          database. Stage two, the first-time customer: they download and
+          install the app onto a smartphone, and that is the only moment the
+          full app crosses the network. Stage three, operation: the installed
+          app holds local cached data — menu, items, prices — which answers the
+          customer immediately under the label &quot;fast offline access&quot;,
+          while the phone shows an OFFLINE badge. Two arrows run to the
+          restaurant server through the internet, but they are labelled
+          &quot;minimal server requests, when online&quot;: the app is
+          operational whether or not they are available. Customer usage —
+          ordering and browsing — loops entirely within the device.">
+<figcaption>The same three pieces, doing their jobs. The manifest makes stage
+two possible at all; the service-worker cache is what stage three reads from;
+and the thin arrows back to the server are the only part that needs a
+connection — which is why losing one costs nothing.</figcaption>
+</figure>
 
 <h2>The part that surprised us</h2>
 
