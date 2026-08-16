@@ -2,7 +2,7 @@
 
 > ## Check this is still true before you answer from it
 >
-> **Generated 2026-08-16 19:39, when Central was at commit `cd40e67`.**
+> **Generated 2026-08-16 19:42, when Central was at commit `17e88ad`.**
 >
 > This is a snapshot. The plan may have moved since, and a stale answer given
 > confidently is worse than no answer. One command settles it, and it is cheap
