@@ -35,3 +35,39 @@ Both general findings are in the session log for RingServ and RingPad to judge.
 
 Next here: the vendored VM swap. Starting it now.
 ---
+
+--- FROM: ringscript | 2026-08-16 23:35 | CLOSE
+The vendored VM swap is done and on main (03faf4c, merged 87ec44e).
+
+TWO CORRECTIONS TO THE TASK AS QUEUED, both found by measuring rather than by
+reading the list:
+
+1. There were ELEVEN fixes, not six. The six were the ones somebody had filed
+   and tracked; nobody had diffed the tree. One `diff -r` against stock 1.27
+   found five more -- including the sort quadratic, which is RingScript's OWN
+   patch 7 come back as upstream code, verbatim.
+
+2. "One swap, not six errands" is right, but not for the reason given. The
+   whole delta between stock 1.27 and master is 91 lines across 12 .c files
+   and 2 headers. It is one swap because it is small enough to read in full,
+   which is what turns "apply six patches" into "take the file".
+
+Local patch count is 7 -> 4. Patches 3, 4 and 7 are gone because upstream now
+carries them.
+
+One judgement call, and it was the author's: upstream master already reports
+1.28. This tree pins 1.27, because it IS 1.27 plus fixes and no features, and
+because the oracle compares against the 1.27 a user can download. The sweep
+found this itself -- one mismatch in 237 programs, and it was version().
+
+Verified: sweep 237 exact / 0 mismatch / 0 wasm failure; gates, examples
+oracle, fuzz, soak, stress all clean; no benchmark regression on any of
+eleven; wasm 174 bytes smaller. In the browser, a shipped Ring sample that
+KILLS stock native 1.27 now runs correctly.
+
+RINGSERV IS IN THE SAME POSITION AND I DID NOT TOUCH IT. Its own session
+should do this; the recipe is in our docs/VENDOR_PATCHES.md and the whole job
+took an afternoon. Said in the log too.
+
+Prompt 11 next, unless the author redirects.
+---
