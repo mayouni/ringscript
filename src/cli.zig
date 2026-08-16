@@ -11,7 +11,7 @@
 //   ringscript add <name|path>         install a library and wire it in
 //   ringscript remove <name>           unwire it and delete its files
 //   ringscript list                    what this project uses
-//   ringscript search <term>           the registry
+//   ringscript search [term]           list the registry, or match a term
 //   ringscript pack [folder]           validate a library, ready to publish
 //
 // Backward compatible: a first argument that parses as a port keeps the old
@@ -91,7 +91,7 @@ fn usage() void {
         \\    ringscript add <name|path>         install a library and wire it in
         \\    ringscript remove <name>           unwire it and delete its files
         \\    ringscript list                    what this project uses
-        \\    ringscript search [term]           the registry
+        \\    ringscript search [term]           list the registry, or match a term
         \\    ringscript pack [folder]           validate a library
         \\
         \\  Libraries: docs/LIBRARIES.md
@@ -569,7 +569,17 @@ fn cmdSearch(a: std.mem.Allocator, term: []const u8) !void {
         if (v != .array) break :blk &[_]std.json.Value{};
         break :blk v.array.items;
     };
+    // Say what was searched for. Without this, `ringscript search offline`
+    // reads as "search, offline" — a mode, not a term — and the matching
+    // line then contains the word "offline" too, which settles nothing.
+    if (term.len > 0) {
+        out("\n  Libraries matching \"{s}\":\n\n", .{term});
+    } else {
+        out("\n  Libraries in the registry:\n\n", .{});
+    }
+
     var shown: usize = 0;
+    var last_name: []const u8 = "";
     for (pkgs) |pkg| {
         if (pkg != .object) continue;
         const n = if (pkg.object.get("name")) |v| (if (v == .string) v.string else "") else "";
@@ -577,10 +587,34 @@ fn cmdSearch(a: std.mem.Allocator, term: []const u8) !void {
         if (term.len > 0 and
             std.mem.indexOf(u8, n, term) == null and
             std.mem.indexOf(u8, sum, term) == null) continue;
-        out("  {s}  {s}\n", .{ n, sum });
+
+        // the newest version listed, so the line says what you would get
+        var newest: []const u8 = "";
+        if (pkg.object.get("versions")) |vs| {
+            if (vs == .array) {
+                for (vs.array.items) |v| {
+                    if (v != .object) continue;
+                    if (v.object.get("version")) |x| {
+                        if (x == .string) newest = x.string;
+                    }
+                }
+            }
+        }
+        out("    {s}  {s}\n      {s}\n", .{ n, newest, sum });
+        last_name = n;
         shown += 1;
     }
-    if (shown == 0) out("  nothing matches\n", .{});
+
+    if (shown == 0) {
+        out("    nothing matches\n\n", .{});
+        return;
+    }
+    // End on the command they actually wanted, so the next step is not a guess.
+    if (shown == 1) {
+        out("\n  Install it:  ringscript add {s}\n\n", .{last_name});
+    } else {
+        out("\n  Install one: ringscript add <name>\n\n", .{});
+    }
 }
 
 

@@ -32,12 +32,20 @@ your folder.
 Start from any folder with an `index.html`. From inside it:
 
 ```bash
-ringscript search offline
+ringscript search outbox
 ```
 
 ```
-  pwa  Install to the home screen, work offline, and a durable outbox with rollback.
+  Libraries matching "outbox":
+
+    pwa  1.1.0
+      Install to the home screen, work offline, and a durable outbox with
+      rollback - one entry at a time or a batch the server answers per entry.
+
+  Install it:  ringscript add pwa
 ```
+
+With no term it lists everything the registry holds.
 
 Then:
 

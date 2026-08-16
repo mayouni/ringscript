@@ -50,7 +50,7 @@ ringscript add <name>                install a library and wire it in
 ringscript remove <name>             unwire and delete it
 ringscript update [name]             newer versions, respecting the lock
 ringscript list                      what this project uses
-ringscript search <term>             the registry
+ringscript search [term]             list the registry, or match a term
 ringscript pack                      validate a library, ready to publish
 ```
 
@@ -220,7 +220,7 @@ a file, and a pull request is the review.
 | `add <path> [project]` | the same from a folder, for a library author |
 | `remove <name> [project]` | unwires and deletes, from what was recorded |
 | `list [project]` | reads the lockfile |
-| `search [term]` | fetches the registry over HTTPS |
+| `search [term]` | lists the registry over HTTPS, or matches a term |
 | `serve [port] [root]` | unchanged, and the old positional form still works |
 
 Verified end to end: `add` copies the declared files, injects one script tag
@@ -265,8 +265,15 @@ way.
 | first library | [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) v1.0 |
 
 ```
-$ ringscript search offline
-  pwa  Install to the home screen, work offline, and a durable outbox with rollback.
+$ ringscript search outbox
+
+  Libraries matching "outbox":
+
+    pwa  1.1.0
+      Install to the home screen, work offline, and a durable outbox with
+      rollback - one entry at a time or a batch the server answers per entry.
+
+  Install it:  ringscript add pwa
 ```
 
 The registry pins an **uploaded release asset**, not GitHub's auto-generated
