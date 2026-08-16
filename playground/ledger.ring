@@ -33,37 +33,8 @@
 #      than taking a row into a variable and writing to that.
 
 # ---------------------------------------------------------------- state
-# The ledger itself, held as columns: one list per field, same index.
-aRowId     = []
-aRowMember = []
-aRowRound  = []
-aRowAmount = []
-aRowStatus = []
-nRows      = 0
-
-# The rows currently on screen, as indices into the columns above. Filter
-# and sort rewrite this; nothing else copies the data.
-aView      = []
-nView      = 0
-
-# ------------------------------------------- the index, made explicit
-# The five column lists are read through aView, which filter and sort
-# permute. A Ring list is a linked list with a cursor that serves only
-# SEQUENTIAL access; against a permuted index every read walks from one
-# end, and a single pass over n rows becomes O(n^2).
-#
-# ringvm_genarray() is Ring's own answer: it builds the items array once
-# so indexed reads are O(1). It is deliberately opt-in, and this is why:
-# ANY structural change to a list frees the array, and genarray rebuilds
-# it whole. Rebuilding after every add costs O(n) per add — 824 us on a
-# 20,000-row ledger, which is worse than the problem it solves.
-#
-# So the index is marked stale on a write and rebuilt at most once before
-# the next read that needs it. Measured on 20,000 rows:
-#
-#     stats   14 ms indexed / 133 ms not      leaderboard 111 / 532
-#     paging  21 ms indexed / 186 ms not      adds  4 us / 824 us
-lIndexed = 0
+# There is none left. The rows, the view over them and the index all live
+# in ringscript-table now; this file holds rules, not data.
 
 # ---------------------------------------------------------------------------
 #  THE TABLE ITSELF IS A LIBRARY NOW
