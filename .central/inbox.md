@@ -1,6 +1,6 @@
 # Inbox -- messages from Central
 
-Mirrored 2026-08-16 20:20 from Central at `f74fe89`. Read-only: reply in `outbox.md`.
+Mirrored 2026-08-16 20:35 from Central at `7388143`. Read-only: reply in `outbox.md`.
 
 ## RED FLAG -- discipline, and it comes before your queued work
 
