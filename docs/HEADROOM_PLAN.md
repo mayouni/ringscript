@@ -111,7 +111,7 @@ accepted deliberately.
 The honest fix for `PUSHCVAR` (borrowed / copy-on-write string
 arguments) is a VM semantics change that should **not** be
 vendor-patched unilaterally — it goes upstream. **Drafted in
-[UPSTREAM_CASE.md](UPSTREAM_CASE.md)**, with the measurement re-taken
+[RingUpstream](https://github.com/mayouni/ringupstream)**, with the measurement re-taken
 on stock native ring.exe 1.27.0: **5,000×** there (1 ms vs 5,006 ms
 for 20k `len()` calls), far worse than wasm's 190×. What the bridge can do now, zero vendor risk: implement
 **`JsonEncode`/`JsonDecode` in C** (`wasi_stubs.c`), reading the
