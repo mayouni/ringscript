@@ -109,7 +109,62 @@ need something the JavaScript wrapper does not expose:
 const entry = ring.call("PwaOutboxPayload", id);
 ```
 
-## 4. Remove it
+## 4. Update it
+
+```bash
+ringscript update
+```
+
+With no name it looks at everything the lockfile records; with one — `ringscript
+update pwa` — just that library. Either way it prints a line per package, so a
+run that changes nothing still tells you where you stand:
+
+```
+  pwa v1.0 -> v1.1.0
+  fetching pwa v1.1.0
+  verified 12684 bytes against the registry hash
+  wired into index.html
+  added pwa v1.1.0 to .
+  table v1.2.0 — current
+```
+
+Three things it will not do.
+
+**It will not move you backwards.** If the registry offers an older version
+than the one you have — because a release was pulled, or because you are
+running something not published yet — it says `current` and leaves you alone.
+
+**It will not leave you with nothing.** The new version is downloaded, checked
+against the registry's hash and unpacked before a single old file is deleted. A
+download that fails mid-update prints
+
+```
+  could not download it (ConnectionRefused)
+  kept v1.0.0 — the new version could not be fetched
+```
+
+and your project is exactly as it was: files, script tag, lockfile entry. This
+is why the verb is worth having rather than `remove` then `add` — that pair has
+a window in the middle where the library is gone.
+
+**It will not touch a library you installed from a folder.** Those say
+
+```
+  pwa v1.0 — installed from a path; re-add it from that folder to refresh
+```
+
+because nothing here can know whether that folder still exists, or still holds
+what it held. Re-run `ringscript add <folder>` when you want the newer copy.
+
+Updates work offline once you have the files. The registry falls back to its
+local cache, and a version you have downloaded before is not downloaded again:
+
+```
+  offline (ConnectionRefused) — using the registry cached today
+  table v1.2.0 — already downloaded, no network needed
+```
+
+## 5. Remove it
 
 ```bash
 ringscript remove pwa
@@ -122,7 +177,7 @@ script tag, the lockfile entry. After an add and a remove, your
 That is worth trying once, precisely because it is the part you will
 otherwise never trust.
 
-## 5. Write one
+## 6. Write one
 
 ```bash
 ringscript pack .
@@ -228,7 +283,7 @@ first in a way nobody can debug.
 Try breaking it on purpose — add a name to `provides` that is not in the
 source — and watch it refuse. Then put it back.
 
-## 6. Test the Ring half with no browser
+## 7. Test the Ring half with no browser
 
 This is what the split buys you. The rules are callable from Node against
 any RingScript checkout:
@@ -259,7 +314,7 @@ RINGSCRIPT_HOME=../ringscript node test.js
 No page, no server, no browser. If a rule is hard to test this way, it is
 probably in the wrong half.
 
-## 7. Publish
+## 8. Publish
 
 Three steps, and there is no account to make.
 
@@ -301,7 +356,7 @@ adding one row:
 
 `ringscript pack` prints most of that for you.
 
-## 8. Two rules that keep an ecosystem survivable
+## 9. Two rules that keep an ecosystem survivable
 
 **Prefix everything, and declare it.** `provides` and `global` are not
 bureaucracy. They are what lets a page load two libraries without one
@@ -311,7 +366,7 @@ silently redefining the other's functions.
 the application. A page has one VM, and a library that brings its own would
 give it a second.
 
-## 9. Where to go from here
+## 10. Where to go from here
 
 - [LIBRARIES.md](LIBRARIES.md) — the format specification and why the
   ecosystem is separate from Ring's.
@@ -321,7 +376,7 @@ give it a second.
   [`samples/stock-count`](../samples/stock-count/) — two applications
   sharing it, which is what found its last two bugs.
 
-## 10. A last word on why
+## 11. A last word on why
 
 Both samples had written the same outbox before this existed. Extracting it
 did not just remove 383 lines; installing it into the *second* application

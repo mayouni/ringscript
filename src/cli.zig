@@ -9,6 +9,7 @@
 //
 //   ringscript serve [port] [root]     the dev server
 //   ringscript add <name|path>         install a library and wire it in
+//   ringscript update [name]           move to the newest version
 //   ringscript remove <name>           unwire it and delete its files
 //   ringscript list                    what this project uses
 //   ringscript search [term]           list the registry, or match a term
@@ -56,6 +57,15 @@ pub fn main() !void {
     } else if (eq(verb, "add")) {
         if (argv.len < 3) return usageFor("add <name|path> [project]");
         try cmdAdd(a, argv[2], if (argv.len > 3) argv[3] else ".");
+    } else if (eq(verb, "update")) {
+        // `update` with no name means every library here, so the one
+        // optional argument is ambiguous. A folder that exists is the
+        // project; anything else is a library name.
+        const first = if (argv.len > 2) argv[2] else "";
+        const is_project = first.len > 0 and isDir(first);
+        const nm = if (is_project) "" else first;
+        const proj = if (is_project) first else (if (argv.len > 3) argv[3] else ".");
+        try cmdUpdate(a, nm, proj);
     } else if (eq(verb, "remove")) {
         if (argv.len < 3) return usageFor("remove <name> [project]");
         try cmdRemove(a, argv[2], if (argv.len > 3) argv[3] else ".");
@@ -74,6 +84,12 @@ fn eq(a: []const u8, b: []const u8) bool {
     return std.mem.eql(u8, a, b);
 }
 
+fn isDir(path: []const u8) bool {
+    var d = std.fs.cwd().openDir(path, .{}) catch return false;
+    d.close();
+    return true;
+}
+
 fn out(comptime fmt: []const u8, args: anytype) void {
     std.debug.print(fmt, args);
 }
@@ -89,6 +105,7 @@ fn usage() void {
         \\
         \\    ringscript serve [port] [root]     the dev server
         \\    ringscript add <name|path>         install a library and wire it in
+        \\    ringscript update [name]           move to the newest version
         \\    ringscript remove <name>           unwire it and delete its files
         \\    ringscript list                    what this project uses
         \\    ringscript search [term]           list the registry, or match a term
@@ -262,10 +279,11 @@ fn cmdAdd(a: std.mem.Allocator, spec: []const u8, project: []const u8) !void {
 /// registry says it is, and only then unpack. The verify step is why the
 /// registry carries a hash at all: without it, "install" means "run whatever
 /// that URL happens to serve today".
-fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
-    var reg = try registryFetch(a);
-    defer reg.deinit();
-
+/// The newest version of `name` this runtime satisfies, or null with a
+/// reason already printed. Shared by add and update so they can never
+/// disagree about which version is "the" one.
+fn resolve(a: std.mem.Allocator, reg: std.json.Parsed(std.json.Value), name: []const u8) ?std.json.Value {
+    _ = a;
     const pkgs = blk: {
         const v = reg.value.object.get("packages") orelse break :blk &[_]std.json.Value{};
         if (v != .array) break :blk &[_]std.json.Value{};
@@ -278,11 +296,10 @@ fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) 
         if (std.mem.eql(u8, n, name)) break p;
     } else {
         out("  no library called {s} in the registry\n", .{name});
-        return;
+        return null;
     };
 
-    // The newest listed version this runtime satisfies. Refusing here beats
-    // failing later in somebody's browser.
+    // Refusing here beats failing later in somebody's browser.
     var chosen: ?std.json.Value = null;
     var skipped: usize = 0;
     if (pkg.object.get("versions")) |vs| {
@@ -298,72 +315,28 @@ fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) 
             }
         }
     }
-    const ver = chosen orelse {
+    if (chosen == null) {
         out("  {s} has no version this runtime ({s}) satisfies", .{ name, RINGSCRIPT_VERSION });
         if (skipped > 0) out(" — {d} newer one(s) need a newer RingScript", .{skipped});
         out("\n", .{});
-        return;
-    };
-
-    const url = if (ver.object.get("url")) |v| (if (v == .string) v.string else "") else "";
-    const want = if (ver.object.get("sha256")) |v| (if (v == .string) v.string else "") else "";
-    const vnum = if (ver.object.get("version")) |v| (if (v == .string) v.string else "?") else "?";
-    if (url.len == 0 or want.len == 0) {
-        out("  the registry row for {s} has no url or no sha256\n", .{name});
-        return;
     }
+    return chosen;
+}
 
-    // The download, cached by its own hash. A package already fetched once
-    // needs no network at all — which is what makes the second project on a
-    // laptop installable on a bad day, and the whole point of caching here.
-    //
-    // Keying by sha256 is what makes it safe: a cache hit IS the verified
-    // bytes, so there is no way to serve something the registry did not
-    // name. It also means two libraries that share a tarball share a file,
-    // and a corrupted entry simply fails its check and is re-fetched.
-    const tgz = blk: {
-        if (packageCacheRead(a, want)) |hit| {
-            out("  {s} v{s} — already downloaded, no network needed\n", .{ name, vnum });
-            break :blk hit;
-        }
-        out("  fetching {s} v{s}\n", .{ name, vnum });
-        const fetched = try httpGet(a, url);
+fn verOf(v: std.json.Value, key: []const u8) []const u8 {
+    const x = v.object.get(key) orelse return "";
+    return if (x == .string) x.string else "";
+}
 
-        var digest: [32]u8 = undefined;
-        std.crypto.hash.sha2.Sha256.hash(fetched, &digest, .{});
-        var got: [64]u8 = undefined;
-        _ = std.fmt.bufPrint(&got, "{x}", .{digest}) catch unreachable;
-        if (!std.mem.eql(u8, &got, want)) {
-            out("  REFUSED — the download does not match the registry\n", .{});
-            out("    expected {s}\n", .{want});
-            out("    got      {s}\n", .{got});
-            a.free(fetched);
-            return;
-        }
-        out("  verified {d} bytes against the registry hash\n", .{fetched.len});
-        packageCacheWrite(a, want, fetched);
-        break :blk fetched;
-    };
+fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
+    var reg = try registryFetch(a);
+    defer reg.deinit();
+
+    const ver = resolve(a, reg, name) orelse return;
+
+    const tgz = (try fetchVerified(a, name, ver)) orelse return;
     defer a.free(tgz);
-
-    // Unpack somewhere temporary, so a bad archive cannot leave half a
-    // library in lib/.
-    const tmp = try std.fmt.allocPrint(a, "{s}/.ringscript-unpack", .{project});
-    defer a.free(tmp);
-    std.fs.cwd().deleteTree(tmp) catch {};
-    try std.fs.cwd().makePath(tmp);
-    defer std.fs.cwd().deleteTree(tmp) catch {};
-
-    var dir = try std.fs.cwd().openDir(tmp, .{});
-    defer dir.close();
-
-    var in = std.Io.Reader.fixed(tgz);
-    var win: [std.compress.flate.max_window_len]u8 = undefined;
-    var gz = std.compress.flate.Decompress.init(&in, .gzip, &win);
-    // strip_components: the tarball holds one <name>-<version>/ directory
-    try std.tar.pipeToFileSystem(dir, &gz.reader, .{ .strip_components = 1 });
-
-    try install(a, tmp, project, "registry");
+    try unpackAndInstall(a, tgz, project, name, null);
 }
 
 /// A deliberately small range check: ">=X.Y" or an exact version. Anything
@@ -496,18 +469,7 @@ fn cmdRemove(a: std.mem.Allocator, name: []const u8, project: []const u8) !void 
         const pname = if (p.object.get("name")) |n| (if (n == .string) n.string else "") else "";
         if (std.mem.eql(u8, pname, name)) {
             found = true;
-            if (p.object.get("files")) |fv| {
-                if (fv == .array) {
-                    // unwire first, while the paths are still known
-                    try unwirePage(a, project, fv.array.items);
-                    for (fv.array.items) |f| {
-                        if (f != .string) continue;
-                        const path = try std.fs.path.join(a, &.{ project, f.string });
-                        defer a.free(path);
-                        std.fs.cwd().deleteFile(path) catch {};
-                    }
-                }
-            }
+            try removeFiles(a, p, name, project);
         } else {
             try kept.append(a, p);
         }
@@ -516,10 +478,6 @@ fn cmdRemove(a: std.mem.Allocator, name: []const u8, project: []const u8) !void 
         out("  {s} is not recorded as installed here\n", .{name});
         return;
     }
-    const dir = try std.fmt.allocPrint(a, "{s}/lib/{s}", .{ project, name });
-    defer a.free(dir);
-    std.fs.cwd().deleteDir(dir) catch {};
-
     try lockWriteAll(a, project, kept.items);
     out("  removed {s}\n", .{name});
 }
@@ -666,6 +624,169 @@ fn cachePath(a: std.mem.Allocator) ![]u8 {
     const dir = try std.fs.getAppDataDir(a, "ringscript");
     defer a.free(dir);
     return std.fs.path.join(a, &.{ dir, "registry.json" });
+}
+
+/// Verified bytes for a version row, from the cache or the network. Null
+/// means it was refused or the row was unusable, with the reason printed.
+/// The caller owns the result.
+///
+/// Kept separate from unpacking on purpose: `update` must know the new
+/// version is in hand **before** it removes the old one, or a failed fetch
+/// leaves a project with neither.
+fn fetchVerified(a: std.mem.Allocator, name: []const u8, ver: std.json.Value) !?[]u8 {
+    const url = verOf(ver, "url");
+    const want = verOf(ver, "sha256");
+    const vnum = if (verOf(ver, "version").len > 0) verOf(ver, "version") else "?";
+    if (url.len == 0 or want.len == 0) {
+        out("  the registry row for {s} has no url or no sha256\n", .{name});
+        return null;
+    }
+
+    if (packageCacheRead(a, want)) |hit| {
+        out("  {s} v{s} — already downloaded, no network needed\n", .{ name, vnum });
+        return hit;
+    }
+
+    out("  fetching {s} v{s}\n", .{ name, vnum });
+    const fetched = httpGet(a, url) catch |e| {
+        out("  could not download it ({s})\n", .{@errorName(e)});
+        return null;
+    };
+
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(fetched, &digest, .{});
+    var got: [64]u8 = undefined;
+    _ = std.fmt.bufPrint(&got, "{x}", .{digest}) catch unreachable;
+    if (!std.mem.eql(u8, &got, want)) {
+        out("  REFUSED — the download does not match the registry\n", .{});
+        out("    expected {s}\n", .{want});
+        out("    got      {s}\n", .{got});
+        a.free(fetched);
+        return null;
+    }
+    out("  verified {d} bytes against the registry hash\n", .{fetched.len});
+    packageCacheWrite(a, want, fetched);
+    return fetched;
+}
+
+/// Unpack somewhere temporary, so a bad archive cannot leave half a library
+/// in lib/, and only then install.
+///
+/// `replace` is the lockfile entry of a version being superseded. It is
+/// deleted *after* the new one is unpacked and before it is installed, so
+/// the moment where the project has no copy of the library is as short as
+/// this can make it.
+fn unpackAndInstall(
+    a: std.mem.Allocator,
+    tgz: []const u8,
+    project: []const u8,
+    name: []const u8,
+    replace: ?std.json.Value,
+) !void {
+    const tmp = try std.fmt.allocPrint(a, "{s}/.ringscript-unpack", .{project});
+    defer a.free(tmp);
+    std.fs.cwd().deleteTree(tmp) catch {};
+    try std.fs.cwd().makePath(tmp);
+    defer std.fs.cwd().deleteTree(tmp) catch {};
+
+    var dir = try std.fs.cwd().openDir(tmp, .{});
+    defer dir.close();
+
+    var in = std.Io.Reader.fixed(tgz);
+    var win: [std.compress.flate.max_window_len]u8 = undefined;
+    var gz = std.compress.flate.Decompress.init(&in, .gzip, &win);
+    // strip_components: the tarball holds one <name>-<version>/ directory
+    try std.tar.pipeToFileSystem(dir, &gz.reader, .{ .strip_components = 1 });
+
+    if (replace) |old| try removeFiles(a, old, name, project);
+    try install(a, tmp, project, "registry");
+}
+
+/// Delete what a lockfile entry recorded — its files, its tags, its folder.
+/// The lockfile itself is left alone: `remove` rewrites it without this
+/// package, `update` is about to write a newer entry over the top.
+fn removeFiles(a: std.mem.Allocator, p: std.json.Value, name: []const u8, project: []const u8) !void {
+    if (p.object.get("files")) |fv| {
+        if (fv == .array) {
+            // unwire first, while the paths are still known
+            try unwirePage(a, project, fv.array.items);
+            for (fv.array.items) |f| {
+                if (f != .string) continue;
+                const path = try std.fs.path.join(a, &.{ project, f.string });
+                defer a.free(path);
+                std.fs.cwd().deleteFile(path) catch {};
+            }
+        }
+    }
+    const dir = try std.fmt.allocPrint(a, "{s}/lib/{s}", .{ project, name });
+    defer a.free(dir);
+    std.fs.cwd().deleteDir(dir) catch {};
+}
+
+// ==========================================================================
+// update — move to the newest version this runtime satisfies
+// ==========================================================================
+// With a name, that library; without one, everything the lockfile records.
+// A path install is left alone: this cannot know whether the folder it came
+// from still exists, or still holds what it held.
+
+fn cmdUpdate(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
+    var lock = try lockRead(a, project);
+    defer lock.deinit();
+    const pkgs = lock.packages();
+    if (pkgs.len == 0) {
+        out("  no libraries installed here\n", .{});
+        return;
+    }
+
+    var reg = registryFetch(a) catch |e| {
+        out("  could not read the registry ({s})\n", .{@errorName(e)});
+        return;
+    };
+    defer reg.deinit();
+
+    var looked: usize = 0;
+    var moved: usize = 0;
+
+    for (pkgs) |p| {
+        const pname = if (p.object.get("name")) |v| (if (v == .string) v.string else "") else "";
+        const pver = if (p.object.get("version")) |v| (if (v == .string) v.string else "") else "";
+        const psrc = if (p.object.get("source")) |v| (if (v == .string) v.string else "") else "";
+        if (pname.len == 0) continue;
+        if (name.len > 0 and !std.mem.eql(u8, name, pname)) continue;
+        looked += 1;
+
+        if (std.mem.eql(u8, psrc, "path")) {
+            out("  {s} v{s} — installed from a path; re-add it from that folder to refresh\n", .{ pname, pver });
+            continue;
+        }
+
+        const ver = resolve(a, reg, pname) orelse continue;
+        const newv = verOf(ver, "version");
+        if (compareVersions(newv, pver) <= 0) {
+            out("  {s} v{s} — current\n", .{ pname, pver });
+            continue;
+        }
+
+        out("  {s} v{s} -> v{s}\n", .{ pname, pver, newv });
+
+        // Fetch and verify FIRST. Only once the new version is in hand is
+        // it safe to take the old one out.
+        const tgz = (try fetchVerified(a, pname, ver)) orelse {
+            out("  kept v{s} — the new version could not be fetched\n", .{pver});
+            continue;
+        };
+        defer a.free(tgz);
+
+        try unpackAndInstall(a, tgz, project, pname, p);
+        moved += 1;
+    }
+
+    if (looked == 0) {
+        if (name.len > 0) out("  {s} is not installed here\n", .{name});
+    } else if (moved == 0) {
+        out("  nothing to update\n", .{});
+    }
 }
 
 /// A downloaded package, named by its own sha256. The caller owns the

@@ -116,6 +116,37 @@ register does.
 Gzip, tar, sha256 and TLS are all in Zig's standard library. No vendored
 dependency, consistent with how the runtime itself is built.
 
+### `update`, and the order that makes it safe
+
+`ringscript update` runs steps 1–8 again for every package the lockfile
+records — or one, given a name — and resolves through the **same** function
+`add` uses, so the two can never disagree about which version is "the" one.
+
+The ordering is the whole design. `remove` then `add` would do the same job,
+and it is what everyone does before this verb exists, but it has a window in
+the middle where the project has no library at all: if the download fails
+there, the page is broken and the lockfile no longer says what to restore.
+So `update` **fetches, verifies against the hash, and unpacks to a temporary
+folder before it deletes anything**. A failure at any point up to that leaves
+the project untouched — files, script tags, lockfile entry — and says so:
+
+```
+  could not download it (ConnectionRefused)
+  kept v1.0.0 — the new version could not be fetched
+```
+
+Three refusals, all deliberate:
+
+- **never backwards** — if the registry's newest is older than what is
+  installed, the answer is `current`. A pulled release must not silently
+  downgrade a working project;
+- **never a path install** — a library added from a folder is left alone with
+  a note, because nothing here can know what that folder holds now;
+- **never a version this runtime does not satisfy** — same check as `add`.
+
+Offline, it works from the registry cache and the package cache, so a machine
+that has seen a version before can move to it with no network at all.
+
 ## 5. Why this is a better experience than the alternative
 
 | | RingPM route | this |
@@ -226,6 +257,7 @@ a file, and a pull request is the review.
 | `pack [folder]` | validates a library and prints its registry row |
 | `add <name>` | resolves the registry, verifies the hash, unpacks, wires the page |
 | `add <path> [project]` | the same from a folder, for a library author |
+| `update [name] [project]` | fetches and unpacks the new version before deleting the old |
 | `remove <name> [project]` | unwires and deletes, from what was recorded |
 | `list [project]` | reads the lockfile |
 | `search [term]` | lists the registry over HTTPS, or matches a term |
@@ -292,6 +324,27 @@ network at all**, which is the case this whole project exists for.
 
 A stale registry cannot make an install unsafe. The worst it can do is
 offer an older version than exists.
+
+### `update`, proved
+
+Every path was exercised against the published registry, with `pwa` pinned
+back to v1.0 and `table` to v1.0.0:
+
+| given | what happens |
+|---|---|
+| a newer version exists | fetched, verified, unpacked, old files removed, page rewired, lockfile advanced |
+| already newest | `pwa v1.1.0 — current`, nothing written |
+| installed version **ahead** of the registry | `current` — it does not go backwards |
+| installed from a path | left alone with a note to re-add from the folder |
+| the download fails | `kept v1.0.0` — files, script tag and lockfile entry all unchanged, exit 0 |
+| the registry host is unreachable | cache used, and a cached package installed with no network at all |
+
+The last two are the reason the verb exists. The failing-download case was
+produced by pointing a cached registry row at a dead port and clearing that
+package from the cache; the update declined and the project still ran.
+
+Updating does not duplicate the script tag: the old entry's tag is removed
+while its file list is still known, and the new install writes one back.
 
 `RINGSCRIPT_REGISTRY` overrides the registry with a URL or a local file — a
 mirror inside an organisation, a copy on a machine that cannot reach GitHub,
