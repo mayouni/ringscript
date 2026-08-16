@@ -30,6 +30,7 @@ var STORAGE_KEY = "ringscript.sample.route-orders.v1";
 
 var $ = function (id) { return document.getElementById(id); };
 var ring = null;
+var pwa = null;
 var online = true;
 var selectedCustomer = null;
 var localActions = 0, wireCalls = 0, wireBytes = 0;
@@ -66,15 +67,17 @@ var Server = {
     /* POST /orders — answers PER ORDER, never for the batch as a whole */
     submit: function (payloadText) {
         if (!online) return Promise.reject(new Error("offline"));
-        var payload = JSON.parse(payloadText);
-        var results = (payload.orders || []).map(function (o) {
+        var batch = JSON.parse(payloadText);
+        /* The library's batch shape: { device, count, entries: [ { id,
+           kind, payload } ] }. A real server would read the same thing. */
+        var results = (batch.entries || []).map(function (e) {
             /* one deliberate business rejection, so the reconciliation path
                is exercised rather than described */
-            if (o.customer === "C-106") {
-                return { id: o.id, status: "rejected",
+            if (e.payload && e.payload.customer === "C-106") {
+                return { id: e.id, status: "rejected",
                          note: "account on hold — settle the balance first" };
             }
-            return { id: o.id, status: "accepted", note: "" };
+            return { id: e.id, status: "accepted", note: "" };
         });
         return new Promise(function (resolve) {
             setTimeout(function () { resolve(JSON.stringify({ results: results })); }, 350);
@@ -116,15 +119,28 @@ function log(kind, html) {
    =================================================================== */
 function renderStats() {
     var s = ask("AppStats");
-    if (!s) return;
+    if (!s || !pwa) return;
+    /* The catalogue numbers are Ring's; the queue numbers are the
+       library's. Neither has to know about the other. */
+    var q = pwa.list().filter(function (e) { return e.state === "queued" || e.state === "sent"; });
+    var held = q.reduce(function (n, e) { return n + payloadOf(e.id).total; }, 0);
     $("stats").innerHTML =
         cell(s.customers, "shops on the route") +
         cell(s.products, "products in the catalogue") +
-        cell(s.pending, "orders waiting to go") +
-        cell(money(s.pending_value) + " " + s.currency, "value held on the device") +
+        cell(q.length, "orders waiting to go") +
+        cell(money(held) + " " + s.currency, "value held on the device") +
         cell(localActions, "actions that needed no network") +
         cell(wireCalls + " · " + Math.round(wireBytes / 1024) + " KB", "times the wire was used");
 }
+
+/* The library keeps the payload it was handed; this reads it back. Those
+   Ring functions are the library's declared surface, so calling them is
+   as legitimate as calling its JavaScript. */
+function payloadOf(id) {
+    var r = ask("PwaOutboxPayload", id);
+    return (r && r.ok) ? r.payload : { total: 0, customer_name: "" };
+}
+
 function cell(big, small) {
     return "<div><b>" + esc(big) + "</b><span>" + esc(small) + "</span></div>";
 }
@@ -214,18 +230,18 @@ function renderOrder() {
 }
 
 function renderOutbox() {
-    var rows = ask("OutboxList") || [];
+    var rows = pwa ? pwa.list() : [];
     var tb = $("outbox").tBodies[0];
     tb.innerHTML = "";
-    rows.forEach(function (r) {
-        var note = r[4] ? " — " + esc(r[4]) : "";
+    rows.slice().reverse().forEach(function (e) {
+        var p = payloadOf(e.id);
+        var note = e.note ? " — " + esc(e.note) : "";
         tb.appendChild(el("tr", null,
-            "<td>" + esc(r[0]) + "<br><span class='note'>" + esc(r[1]) + note + "</span></td>" +
-            "<td class='num'>" + money(r[2]) + "</td>" +
-            "<td><span class='pill pill--" + esc(r[3]) + "'>" + esc(r[3]) + "</span></td>"));
+            "<td>" + esc(e.id) + "<br><span class='note'>" + esc(p.customer_name) + note + "</span></td>" +
+            "<td class='num'>" + money(p.total) + "</td>" +
+            "<td><span class='pill pill--" + esc(e.state) + "'>" + esc(e.state) + "</span></td>"));
     });
-    var s = ask("AppStats");
-    $("send").disabled = !s || s.pending === 0;
+    $("send").disabled = !pwa || pwa.pending() === 0;
 }
 
 function renderAll() {
@@ -257,11 +273,13 @@ function addLine(sku) {
 }
 
 function queueOrder() {
-    var r = ask("OutboxAdd");
+    var r = ask("OrderFinish");
     localActions++;
     if (!r) return;
     if (!r.ok) { log("local", "Not queued: " + esc(r.error)); renderOrder(); return; }
-    log("local", "Order <b>" + esc(r.id) + "</b> queued for " + money(r.total) +
+
+    var q = pwa.queue("order", r.payload);
+    log("local", "Order <b>" + esc(q.id) + "</b> queued for " + money(r.total) +
         " — written to storage, not to the network.");
     selectedCustomer = null;
     save();
@@ -285,37 +303,48 @@ function pullReference() {
 }
 
 function send() {
-    var payload = ring.call("SyncPayload", 1);
-    if (!payload.ok) return;
-    var text = payload.result;
-    var count = JSON.parse(text).count;
-    if (!count) return;
-
+    if (!pwa || pwa.pending() === 0) return;
     $("send").disabled = true;
-    log("wire", "Sending <b>" + count + "</b> order(s), " +
-        Math.round(text.length / 1024 * 10) / 10 + " KB.");
-    ask("SyncMarkSent");
-    renderOutbox();
 
-    Server.submit(text).then(function (answer) {
-        wireCalls++; wireBytes += text.length + answer.length;
-        var applied = ask("SyncApplyResult", answer);
+    /* One request for the whole route, and the server answers per order.
+       Ten separate requests would be ten chances to fail on this link. */
+    pwa.flushBatch(function (batch) {
+        var text = JSON.stringify(batch);
+        wireCalls++; wireBytes += text.length;
+        log("wire", "Sending <b>" + batch.count + "</b> order(s), " +
+            Math.round(text.length / 1024 * 10) / 10 + " KB.");
+        renderOutbox();
+        return Server.submit(text).then(function (answer) {
+            wireBytes += answer.length;
+            return JSON.parse(answer);
+        });
+    }).then(function (applied) {
+        if (!applied) return;
         log("wire", "The server answered per order: <b>" + applied.accepted +
             " accepted</b>, " + applied.rejected + " rejected. " +
             applied.still_queued + " still queued.");
+
+        /* A refusal has a consequence only this application knows: the
+           order did not happen, so the credit goes back. */
         if (applied.rejected) {
+            var giveBack = pwa.list()
+                .filter(function (e) { return e.state === "rejected"; })
+                .map(function (e) {
+                    var p = payloadOf(e.id);
+                    return [["customer", p.customer], ["total", p.total]];
+                });
+            ask("CreditReturn", JSON.stringify(giveBack));
             log("local", "The rejected order kept its reason and gave its credit back — " +
                 "decided here, from the answer.");
         }
         save();
         renderAll();
     }).catch(function (e) {
-        var back = ask("SyncRollback");
-        log("fail", "The send did not arrive (" + esc(e.message) + "). " + back +
-            " order(s) went back to pending and will be tried again. Nothing was lost.");
+        log("fail", "The send did not arrive (" + esc(e.message) + "). " +
+            "The whole batch went back to pending and will be tried again. Nothing was lost.");
         save();
-        renderOutbox(); renderStats();
-    }).then(function () { renderOutbox(); });
+        renderAll();
+    });
 }
 
 /* Ring says everything it holds in one JSON string; this file puts that
@@ -350,6 +379,18 @@ function setOnline(v) {
     if (!loaded.ok) { log("fail", "orders.ring: " + esc(loaded.error)); return; }
     log("local", "orders.ring is resident — " + Math.round(rules.length / 1024) +
         " KB of business rules, now running on the device.");
+
+    /* The outbox, its storage and its ids come from ringscript-pwa. No
+       service worker: this sample is about where the RULES live, and
+       stock-count is the one about installing. The library is happy
+       without one. */
+    pwa = await Pwa.attach(ring, {
+        device: "van-3",
+        sw: null,
+        storageKey: STORAGE_KEY + ".outbox",
+        onChange: function () { if (pwa && ring) { renderOutbox(); renderStats(); } }
+    });
+    log("local", "ringscript-pwa " + Pwa.version + " attached — the queue, its ids and its storage.");
 
     $("toggle").addEventListener("click", function () { setOnline(!online); });
     $("customer-search").addEventListener("input", function () { localActions++; renderCustomers(); renderStats(); });

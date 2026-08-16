@@ -62,13 +62,9 @@ nLines = 0
 # The outbox: orders taken but not yet acknowledged by the server. This is
 # the whole reliability story — work is never lost because the network was
 # not there when it was done.
-#   aOutId       client-generated id, so a retry can never double-book
-#   aOutCustomer aOutJson   the order as taken
-#   aOutStatus   "pending" | "sent" | "accepted" | "rejected"
-#   aOutNote     what the server said, when it said anything
-aOutId = []  aOutCustomer = []  aOutJson = []
-aOutStatus = []  aOutNote = []  aOutTotal = []
-nOutbox = 0
+# The queue itself lives in ringscript-pwa. What stays here is the one
+# thing a queue cannot know: what a rejected order MEANS to a customer's
+# credit.
 nNextSeq = 1
 cDeviceId = ""
 
@@ -298,142 +294,66 @@ func OrderView p
 		:blocked = lBlocked, :warnings = aWarn ])
 
 # =====================================================================
-#  4. THE OUTBOX — why nothing is ever lost
+#  4. FINISHING AN ORDER - and what a refusal costs
 # =====================================================================
-# An order is finished on the device and put in a queue. The queue is the
-# unit of reliability: it survives a closed tab, a flat battery and a week
-# without signal, and every entry carries an id the DEVICE generated, so
-# sending it twice can never create two orders.
-func OutboxAdd p
+# Whether an order MAY be queued is a sales rule, so it stays here: not
+# empty, and not over the customer's credit. What queueing MEANS - the id
+# made on the device, the batch, the rollback - is the local-first pattern,
+# and ringscript-pwa owns it.
+#
+# This file used to carry seven functions for that. Two applications had
+# each written their own; that is what a library is for.
+func OrderFinish p
 	if nLines = 0
 		return JsonEncode([ :ok = 0, :error = "the order is empty" ])
 	ok
 	cView = OrderView(1)
 	aView = JsonDecode(cView)
 	lBlocked = 0  nTotal = 0
-	nV = len(aView)
-	for i = 1 to nV
+	for i = 1 to len(aView)
 		if aView[i][1] = "blocked"  lBlocked = aView[i][2]  ok
 		if aView[i][1] = "total"    nTotal = aView[i][2]    ok
 	next
 	if lBlocked = 1
 		return JsonEncode([ :ok = 0,
-			:error = "over the credit limit — the office must approve this one" ])
+		                    :error = "over the credit limit - the device said so" ])
 	ok
 
-	cId = cDeviceId + "-" + nNextSeq
-	nNextSeq = nNextSeq + 1
-	aOutId       + cId
-	aOutCustomer + cOrderCustomer
-	aOutJson     + cView
-	aOutStatus   + "pending"
-	aOutNote     + ""
-	aOutTotal    + nTotal
-	nOutbox = nOutbox + 1
-
-	# provisionally raise the customer's balance: the representative must
-	# see the effect of the order they just took on the next one they take,
-	# long before any server has heard about it
+	cName = ""
 	nRowC = CustomerRowOf(cOrderCustomer)
 	if nRowC > 0
+		cName = aCustName[nRowC]
+		# the credit is committed the moment the order is taken, not when
+		# the server hears about it - that is what makes the next order's
+		# limit check honest with no signal
 		aCustBalance[nRowC] = aCustBalance[nRowC] + nTotal
 	ok
+
+	aPayload = [ :customer = cOrderCustomer, :customer_name = cName,
+	             :total = nTotal, :catalogue = cCatalogueDate,
+	             :order = JsonDecode(cView) ]
 
 	cOrderCustomer = ""
 	aLineSku = []  aLineQty = []
 	nLines = 0
-	return JsonEncode([ :ok = 1, :id = cId, :total = nTotal, :queued = OutboxPending(1) ])
+	return JsonEncode([ :ok = 1, :total = nTotal, :payload = aPayload ])
 
-func OutboxPending p
+# The server refused an order, so it did not happen: give the credit back.
+# The library knows an entry was rejected; only this knows what that costs.
+#
+# cJson: [ [ :customer = "C-01", :total = 4200 ], ... ]
+func CreditReturn cJson
+	aRows = JsonDecode(cJson)
 	nN = 0
-	for i = 1 to nOutbox
-		if aOutStatus[i] = "pending" or aOutStatus[i] = "sent"
-			nN = nN + 1
-		ok
-	next
-	return nN
-
-func OutboxList p
-	aOut = []
-	for i = nOutbox to 1 step -1
-		cName = ""
-		nRowC = CustomerRowOf(aOutCustomer[i])
-		if nRowC > 0  cName = aCustName[nRowC]  ok
-		aOut + [ aOutId[i], cName, aOutTotal[i], aOutStatus[i], aOutNote[i] ]
-	next
-	return JsonEncode(aOut)
-
-# =====================================================================
-#  5. PUSH — the second and last time the wire is used
-# =====================================================================
-# Plain JSON, sent to whatever the back end happens to be written in. The
-# device decides WHAT to send; the page only carries it.
-func SyncPayload p
-	aBatch = []
-	for i = 1 to nOutbox
-		if aOutStatus[i] != "pending"  loop  ok
-		aBatch + [ :id = aOutId[i], :customer = aOutCustomer[i],
-		           :total = aOutTotal[i], :order = aOutJson[i] ]
-	next
-	return JsonEncode([ :device = cDeviceId, :catalogue = cCatalogueDate,
-	                    :count = len(aBatch), :orders = aBatch ])
-
-func SyncMarkSent p
-	nN = 0
-	for i = 1 to nOutbox
-		if aOutStatus[i] = "pending"
-			aOutStatus[i] = "sent"
-			nN = nN + 1
-		ok
-	next
-	return nN
-
-# The server answers per order, never for the batch as a whole — one
-# rejected order must not lose the other nine.
-func SyncApplyResult cJson
-	aDoc = JsonDecode(cJson)
-	aResults = []
-	nD = len(aDoc)
-	for i = 1 to nD
-		if aDoc[i][1] = "results"  aResults = aDoc[i][2]  ok
-	next
-	nAcc = 0  nRej = 0
-	nR = len(aResults)
-	for i = 1 to nR
-		cId = ""  cStatus = ""  cNote = ""
-		nF = len(aResults[i])
-		for j = 1 to nF
-			cK = aResults[i][j][1]
-			if cK = "id"      cId = "" + aResults[i][j][2]      ok
-			if cK = "status"  cStatus = "" + aResults[i][j][2]  ok
-			if cK = "note"    cNote = "" + aResults[i][j][2]    ok
+	for i = 1 to len(aRows)
+		cCust = ""  nTotal = 0
+		for j = 1 to len(aRows[i])
+			if aRows[i][j][1] = "customer"  cCust = "" + aRows[i][j][2]  ok
+			if aRows[i][j][1] = "total"     nTotal = aRows[i][j][2]      ok
 		next
-		for k = 1 to nOutbox
-			if aOutId[k] = cId
-				aOutStatus[k] = cStatus
-				aOutNote[k] = cNote
-				if cStatus = "accepted"  nAcc = nAcc + 1  ok
-				if cStatus = "rejected"
-					nRej = nRej + 1
-					# give the credit back: the order did not happen
-					nRowC = CustomerRowOf(aOutCustomer[k])
-					if nRowC > 0
-						aCustBalance[nRowC] = aCustBalance[nRowC] - aOutTotal[k]
-					ok
-				ok
-			ok
-		next
-	next
-	return JsonEncode([ :accepted = nAcc, :rejected = nRej,
-	                    :still_queued = OutboxPending(1) ])
-
-# A send that never arrived is not a send. Everything still marked "sent"
-# when the connection failed goes back to "pending" and will be tried again.
-func SyncRollback p
-	nN = 0
-	for i = 1 to nOutbox
-		if aOutStatus[i] = "sent"
-			aOutStatus[i] = "pending"
+		nRowC = CustomerRowOf(cCust)
+		if nRowC > 0
+			aCustBalance[nRowC] = aCustBalance[nRowC] - nTotal
 			nN = nN + 1
 		ok
 	next
@@ -445,62 +365,28 @@ func SyncRollback p
 # Ring does not know what localStorage is, and does not need to. It knows
 # how to say everything it holds in one JSON string and how to take it back.
 func StateExport p
-	aQueue = []
-	for i = 1 to nOutbox
-		aQueue + [ aOutId[i], aOutCustomer[i], aOutJson[i],
-		           aOutStatus[i], aOutNote[i], aOutTotal[i] ]
-	next
 	aBal = []
 	for i = 1 to nCustomers
 		aBal + [ aCustId[i], aCustBalance[i] ]
 	next
-	return JsonEncode([ :seq = nNextSeq, :device = cDeviceId,
-	                    :queue = aQueue, :balances = aBal ])
+	return JsonEncode([ :device = cDeviceId, :balances = aBal ])
 
 func StateImport cJson
 	if len("" + cJson) < 2  return JsonEncode([ :restored = 0 ])  ok
 	aDoc = JsonDecode(cJson)
-	aQueue = []  aBal = []
-	nD = len(aDoc)
-	for i = 1 to nD
-		cK = aDoc[i][1]
-		if cK = "seq"       nNextSeq = aDoc[i][2]   ok
-		if cK = "device"    cDeviceId = aDoc[i][2]  ok
-		if cK = "queue"     aQueue = aDoc[i][2]     ok
-		if cK = "balances"  aBal = aDoc[i][2]       ok
+	aBal = []
+	for i = 1 to len(aDoc)
+		if aDoc[i][1] = "device"    cDeviceId = aDoc[i][2]  ok
+		if aDoc[i][1] = "balances"  aBal = aDoc[i][2]       ok
 	next
-	aOutId = []  aOutCustomer = []  aOutJson = []
-	aOutStatus = []  aOutNote = []  aOutTotal = []
-	nQ = len(aQueue)
-	for i = 1 to nQ
-		aOutId       + aQueue[i][1]
-		aOutCustomer + aQueue[i][2]
-		aOutJson     + aQueue[i][3]
-		aOutStatus   + aQueue[i][4]
-		aOutNote     + aQueue[i][5]
-		aOutTotal    + aQueue[i][6]
-	next
-	nOutbox = nQ
-	# the provisional balances go back too, or the credit rule would forget
+	# the provisional balances go back, or the credit rule would forget
 	# every order taken before the tab was closed
-	nB = len(aBal)
-	for i = 1 to nB
+	for i = 1 to len(aBal)
 		nRowC = CustomerRowOf(aBal[i][1])
 		if nRowC > 0  aCustBalance[nRowC] = aBal[i][2]  ok
 	next
-	return JsonEncode([ :restored = nQ, :pending = OutboxPending(1) ])
+	return JsonEncode([ :restored = len(aBal) ])
 
 func AppStats p
-	nAcc = 0  nRej = 0  nPend = 0  nValue = 0
-	for i = 1 to nOutbox
-		if aOutStatus[i] = "accepted"  nAcc = nAcc + 1   ok
-		if aOutStatus[i] = "rejected"  nRej = nRej + 1   ok
-		if aOutStatus[i] = "pending" or aOutStatus[i] = "sent"
-			nPend = nPend + 1
-			nValue = nValue + aOutTotal[i]
-		ok
-	next
 	return JsonEncode([ :customers = nCustomers, :products = nProducts,
-	                    :orders = nOutbox, :accepted = nAcc, :rejected = nRej,
-	                    :pending = nPend, :pending_value = nValue,
 	                    :currency = cCurrency, :catalogue_date = cCatalogueDate ])

@@ -157,3 +157,33 @@ a restart that restores the queue with its ids and its committed credit.
 
 MIT, like the rest of RingScript. Take it apart, change the trade, keep the
 shape.
+
+## Built on ringscript-pwa
+
+The outbox is not written here. It comes from a library:
+
+```bash
+ringscript add pwa
+```
+
+`orders.ring` keeps the sales rules — the price tier, the case discount, the
+stock check, the credit limit, and whether an order **may** be queued. The
+library owns what queueing *means*: the id made on the device, the batch,
+the per-order verdicts, and the rollback when a request never arrives.
+
+The one thing that stayed is the one thing a queue cannot know: **what a
+refusal costs**. When the server rejects an order, `CreditReturn` gives the
+customer their credit back, because the order did not happen. That is a
+sales rule, so it is in Ring.
+
+That split removed **192 lines** from this sample.
+
+It also grew the library. Stock-count sends one count a shift and was happy
+sending one entry at a time; this sends a route's worth of orders, where ten
+requests are ten chances to fail on a bad link. So
+[ringscript-pwa 1.1](https://github.com/mayouni/ringscript-pwa/releases/tag/v1.1.0)
+gained a batch the server answers per entry — a second consumer is what
+shows an abstraction what it is actually missing.
+
+No service worker here: this sample is about where the rules live.
+[stock-count](../stock-count/) is the one about installing.
