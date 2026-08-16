@@ -15,7 +15,8 @@
 # every output key is snake_case because atom keys reach JavaScript
 # lower-cased.
 
-# [ id, kind, payload, state, seq ]  — state is "queued" or "sent"
+# [ id, kind, payload, state, seq, note ]
+# state: queued | sent | accepted | rejected
 aPwaOutbox = []
 cPwaDevice = "device"
 nPwaSeq    = 0
@@ -53,7 +54,7 @@ func PwaOutboxAdd cJson
 
 	nPwaSeq = nPwaSeq + 1
 	cId = cKind + "-" + cPwaDevice + "-" + nPwaSeq + "-" + clock()
-	aPwaOutbox + [ cId, cKind, pPayload, "queued", nPwaSeq ]
+	aPwaOutbox + [ cId, cKind, pPayload, "queued", nPwaSeq, "" ]
 	return JsonEncode([ :ok = 1, :id = cId, :kind = cKind ])
 
 # ------------------------------------------------------------------ read
@@ -61,7 +62,7 @@ func PwaOutboxList p
 	aOut = []
 	for i = 1 to len(aPwaOutbox)
 		aOut + [ :id = aPwaOutbox[i][1], :kind = aPwaOutbox[i][2],
-			 :state = aPwaOutbox[i][4] ]
+			 :state = aPwaOutbox[i][4], :note = aPwaOutbox[i][6] ]
 	next
 	return JsonEncode(aOut)
 
@@ -104,6 +105,82 @@ func PwaOutboxSetState cId, cState
 	next
 	return JsonEncode([ :ok = 0, :problem = "no such entry" ])
 
+# ------------------------------------------------- the batch, and verdicts
+# One entry at a time is right when each is its own request. It is wrong on
+# a bad link, where ten requests are ten chances to fail: sending one batch
+# and letting the server answer per entry is fewer round trips AND keeps the
+# guarantee, because one refused entry must not lose the other nine.
+#
+# Added in 1.1 because a second application needed it. The first sent one
+# count a shift; the second sends a route's worth of orders at once.
+func PwaOutboxBatch p
+	aBatch = []
+	for i = 1 to len(aPwaOutbox)
+		if aPwaOutbox[i][4] != "queued"
+			loop
+		ok
+		aBatch + [ :id = aPwaOutbox[i][1], :kind = aPwaOutbox[i][2],
+			   :payload = aPwaOutbox[i][3] ]
+	next
+	return JsonEncode([ :device = cPwaDevice, :count = len(aBatch),
+			    :entries = aBatch ])
+
+# Everything in the batch is now in flight. If the send fails, roll it back.
+func PwaOutboxMarkSending p
+	nN = 0
+	for i = 1 to len(aPwaOutbox)
+		if aPwaOutbox[i][4] = "queued"
+			aPwaOutbox[i][4] = "sent"
+			nN = nN + 1
+		ok
+	next
+	return nN
+
+# cJson: [ :results = [ [ :id = "...", :status = "accepted", :note = "..." ] ] ]
+#
+# The server answers per entry, never for the batch as a whole. An unknown
+# status is stored as given rather than guessed at - the application knows
+# what its own server means.
+func PwaOutboxApply cJson
+	aDoc = JsonDecode(cJson)
+	aResults = []
+	for i = 1 to len(aDoc)
+		if aDoc[i][1] = "results"
+			aResults = aDoc[i][2]
+		ok
+	next
+	nAcc = 0  nRej = 0
+	for i = 1 to len(aResults)
+		cId = ""  cStatus = ""  cNote = ""
+		for j = 1 to len(aResults[i])
+			cK = aResults[i][j][1]
+			if cK = "id"          cId = "" + aResults[i][j][2]      ok
+			if cK = "status"      cStatus = "" + aResults[i][j][2]  ok
+			if cK = "note"        cNote = "" + aResults[i][j][2]    ok
+		next
+		for k = 1 to len(aPwaOutbox)
+			if aPwaOutbox[k][1] = cId
+				aPwaOutbox[k][4] = cStatus
+				aPwaOutbox[k][6] = cNote
+				if cStatus = "accepted"  nAcc = nAcc + 1  ok
+				if cStatus = "rejected"  nRej = nRej + 1  ok
+			ok
+		next
+	next
+	return JsonEncode([ :accepted = nAcc, :rejected = nRej,
+			    :still_queued = PwaOutboxPending(1) ])
+
+# A send that never arrived is not a send: everything left "sent" goes back.
+func PwaOutboxRollbackAll p
+	nN = 0
+	for i = 1 to len(aPwaOutbox)
+		if aPwaOutbox[i][4] = "sent"
+			aPwaOutbox[i][4] = "queued"
+			nN = nN + 1
+		ok
+	next
+	return nN
+
 # Entries already accepted by the server. Kept until the app drops them, so
 # a screen can show "sent" rather than having work vanish on success.
 func PwaOutboxForget p
@@ -137,6 +214,12 @@ func PwaOutboxRestore cJson
 			nPwaSeq = aIn[i][2]
 		but aIn[i][1] = "entries"
 			aPwaOutbox = aIn[i][2]
+			# entries written before 1.1 have no note column
+			for k = 1 to len(aPwaOutbox)
+				if len(aPwaOutbox[k]) < 6
+					aPwaOutbox[k] + ""
+				ok
+			next
 		ok
 	next
 	return len(aPwaOutbox)

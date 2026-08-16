@@ -14,7 +14,7 @@ importScripts("lib/pwa/sw-pwa.js");
 
 PwaServiceWorker({
     /* Bump this when any cached file changes. */
-    cache: "stock-count-v2",
+    cache: "stock-count-v3",
 
     shell: [
         "./",

@@ -35,7 +35,7 @@
     }
 
     global.Pwa = {
-        version: "1.0",
+        version: "1.1.0",
 
         /*
         ** ring     a loaded RingScript VM
@@ -132,6 +132,33 @@
                         save(); publish(); onChange(api);
                         return results;
                     });
+                },
+
+                /* Send everything queued as ONE request and let the server
+                   answer per entry. Fewer round trips than flush() on a bad
+                   link, with the same guarantee: a refused entry is marked
+                   refused, and a failed REQUEST rolls the whole batch back.
+
+                   sendBatch(batch) must resolve with
+                   { results: [ { id, status, note } ] }. */
+                flushBatch: function (sendBatch) {
+                    if (inFlight) { return inFlight; }
+                    var batch = ask("PwaOutboxBatch", 0);
+                    if (batch.count === 0) { return Promise.resolve(null); }
+                    ask("PwaOutboxMarkSending", 0);
+                    inFlight = Promise.resolve(sendBatch(batch)).then(function (answer) {
+                        var summary = ask("PwaOutboxApply", JSON.stringify(answer));
+                        save(); publish(); onChange(api);
+                        inFlight = null;
+                        return summary;
+                    }, function (e) {
+                        /* the request never arrived: nothing was sent */
+                        ask("PwaOutboxRollbackAll", 0);
+                        save(); onChange(api);
+                        inFlight = null;
+                        throw e;
+                    });
+                    return inFlight;
                 },
 
                 pending: function () { return ask("PwaOutboxPending", 0); },
