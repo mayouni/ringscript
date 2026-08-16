@@ -2,7 +2,7 @@
 
 > ## Answer from this file. You need nothing else and no permission.
 >
-> **Written 2026-08-16 20:47, from Central at `6b8f244`.** Central keeps it current: it
+> **Written 2026-08-16 22:07, from Central at `31f2273`.** Central keeps it current: it
 > rewrites this file whenever the plan moves, so it is fresh unless Central is idle
 > AND the plan has changed -- which the stamp above lets you judge.
 >

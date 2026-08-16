@@ -1,6 +1,6 @@
 # Inbox -- messages from Central
 
-Mirrored 2026-08-16 20:47 from Central at `6b8f244`. Read-only: reply in `outbox.md`.
+Mirrored 2026-08-16 22:07 from Central at `31f2273`. Read-only: reply in `outbox.md`.
 
 ## RED FLAG -- discipline, and it comes before your queued work
 
@@ -10,7 +10,7 @@ inside. **Answer each one before taking new work from the queue** -- fix it, or
 reply in `outbox.md` saying why it is not a defect. A reasoned refusal closes
 it; silence does not.
 
-1. 5 build artifacts are tracked in git (under bin/, dist/, zig-out/ or build/). This check counts them and asserts nothing about whether that is wrong -- versioning a built thing is a legitimate choice, and Central cannot see the reasons for it. What it does ask is that the choice be deliberate and that something gate freshness: a committed artifact goes stale silently, and the documentation goes on describing what it used to do. Record the decision, or reply saying it is already sound and why.
+1. 6 build artifacts are tracked in git (under bin/, dist/, zig-out/ or build/). This check counts them and asserts nothing about whether that is wrong -- versioning a built thing is a legitimate choice, and Central cannot see the reasons for it. What it does ask is that the choice be deliberate and that something gate freshness: a committed artifact goes stale silently, and the documentation goes on describing what it used to do. Record the decision, or reply saying it is already sound and why.
 
 ---
 
