@@ -313,21 +313,38 @@ fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) 
         return;
     }
 
-    out("  fetching {s} v{s}\n", .{ name, vnum });
-    const tgz = try httpGet(a, url);
-    defer a.free(tgz);
+    // The download, cached by its own hash. A package already fetched once
+    // needs no network at all — which is what makes the second project on a
+    // laptop installable on a bad day, and the whole point of caching here.
+    //
+    // Keying by sha256 is what makes it safe: a cache hit IS the verified
+    // bytes, so there is no way to serve something the registry did not
+    // name. It also means two libraries that share a tarball share a file,
+    // and a corrupted entry simply fails its check and is re-fetched.
+    const tgz = blk: {
+        if (packageCacheRead(a, want)) |hit| {
+            out("  {s} v{s} — already downloaded, no network needed\n", .{ name, vnum });
+            break :blk hit;
+        }
+        out("  fetching {s} v{s}\n", .{ name, vnum });
+        const fetched = try httpGet(a, url);
 
-    var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(tgz, &digest, .{});
-    var got: [64]u8 = undefined;
-    _ = std.fmt.bufPrint(&got, "{x}", .{digest}) catch unreachable;
-    if (!std.mem.eql(u8, &got, want)) {
-        out("  REFUSED — the download does not match the registry\n", .{});
-        out("    expected {s}\n", .{want});
-        out("    got      {s}\n", .{got});
-        return;
-    }
-    out("  verified {d} bytes against the registry hash\n", .{tgz.len});
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(fetched, &digest, .{});
+        var got: [64]u8 = undefined;
+        _ = std.fmt.bufPrint(&got, "{x}", .{digest}) catch unreachable;
+        if (!std.mem.eql(u8, &got, want)) {
+            out("  REFUSED — the download does not match the registry\n", .{});
+            out("    expected {s}\n", .{want});
+            out("    got      {s}\n", .{got});
+            a.free(fetched);
+            return;
+        }
+        out("  verified {d} bytes against the registry hash\n", .{fetched.len});
+        packageCacheWrite(a, want, fetched);
+        break :blk fetched;
+    };
+    defer a.free(tgz);
 
     // Unpack somewhere temporary, so a bad archive cannot leave half a
     // library in lib/.
@@ -642,20 +659,119 @@ fn httpGet(a: std.mem.Allocator, url: []const u8) ![]u8 {
     return sink.toOwnedSlice();
 }
 
+/// Where the last good registry is kept, so a machine that cannot reach
+/// GitHub can still install. Per user, not per project: three projects on
+/// one laptop should not each need their own copy.
+fn cachePath(a: std.mem.Allocator) ![]u8 {
+    const dir = try std.fs.getAppDataDir(a, "ringscript");
+    defer a.free(dir);
+    return std.fs.path.join(a, &.{ dir, "registry.json" });
+}
+
+/// A downloaded package, named by its own sha256. The caller owns the
+/// returned bytes; null means "not cached, or cached wrong".
+fn packageCacheRead(a: std.mem.Allocator, sha: []const u8) ?[]u8 {
+    const dir = std.fs.getAppDataDir(a, "ringscript") catch return null;
+    defer a.free(dir);
+    const path = std.fmt.allocPrint(a, "{s}/packages/{s}.tar.gz", .{ dir, sha }) catch return null;
+    defer a.free(path);
+    const bytes = std.fs.cwd().readFileAlloc(a, path, 1 << 26) catch return null;
+
+    // Re-check on the way out. A cache entry that no longer hashes to its
+    // own name is a corrupted file, not a package, and it must not be
+    // trusted just because it is local.
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
+    var got: [64]u8 = undefined;
+    _ = std.fmt.bufPrint(&got, "{x}", .{digest}) catch {
+        a.free(bytes);
+        return null;
+    };
+    if (!std.mem.eql(u8, &got, sha)) {
+        a.free(bytes);
+        std.fs.cwd().deleteFile(path) catch {};
+        return null;
+    }
+    return bytes;
+}
+
+fn packageCacheWrite(a: std.mem.Allocator, sha: []const u8, bytes: []const u8) void {
+    const dir = std.fs.getAppDataDir(a, "ringscript") catch return;
+    defer a.free(dir);
+    const sub = std.fmt.allocPrint(a, "{s}/packages", .{dir}) catch return;
+    defer a.free(sub);
+    std.fs.cwd().makePath(sub) catch return;
+    const path = std.fmt.allocPrint(a, "{s}/{s}.tar.gz", .{ sub, sha }) catch return;
+    defer a.free(path);
+    std.fs.cwd().writeFile(.{ .sub_path = path, .data = bytes }) catch return;
+}
+
+fn cacheWrite(a: std.mem.Allocator, text: []const u8) void {
+    const path = cachePath(a) catch return;
+    defer a.free(path);
+    const dir = std.fs.path.dirname(path) orelse return;
+    std.fs.cwd().makePath(dir) catch return;
+    // A cache that fails to write is not an error worth stopping an install
+    // for; the next run simply fetches again.
+    std.fs.cwd().writeFile(.{ .sub_path = path, .data = text }) catch return;
+}
+
 /// RINGSCRIPT_REGISTRY overrides the default, and may be a URL or a local
 /// file. A mirror inside an organisation, a copy on a machine that cannot
 /// reach GitHub, or a fixture under test — all the same mechanism.
+///
+/// Otherwise: the network first, and the cache when the network is not
+/// there. That order matters. Cache-first would be faster and would serve
+/// stale rows to somebody who is perfectly well connected; this way a
+/// connected machine is always current, and a disconnected one still works.
+///
+/// A stale registry cannot make an install unsafe — the tarball's sha256 is
+/// still checked against whatever row was read. The worst a cache can do is
+/// offer an older version than exists.
 fn registryFetch(a: std.mem.Allocator) !std.json.Parsed(std.json.Value) {
     const override = std.process.getEnvVarOwned(a, "RINGSCRIPT_REGISTRY") catch null;
     defer if (override) |o| a.free(o);
-    const where = if (override) |o| o else REGISTRY_URL;
 
-    const text = if (std.mem.startsWith(u8, where, "http"))
-        try httpGet(a, where)
-    else
-        try std.fs.cwd().readFileAlloc(a, where, 1 << 22);
-    defer a.free(text);
-    return std.json.parseFromSlice(std.json.Value, a, text, .{});
+    if (override) |where| {
+        // An override is deliberate, so it is never cached and never
+        // falls back — if a mirror is down you want to hear about it.
+        const text = if (std.mem.startsWith(u8, where, "http"))
+            try httpGet(a, where)
+        else
+            try std.fs.cwd().readFileAlloc(a, where, 1 << 22);
+        defer a.free(text);
+        return std.json.parseFromSlice(std.json.Value, a, text, .{});
+    }
+
+    if (httpGet(a, REGISTRY_URL)) |text| {
+        defer a.free(text);
+        // only cache something that parses, or the fallback inherits the
+        // failure it was supposed to protect against
+        const parsed = try std.json.parseFromSlice(std.json.Value, a, text, .{});
+        cacheWrite(a, text);
+        return parsed;
+    } else |net_err| {
+        const path = cachePath(a) catch return net_err;
+        defer a.free(path);
+        const text = std.fs.cwd().readFileAlloc(a, path, 1 << 22) catch return net_err;
+        defer a.free(text);
+        const parsed = std.json.parseFromSlice(std.json.Value, a, text, .{}) catch return net_err;
+        out("  offline ({s}) — using the registry cached {s}\n", .{ @errorName(net_err), cacheAge(path) });
+        return parsed;
+    }
+}
+
+/// "today" / "3 days ago" — enough for a human to judge whether a missing
+/// library is missing or merely newer than the cache.
+fn cacheAge(path: []const u8) []const u8 {
+    const f = std.fs.cwd().openFile(path, .{}) catch return "at an unknown time";
+    defer f.close();
+    const st = f.stat() catch return "at an unknown time";
+    const age_s = @divTrunc(std.time.nanoTimestamp() - st.mtime, std.time.ns_per_s);
+    if (age_s < 60 * 60 * 24) return "today";
+    if (age_s < 60 * 60 * 24 * 2) return "yesterday";
+    if (age_s < 60 * 60 * 24 * 30) return "in the last month";
+    return "over a month ago";
 }
 
 // ==========================================================================

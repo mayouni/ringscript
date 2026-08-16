@@ -92,7 +92,7 @@ releases, and needs a different permission surface.
 
 `ringscript add pwa` does this, and nothing surprising:
 
-1. fetch the registry (cached; a second project installs with no network);
+1. fetch the registry — network first, cache when the network is not there;
 2. resolve the newest version whose `ringscript` range this runtime
    satisfies — refuse politely rather than fail later in a browser;
 3. download `codeload.github.com/<repo>/tar.gz/refs/tags/<tag>`;
@@ -259,6 +259,39 @@ The archive is unpacked into `.ringscript-unpack` and only then installed,
 so a bad archive cannot leave half a library in `lib/`. The directory is
 removed either way. `remove` then restores `index.html` **byte-identical**,
 whether the package came from the registry or a path.
+
+### Caching, and why it is shaped this way
+
+Two caches, both per user rather than per project, under the platform's
+application-data directory:
+
+| | |
+|---|---|
+| `ringscript/registry.json` | the last registry that parsed |
+| `ringscript/packages/<sha256>.tar.gz` | every package ever downloaded |
+
+**The registry is network-first, cache-second.** Cache-first would be
+faster and would serve stale rows to somebody perfectly well connected.
+This way a connected machine is always current and a disconnected one still
+works — and it says which it used:
+
+```
+  offline (UnknownHostName) — using the registry cached today
+  table v1.2.0 — already downloaded, no network needed
+```
+
+**Packages are keyed by their own sha256**, which is what makes the cache
+safe rather than merely convenient. A cache hit *is* the verified bytes, so
+there is no way to serve something the registry never named. Entries are
+re-hashed on read: one that no longer matches its own filename is a
+corrupted file, not a package — it is deleted and re-fetched rather than
+trusted for being local.
+
+Together they mean the second project on a laptop installs with **no
+network at all**, which is the case this whole project exists for.
+
+A stale registry cannot make an install unsafe. The worst it can do is
+offer an older version than exists.
 
 `RINGSCRIPT_REGISTRY` overrides the registry with a URL or a local file — a
 mirror inside an organisation, a copy on a machine that cannot reach GitHub,
