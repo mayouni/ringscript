@@ -411,9 +411,12 @@ RING_API List *ring_list_deleteref_gc(void *pState, List *pList) {
 	int nOPCode;
 	RingState *pRingState;
 	pRingState = (RingState *)pState;
-	/* Check lDontDelete (Used by Container Variables) */
-	if (pList->vGC.lDontDelete) {
-		/* This is a container that we will not delete, but will be deleted by that list that know about it */
+	/* Check Container Variables */
+	if (ring_list_isdontdelete_gc(pState, pList)) {
+		/*
+		**  This maybe a container that we will not delete, but will be deleted by that list that know about it
+		**  Also, this maybe a list that belongs to the arguments cache that we could reuse
+		*/
 		return pList;
 	}
 	/* Check lErrorOnAssignment used by lists during definition */
@@ -650,7 +653,7 @@ RING_API int ring_list_isref_gc(void *pState, List *pList) {
 	return lRef;
 }
 
-RING_API int ring_list_isrefcontainer_gc(void *pState, List *pList) { return pList->vGC.lDontDelete; }
+RING_API int ring_list_isrefcontainer_gc(void *pState, List *pList) { return ring_list_isdontdelete_gc(pState, pList); }
 
 RING_API void ring_list_clearrefdata_gc(void *pState, List *pList) {
 	pList->vGC.pContainer = NULL;
@@ -734,16 +737,16 @@ RING_API void ring_list_enablecopybyref_gc(void *pState, List *pList) { pList->v
 RING_API void ring_list_disablecopybyref_gc(void *pState, List *pList) { pList->vGC.lCopyByRef = 0; }
 /* Error on assignment */
 
+RING_API int ring_list_iserroronassignment_gc(void *pState, List *pList) { return pList->vGC.lErrorOnAssignment; }
+
 RING_API void ring_list_enableerroronassignment_gc(void *pState, List *pList) { pList->vGC.lErrorOnAssignment = 1; }
 
 RING_API void ring_list_disableerroronassignment_gc(void *pState, List *pList) { pList->vGC.lErrorOnAssignment = 0; }
-
-RING_API int ring_list_iserroronassignment_gc(void *pState, List *pList) { return pList->vGC.lErrorOnAssignment; }
 /* Error on assignment2 */
 
-RING_API void ring_list_enableerroronassignment2_gc(void *pState, List *pList) { pList->vGC.lErrorOnAssignment2 = 1; }
-
 RING_API int ring_list_iserroronassignment2_gc(void *pState, List *pList) { return pList->vGC.lErrorOnAssignment2; }
+
+RING_API void ring_list_enableerroronassignment2_gc(void *pState, List *pList) { pList->vGC.lErrorOnAssignment2 = 1; }
 
 RING_API void ring_list_disableerroronassignment2_gc(void *pState, List *pList) { pList->vGC.lErrorOnAssignment2 = 0; }
 /* Argument Type */
@@ -756,6 +759,8 @@ RING_API int ring_list_isargcache_gc(void *pState, List *pList) { return pList->
 
 RING_API void ring_list_enableargcache_gc(void *pState, List *pList) { pList->vGC.lArgCache = RING_TRUE; }
 /* Don't delete */
+
+RING_API int ring_list_isdontdelete_gc(void *pState, List *pList) { return pList->vGC.lDontDelete; }
 
 RING_API void ring_list_enabledontdelete_gc(void *pState, List *pList) { pList->vGC.lDontDelete = RING_TRUE; }
 

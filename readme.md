@@ -232,7 +232,7 @@ ringscript/
 │       ├── stzZql.ring          the ZQL engine — docs/zql-payload.md
 │       └── stzzql_smoke.ring    its test suite — runs inside the browser
 │
-├── ringvm/                      vendored Ring 1.27 VM (src + include only),
+├── ringvm/                      vendored Ring VM (src + include only),
 │                                with 8 marked patches → docs/VENDOR_PATCHES.md
 │
 ├── playground/                  the site — and the two files you deploy

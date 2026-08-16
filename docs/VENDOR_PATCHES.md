@@ -1,13 +1,30 @@
 # Vendor patches to ringvm/
 
-`ringvm/` is the vendored Ring VM source (currently **1.27**, from
-the official 1.27 distribution). It carries seven live RingScript patches, each marked with a
-`RINGSCRIPT PATCH` comment at the site. **Any future vendor swap must
-re-apply them** — then run `zig build` and `node tests/gates.js` (the P2
-line-number gates fail if the eval patches are missing).
+`ringvm/` is the vendored Ring VM source, currently **Ring master at
+[`8a89cc00c2`](https://github.com/ring-lang/ring/commit/8a89cc00c2)**,
+taken 2026-08-16. It carries **four** live RingScript patches, each marked
+with a `RINGSCRIPT PATCH` comment at the site. **Any future vendor swap
+must re-apply them** — then run `zig build` and `node tests/gates.js` (the
+P2 line-number gates fail if the eval patches are missing).
 
-An eighth was carried and then withdrawn; see section 8 for why, and for
-what replaced it.
+## What the base is, precisely
+
+Not "1.28", despite what upstream's version macro says. Measured file by
+file, master is **stock 1.27 plus 91 changed lines** across 12 `.c` files
+and 2 headers, and every one of them is a correction — there is no feature
+in the delta. RingScript therefore reports `1.27`, which is patch 3 below.
+
+The swap that brought it here landed 2026-08-16 and **retired three local
+patches by making them upstream code**: 3 (`private` in eval), 4
+(strtod/musl) and 7 (the `sort` quadratic) are now in Ring itself. Their
+sections are kept, emptied, so the numbering in older writing still
+resolves — and because a patch that comes back as upstream code is the
+outcome worth recording, not the one worth deleting.
+
+Patch numbering runs 1, 2, 3(new), 5, 6 — the live set is **1, 2, 3, 5, 6**
+minus the retired ones, which is four patches wearing five numbers. The
+slots are cheap; a renumbering that silently invalidates every earlier
+reference is not.
 
 ## 1. `ringvm/src/vmeval.c` — keep line numbers in eval'd bytecode
 
@@ -29,27 +46,43 @@ number to its try-time value *before* the catch block runs — by the time
 Together these make `rs_last_error()` report the real failing line for
 multi-line evals (e.g. an error on line 3 reports `line 3: …`).
 
-## 3. `ringvm/src/stmt.c` — fix `private` inside eval (upstream crash)
+## 3. `ringvm/include/state.h` — report 1.27, not 1.28
 
-In the `K_PRIVATE` handler, `pParser->nClassMark` (from `newlabel2`) is a
-GLOBAL instruction number (`pGenCode size + nInstructionsCount`), but
-`ring_parser_icg_getoperationlist` indexes the LOCAL `pGenCode` list. With
-any prior code in the state the raw index reads far past the list. This
-crashes **stock native Ring 1.27** too — `eval("class q private b = 2")`
-kills ring.exe — and since the resident bridge routes everything through
-eval, every class with a `private` section crashed the wasm instance.
-The patch subtracts `nInstructionsCount` at the lookup. Worth reporting
-upstream (a real crash bug, unlike the global/attribute scope rule).
+*This slot previously held the `private`-inside-eval fix. That landed
+upstream as [`7acf95bf`](https://github.com/ring-lang/ring/commit/7acf95bf)
+and arrived with the 2026-08-16 swap; the local patch is gone.*
 
-## 4. `ringvm/src/vmexpr.c` — strtod errno portability (musl vs MSVC)
+Upstream master has already bumped its version macro toward the next
+release. This tree pins `RING_VERSION_MINOR` and `RING_STATE_VERSION` back
+to `1.27`, because that is what the code is: 1.27 plus 91 lines of fixes,
+no features.
 
-In `ring_vm_stringtonum`, the error branch fires when `strtod` returned 0
-with `errno` set. On no-conversion input, musl (wasi-libc) sets `errno`
-to EINVAL while MSVC/glibc leave it untouched — so `"test" = 5` raised
-`R41 Invalid numeric string` under wasm where native prints `0` (false).
-The patch adds a `cEndStr != cStr` guard so plain no-conversion falls to
-the existing no-conversion branch. Portability fix, worth upstreaming
-(bites any musl-based Ring build, not just wasm).
+The version a user tests against matters more than the commit the source
+came from. They write Ring, run it against the 1.27 they can download, and
+expect the browser to agree — and the differential oracle does exactly the
+same, comparing every sample to the stock 1.27 interpreter. Claiming 1.28
+would make `version()` disagree with the interpreter it behaves identically
+to. It is not a hypothetical: the first sweep after the swap came back with
+**one** mismatch out of 237 programs, and it was this line.
+
+**Flip it** the day 1.28 ships, or the day this tree takes a 1.28 feature
+rather than a 1.27 fix — whichever comes first.
+
+## 4. RETIRED — strtod errno portability (musl vs MSVC)
+
+*Carried from the wasm port, removed 2026-08-16 when it arrived upstream as
+[`4014382a`](https://github.com/ring-lang/ring/commit/4014382a).*
+
+In `ring_vm_stringtonum`, the error branch fired when `strtod` returned 0
+with `errno` set. On no-conversion input, musl (wasi-libc) sets `errno` to
+EINVAL while MSVC/glibc leave it untouched — so `"test" = 5` raised `R41
+Invalid numeric string` under wasm where native prints `0`. The fix is a
+`cStr != cEndStr` guard, and upstream's is the same guard in the same
+place.
+
+**A portability bug only a musl build could see, fixed for every musl
+build.** That is the whole argument for reporting upstream rather than
+carrying a patch.
 
 ## 5. `ringvm/src/vm.c` — the computed-goto dispatch loop, written
 
@@ -88,7 +121,11 @@ statements) never leave the stock path. Held identical by the gates'
 oop phase (written against the unpatched VM first) and the full oracle
 battery, which caught and now guards the conflict rule.
 
-## 7. `ringvm/src/rlist.c` — `sort(list, nColumn)` was O(n²)
+## 7. RETIRED — `sort(list, nColumn)` was O(n²)
+
+*Carried from 2026-08-08, removed 2026-08-16 when it arrived upstream —
+**as the identical two hunks**, so the swap took the file whole and the
+local patch simply disappeared.*
 
 `ring_list_sortnum_gc` / `ring_list_sortstr_gc` extract keys, quicksort an
 index array, then rebuild the list by reading `pList` at `idx[i]` — in
@@ -98,9 +135,13 @@ sorted order, which is to say randomly. Without the items array,
 Measured on stock Ring, sorting `[key, index]` pairs: **2.3 / 8 / 39 /
 257 ms** at 2.5k / 5k / 10k / 20k rows — quadrupling per doubling — while
 sorting the same values as a flat list stayed linearithmic (0.4 / 0.6 /
-1.3 / 4.0 ms). The patch calls `ring_list_genarray_gc()` before the
-rebuild when `nColumn != 0`. After it: **0.9 / 2.1 / 6.0 / 16.4 ms**.
-Sorting rows by a column is what every data table does; worth upstreaming.
+1.3 / 4.0 ms). The fix calls `ring_list_genarray_gc()` before the rebuild
+when `nColumn != 0`. After it: **0.9 / 2.1 / 6.0 / 16.4 ms**.
+
+**Sorting rows by a column is what every data table does.** This is the
+second local patch to be retired by upstreaming it rather than by being
+abandoned, and the pattern is worth naming: a patch that is right for
+everybody is a patch you should stop carrying.
 
 ## 8. WITHDRAWN — random list access building the items array
 
@@ -155,41 +196,113 @@ programs byte-exact with 0 mismatches, no bench regressions, and the wasm
 
 ---
 
-# Upstream fixes to pick up at the next vendor swap
+# What the 2026-08-16 swap brought in
 
 *The findings themselves, their reproductions, and what came back from the
-Ring project now live in **RingUpstream**. What stays here is only the part
-a vendor swap has to act on.*
+Ring project live in **RingUpstream**. What stays here is only the part a
+vendor swap has to act on.*
 
-Bugs fixed in Ring after 1.27 that the vendored tree here still has. These
-are **not** patches to re-apply — they arrive for free with a newer Ring —
-but they are worth knowing about while we are still on 1.27.
+The queue said six fixes. **There were eleven**, because the six were the
+ones somebody had filed and tracked, and nobody had diffed the tree. The
+whole delta between stock 1.27 and master is 91 lines, so the difference
+cost nothing to find — one `diff -r` — and would have cost a good deal to
+discover later, one confusing behaviour at a time.
 
-**Six of them, not one.** Updated 2026-08-15, after RingUpstream verified
-every outcome against Ring's commit log and found four contributions that
-had landed while being recorded as rejected. Worth scheduling as **one**
-swap rather than six errands:
+**The six that were tracked:**
 
-| fix | landed as | what the vendored 1.27 still does |
+| fix | landed as | what unpatched 1.27 does |
 |---|---|---|
-| `private` inside `eval()` | [`7acf95bf`](https://github.com/ring-lang/ring/commit/7acf95bf) | crashes — currently covered by vendor patch 3 |
-| `strtod`/errno on musl | [`4014382a`](https://github.com/ring-lang/ring/commit/4014382a) | misparses at the edges — currently covered by vendor patch 4 |
+| `private` inside `eval()` | [`7acf95bf`](https://github.com/ring-lang/ring/commit/7acf95bf) | crashes; was vendor patch 3 |
+| `strtod`/errno on musl | [`4014382a`](https://github.com/ring-lang/ring/commit/4014382a) | misparses at the edges; was vendor patch 4 |
 | `memcpy()` zero-byte source | [`8675fe3a`](https://github.com/ring-lang/ring/commit/8675fe3a) | aborts the process |
 | empty `catch` stack slot | [`cda2ecf0`](https://github.com/ring-lang/ring/commit/cda2ecf0) | leaks one slot per caught raise; R4 at ~1003 |
 | name folding in four lookups | [`b6aea3d5`](https://github.com/ring-lang/ring/commit/b6aea3d5) | `varptr("nTotal")` raises R6; `ring_state_findvar` silently misses |
 | operator overloading with a list element | [`05dc3f49`](https://github.com/ring-lang/ring/commit/05dc3f49) | the section below |
 
-Two of these matter more here than elsewhere. **The empty-`catch` leak is a
+**The five that nobody was tracking**, found by diffing rather than by
+reading a list:
+
+| fix | file | what it does |
+|---|---|---|
+| `sort(list, nColumn)` quadratic rebuild | `rlist.c` | **RingScript's own patch 7, upstreamed verbatim** — same two hunks, same place |
+| `load` path resolution + a filename-length guard | `scanner.c` | 1.27 copies the resolved path over the *original* on a miss, then reports the wrong name as missing |
+| arguments-cache double-free guard | `vmgc.c` | a list in the arguments cache could escape to caller scope and be freed twice |
+| hashtable rebuilt on the inherited methods list | `vmoop.c` | a copied methods list kept a stale hashtable after inheritance |
+| `ring_parser_icg_retnull` simplified | `codegen.c`, `stmt.c` | 1.27 suppressed a RETNULL after RETURN; master always emits it |
+
+Two mattered more here than elsewhere. **The empty-`catch` leak was a
 RingScript problem specifically**: this project wraps *every* eval in a
-try/catch shim, so a page evaluating ~1000 failing snippets hits `R4` in the
-browser. And patches 3 and 4 below can be **dropped** at the swap — they are
-now upstream.
+try/catch shim, so a page evaluating ~1000 failing snippets hit `R4` in the
+browser. And the `memcpy()` one aborts the whole process, which in a browser
+means the tab.
+
+## What the swap cost, measured
+
+| | |
+|---|---|
+| upstream delta from stock 1.27 | 91 lines, 12 `.c` files, 2 headers |
+| files taken from upstream whole | 10 |
+| files merged by hand | 2 — `rlist.c` (upstream carries patch 7), `vmoop.c` (upstream fix + patch 6) |
+| files kept unchanged | 3 — `vm.c`, `vmerror.c`, `vmeval.c`; upstream never touched them |
+| local patches after | **4**, down from 7 |
+| differential sweep | 237 exact, **0 mismatch**, 0 wasm failure |
+| benchmarks | no regression on any of 11; wasm 174 bytes smaller |
+| gates, examples oracle, fuzz, soak, stress | all clean |
+
+**One swap, not six errands, was the right instruction** — but the reason is
+not the one that was given. It is right because the delta is small enough to
+read in full, which is what turns "apply six patches" into "take the file".
+
+## The oracle is now behind the VM
+
+Worth knowing before the next swap, because it will only grow.
+
+`tests/samples-sweep.js` compares against the **stock 1.27 interpreter**,
+which still has all eleven bugs. The vendored VM no longer does. So any
+sample exercising a fixed path can no longer agree with the oracle, and
+lands in one of two buckets:
+
+- **the native side crashes** -- the sample is dropped as a `NATIVE FAIL`
+  and never compared. `ProblemSolving/Lists/arrayvector2.ring` is exactly
+  this: it kills stock `ring.exe`, and it runs correctly here, printing
+  `V[4] = [14,12,15]`. **The swap fixed a shipped sample, and the oracle
+  cannot see that it did.**
+- **the native side runs and is wrong** -- a genuine `MISMATCH` where the
+  VM is right and the reference is not.
+
+Today the second bucket is empty: the sweep is 237 exact, 0 mismatch. The
+only program that fell into it was the one printing `version()`, and that
+is why patch 3 exists. But the margin is luck, not design.
+
+**The fix, when it is needed: build the oracle's `ring.exe` from the same
+source as the vendored tree.** The clone is already there in step 1 of the
+recipe below, and Ring builds natively from it. Until then, read a rising
+`NATIVE FAIL` count as a question rather than as noise -- it is where the
+worst bugs sit, which is why they are listed by name in
+`tests/sweep-failures.json` instead of only counted.
+
+## Doing this again
+
+1. `git clone --filter=blob:none https://github.com/ring-lang/ring.git`,
+   sparse-checkout `language/src` and `language/include`.
+2. `diff -rq` it against a **stock** 1.27 tree, not against `ringvm/` —
+   the local patches drown the signal otherwise.
+3. `diff -rq` stock against `ringvm/` to list which files carry patches.
+   Anything in one list and not the other is a file you can take whole.
+4. The intersection is the only hand work. Read those diffs; upstream may
+   already have your patch.
+5. `zig build`, then `node tests/samples-sweep.js`. **The sweep is the
+   gate** — a byte-exact comparison against the native interpreter catches
+   what a unit test cannot, and it caught the version string here.
 
 ## Operator overloading with a list element as the right operand
 
-`o1 + a[1]` reads a type-confused pointer. On native 1.27 the process dies
-silently; **in RingScript it is worse** — `eval()` returns `ok: true` with
-no output and no error, so a program that produces nothing looks like a
+**Fixed here by the 2026-08-16 swap.** Kept because the way it hid is worth
+more than the bug.
+
+`o1 + a[1]` read a type-confused pointer. On native 1.27 the process dies
+silently; **in RingScript it was worse** — `eval()` returned `ok: true` with
+no output and no error, so a program that produced nothing looked like a
 program that succeeded:
 
 ```
@@ -199,9 +312,9 @@ error    : (none)
 VM alive : true
 ```
 
-The shipped sample `samples/ProblemSolving/Lists/arrayvector2.ring` is
-affected. Objects in plain variables are fine, and a list element as the
-*left* operand is fine; only the right-operand path is broken.
+The shipped sample `samples/ProblemSolving/Lists/arrayvector2.ring` was
+affected. Objects in plain variables were fine, and a list element as the
+*left* operand was fine; only the right-operand path was broken.
 
 Reported as [ring-lang/ring#1647](https://github.com/ring-lang/ring/pull/1647)
 and fixed by Mahmoud in
