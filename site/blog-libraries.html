@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How RingScript got a library ecosystem — and what the second user found — RingScript blog</title>
+<meta name="description" content="A registry, a package manager and a first library, built in a day. The interesting part is not the plumbing: it is that installing the library into a second application found a bug the first had been hiding, and forced the library to grow.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.26">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    .standfirst { font-size: var(--read); color: var(--ink-soft); margin: -.2rem 0 .9rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem;
+                             border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    table.m td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .scroll { overflow-x: auto; }
+    .hot { color: #b3261e; font-weight: 700; }
+    .cool { color: #12703a; font-weight: 700; }
+    @media (prefers-color-scheme: dark) { .hot { color: #ff7a70; } .cool { color: #6fcf97; } }
+    .try-it { border: 1px solid var(--accent); border-radius: 12px;
+              background: var(--accent-soft); padding: 1.3rem 1.4rem; margin: 2rem 0; }
+    .try-it h3 { margin: 0 0 .5rem; }
+    .try-it p { margin: 0 0 1rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="local-first.html">Local-first apps</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>How RingScript got a library ecosystem</h1>
+
+<p class="standfirst">And what happened when a second application used it.</p>
+
+<p class="meta"><span class="label">Deep technical</span> August 2026 · from the RingScript project</p>
+
+<p class="first">Two of our samples had written the same thing. A field-sales
+order pad and a stock-count pad both needed a queue of finished work waiting
+for a connection, and both had written one from scratch — the same ids, the
+same rollback, the same mistakes available to make. That is the moment a
+project needs libraries, and RingScript did not have any.</p>
+
+<p>It has them now: a registry, a package manager, and one published
+library. The plumbing took a day. The part worth writing down is what
+happened <em>after</em>.</p>
+
+<h2>The wrong answer first</h2>
+
+<p>Ring already has a package manager. RingPM installs, updates, removes,
+and keeps a registry that is one Ring file in a repository. RingScript is
+already listed in it. The obvious move was to make a RingScript library a
+RingPM package and be done in an afternoon.</p>
+
+<p>That is what the first draft of the design said, and it was wrong. The
+starter kit says why, in its own words:</p>
+
+<blockquote>Everything needed to run it is already in this folder. Nothing
+to install.</blockquote>
+
+<p>A RingScript user is a <b>web developer</b>. They downloaded a folder,
+they double-click a launcher, a page runs. They have a browser and that
+folder. <b>They do not have Ring installed</b>, and they have no reason to —
+the virtual machine they run is the WebAssembly one, not the desktop
+interpreter. Routing libraries through RingPM would mean telling them to
+install a language runtime they will never invoke, in order to add a service
+worker to a page.</p>
+
+<p>There is a quieter reason too. Ring and RingScript share a language and
+nothing else: different VMs, different platforms, different release
+cadences, different audiences. A browser library in Ring's registry would be
+installable by Ring users for whom it does nothing at all. <b>Two ecosystems
+that share a syntax are still two ecosystems.</b></p>
+
+<h2>What we built on instead</h2>
+
+<p>RingScript already ships a native binary, cross-compiled to five
+platforms, and the starter kit already copies it into the user's folder. It
+needs no runtime and no interpreter. It was already in their hands — so it
+grew subcommands rather than a new dependency appearing:</p>
+
+<pre><code>ringscript add pwa
+ringscript remove pwa
+ringscript list
+ringscript search offline
+ringscript pack            # validate a library you are writing</code></pre>
+
+<p>Written in Zig, so gzip, tar, sha256 and TLS all come from the standard
+library and the whole ecosystem inherits the property that made the starter
+kit work: nothing to install.</p>
+
+<p>The registry is one JSON file in its own repository. No server, no
+accounts, no publish token — a pull request is the review. That is RingPM's
+own good idea, applied to a registry that is ours.</p>
+
+<h2>The one thing every package manager leaves undone</h2>
+
+<p>Installing is not copying files. Every package manager stops at "the
+files are on disk", and the work that remains — a script tag, a stylesheet
+link, an <code>importScripts</code> line, a cache list — is left to the
+reader and is exactly where a beginner stalls.</p>
+
+<p>So <code>add</code> finishes the job:</p>
+
+<pre><code>$ ringscript add pwa
+  fetching pwa v1.1.0
+  verified 12684 bytes against the registry hash
+  wired into index.html
+  added pwa v1.1.0 to .</code></pre>
+
+<p>It records what it touched, so <code>remove</code> undoes exactly that
+and no more. After an add and a remove, <code>index.html</code> is
+byte-identical to before.</p>
+
+<p>And it refuses rather than warns. A download that does not match the
+registry hash is refused with both hashes printed and <b>nothing written to
+disk</b>; a version needing a newer runtime is refused before it can fail in
+somebody's browser. Both were tested by feeding the installer a deliberately
+broken registry, not by asserting they work.</p>
+
+<h2>A detail that will save somebody a bad week</h2>
+
+<p>The design said to pin the hash of
+<code>codeload.github.com/…/tar.gz/refs/tags/…</code>. We did not, because
+GitHub's auto-generated source archives are produced on demand and are
+<b>not guaranteed byte-stable</b> — they have changed before. Pinning a
+sha256 to one pins it to something that can move underneath you, which
+defeats the point of pinning.</p>
+
+<p>Every release therefore attaches a tarball built with
+<code>git archive</code> and uploaded as an asset, which is immutable, and
+the registry carries that URL. Before each row went in, the published asset
+was downloaded back and re-hashed.</p>
+
+<h2>Then the second user arrived</h2>
+
+<p>The first library is <a href="https://github.com/mayouni/ringscript-pwa"
+target="_blank" rel="noopener">ringscript-pwa</a>: installability, the
+offline shell, and the outbox both samples had been hand-rolling. Its Ring
+half arrived with fourteen tests, all green, run in Node with no browser at
+all.</p>
+
+<p>Then we installed it into the stock-count pad, and drove the result like
+a user.</p>
+
+<p><b>It sent the same order twice.</b> Restoring the connection calls
+<code>flush()</code>. Clicking <em>Send now</em> calls <code>flush()</code>.
+Doing both within 100 ms had each read the same entry as queued, and each
+send it:</p>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>one queued entry, two overlapping flushes</th><th class="n">sends</th></tr></thead>
+  <tbody>
+    <tr><td>before</td><td class="n hot">2</td></tr>
+    <tr><td>after</td><td class="n cool">1</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>That is precisely the duplicate this library exists to prevent — and the
+gap is instructive. The id is made on the device before anything is sent, so
+a <em>retry</em> can never become a second order. That guard does nothing
+about two senders racing. Both are needed; only one was there.</p>
+
+<p>Note where the bug was <em>not</em>: the Ring half, whose fourteen checks
+were green throughout and stayed green. It lived in the wiring, and only a
+real page driven like a user found it.</p>
+
+<h2>And the third user changed the design</h2>
+
+<p>Then we rewired the order pad, and it could not use the library at all.</p>
+
+<p>A stock count is one document a shift, so sending one entry at a time
+suited it. A route is a day's worth of orders, and there one-at-a-time is
+not safer — it is worse: <b>ten requests are ten chances to fail</b> on a
+bad link. What that application needs is one request, with the server
+answering per order, so that one refused order does not lose the other
+nine.</p>
+
+<p>So the library grew a batch. Not because a batch is tidier, but because
+the second consumer proved the first design was a special case wearing the
+clothes of a general one.</p>
+
+<pre><code>pwa.flushBatch(function (batch) {
+	return fetch("/api/orders", { method: "POST", body: JSON.stringify(batch) })
+		.then(function (r) { return r.json(); });
+});</code></pre>
+
+<p>If the request never arrives, the whole batch rolls back to queued. If it
+arrives, each entry takes its own verdict and keeps the reason it was
+refused.</p>
+
+<h2>What it cost the samples</h2>
+
+<div class="scroll">
+<table class="m">
+  <thead><tr><th>sample</th><th class="n">lines removed</th><th>what stayed in Ring</th></tr></thead>
+  <tbody>
+    <tr><td>stock-count</td><td class="n">191</td><td>the money rules, and whether a count may be submitted</td></tr>
+    <tr><td>route-orders</td><td class="n">192</td><td>tier pricing, the credit limit — and what a refusal costs</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>That last one is the line worth defending. When the server rejects an
+order, the customer's credit goes back, because the order did not happen.
+A queue cannot know that. It is a sales rule, so it stayed in Ring while
+everything around it moved into the library.</p>
+
+<h2>What we actually learned</h2>
+
+<p>A registry is not an ecosystem. A registry is a file. What makes a
+library real is the second application, because the first one cannot tell
+you what you got wrong — it agrees with you by construction.</p>
+
+<p>Both of this week's real findings came from that second use, and neither
+would have come from more tests on the first:</p>
+
+<ul>
+  <li>a duplicate send that the library's own headline promise ruled out;</li>
+  <li>an API shape that was a special case pretending to be general.</li>
+</ul>
+
+<p>Which is the argument for a library in one sentence: <b>the next bug
+found in either application now fixes both.</b> That stopped being a claim
+today and became something that happened twice before lunch.</p>
+
+<div class="try-it">
+  <h3>Try it</h3>
+  <p>Two applications, one library, both running in your browser on the real
+  Ring VM.</p>
+  <p>
+    <a class="btn primary" href="samples/stock-count/" target="_blank" rel="noopener">Stock Count <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="btn ghost" href="samples/route-orders/" target="_blank" rel="noopener">Route Orders <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </p>
+</div>
+
+<p>The format, the manifest and the tooling are written up in
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/LIBRARIES.md" target="_blank" rel="noopener">LIBRARIES.md</a>.
+The registry is
+<a href="https://github.com/mayouni/ringscript-registry" target="_blank" rel="noopener">ringscript-registry</a>
+— one file, and a pull request is the review. If you write something worth
+sharing, that is the whole of the process.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+</body>
+</html>
