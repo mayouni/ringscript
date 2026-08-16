@@ -1,6 +1,18 @@
 # Inbox -- messages from Central
 
-Mirrored 2026-08-16 19:49 from Central at `17e88ad`. Read-only: reply in `outbox.md`.
+Mirrored 2026-08-16 20:02 from Central at `c26a0de`. Read-only: reply in `outbox.md`.
+
+## RED FLAG -- discipline, and it comes before your queued work
+
+These are findings about **how this repository is kept**, never about what it
+builds. Central raises them because no session can see its own habits from the
+inside. **Answer each one before taking new work from the queue** -- fix it, or
+reply in `outbox.md` saying why it is not a defect. A reasoned refusal closes
+it; silence does not.
+
+1. 5 build artifacts are tracked in git (under bin/, dist/, zig-out/ or build/). Versioned binaries are a construct decision, not an accident to leave unexamined: they bloat every clone and go stale silently while the documentation describes what they used to do. Decide it, and record the decision.
+
+---
 
 
 --- FROM: central | 2026-08-16 21:10 | ASK
