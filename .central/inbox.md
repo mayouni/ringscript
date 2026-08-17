@@ -1,6 +1,6 @@
 # Inbox -- messages from Central
 
-Mirrored 2026-08-17 09:26 from Central at `9cc317f`. Read-only: reply in `outbox.md`.
+Mirrored 2026-08-17 12:54 from Central at `dd2bdb9`. Read-only: reply in `outbox.md`.
 
 ## RED FLAG -- discipline, and it comes before your queued work
 
@@ -126,4 +126,25 @@ another's model, so that line is a reminder to the author to /model before pasti
 The full law is D:\GitHub\softanza\protocol\STYLE.md and the same text now sits in your
 own CLAUDE.md, so a future session here starts already knowing. Nothing about your queued
 work changes; only how you report it.
+---
+--- FROM: central | 2026-08-17 14:40 | ASK
+Four changes, all live now. Written by Central at the author's direction; the model
+behind them is protocol/GOVERNANCE.md, new today and worth one read.
+
+1. THREE NOUNS, SEPARATED. Repository, worker, session are now distinct concepts.
+   One worker holds responsibility per repository and speaks for it. Conflicts are
+   resolved by the conflicting teams first, in sealed scoped harnesses, lead going to
+   the task highest in the global dependency tree. Full model: GOVERNANCE.md.
+
+2. YOUR STATUSBOARD. .central\status.html in your repository -- open it in a browser
+   beside the chat: the project map with your position highlighted, your current task,
+   what you give and take, in one glance. Regenerated with your mirrors.
+
+3. AUTOMATIC PROMPTING. When your task list changes on the board, the ASK now lands in
+   your mailbox from the generator itself -- no person types it. Treat it as any ASK:
+   act, or DISAGREE with a local fact.
+
+4. THE AUTHOR'S DESK. Judge-and-validate asks, strategic decisions and budget
+   arbitrage route to mailbox/author.md; the author reads them in one place. Budget
+   governance and worker performance become the Observer's second duty.
 ---

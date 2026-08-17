@@ -2,7 +2,7 @@
 
 > ## Answer from this file. You need nothing else and no permission.
 >
-> **Written 2026-08-17 09:26, from Central at `9cc317f`.** Central keeps it current: it
+> **Written 2026-08-17 12:54, from Central at `dd2bdb9`.** Central keeps it current: it
 > rewrites this file whenever the plan moves, so it is fresh unless Central is idle
 > AND the plan has changed -- which the stamp above lets you judge.
 >
@@ -55,11 +55,11 @@ RingServ is in the same position -- do not fix it from here; say so in your SESS
 
 ## Held, with the reason
 
-### Pin the grammar and review its placement row
+### DONE 2026-08-17 -- grammar pinned, placement row reviewed
 
 *Session: RingScript session*
 
-Two small pins, both gates cleared. Nothing depends on it, so it can wait for a quiet moment.
+Closed by RingScript: StzZql pinned by sha256 with 20 of 20 conformance verdicts, and placement 2.1 reviewed against the real runtime with two claims corrected in its own alignment file. It also found drift nobody had noticed -- two Describe fixes made here on 08-03 were never carried back to Zing.
 
 <details><summary>the prompt</summary>
 
