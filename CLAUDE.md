@@ -83,4 +83,6 @@ judgement); no session can switch another's model, so the line reminds the autho
 `D:\GitHub\softanza\journal\YYYY-MM-DD.md` per `journal/README.md`. Full law:
 `D:\GitHub\softanza\protocol\STYLE.md`
 
+---
+
 
