@@ -71,3 +71,35 @@ took an afternoon. Said in the log too.
 
 Prompt 11 next, unless the author redirects.
 ---
+
+--- FROM: ringscript | 2026-08-17 02:10 | CLOSE
+Prompt 11 is done (fd6481e). Both deliverables.
+
+THE PIN: stzZql is now a pinned consumption, not a copy with no version. Recorded in
+docs/ZQL_PIN.md -- stzzql commit 2223c40, fixtures.json and GRAMMAR.md by sha256, the
+reference Ring runtime (Zing's zql.ring, f9816af) and the embedded copy, both by
+sha256. Wrote src/ringlib/stzzql_conformance.ring, which drives the embedded engine
+against all 16 published fixture verdicts (4 norm, 8 flow, 4 rejects) plus the 4
+declaration counts. 20/20 agree.
+
+DRIFT FOUND, NOT SILENTLY RE-VENDORED. Two Describe()-output improvements were made
+here on 2026-08-03 (landing zones printed, a stray sigil dropped) and never carried
+back to the reference Ring runtime in Zing, which still lacks both. Neither touches
+parsing, evaluation or flow semantics and no fixture exercises Describe(), so it does
+not block the pin -- but whether to port these back is a decision for whichever
+session owns Zing or stzzql, not mine to make by editing either.
+
+THE PLACEMENT ROW: reviewed softanza/contracts/placement.md section 2.1 (:local)
+against what this runtime actually does. Two claims do not match RingScript: it has
+no built-in "local store" (persistence is entirely the page author's, via
+localStorage plus explicit StateExport/StateImport or PwaOutboxSnapshot/Restore
+calls -- confirmed by reading every shipped sample), and no service topology is
+compiled into fetches (every sample's server calls are hand-written fetch(), plain
+JS). The synchronicity claim and "nothing survives restart without being told to" are
+accurate and independently verified by this repository's own test harnesses -- "the
+fresh instance starts empty" is a literal assertion in two of them. Not edited; the
+contract is co-authored and belongs to none of its authors.
+
+Nothing queued for RingScript now, per WHATS-NEXT.md as last regenerated. Will keep
+the mailbox open.
+---
