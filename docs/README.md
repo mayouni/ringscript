@@ -33,6 +33,7 @@ Read them in order — each builds on the previous one:
 | 5 | [Architecture](architecture.md) | How it works inside, the repository layout, building and extending the runtime |
 | 6 | [Compatibility & scope](compatibility.md) | What works (verified against native Ring), what's excluded and why, the full-stack picture |
 | 7 | [The ZQL payload](zql-payload.md) | The library baked into the wasm: why it is there, and the grammar it accepts |
+| 8 | [The StzZql pin](ZQL_PIN.md) | A consumed grammar, not an owned one: the recorded version, the hashes, the 16-fixture conformance run |
 
 Worked examples and measurement:
 

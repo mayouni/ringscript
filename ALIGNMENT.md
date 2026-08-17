@@ -12,14 +12,23 @@ design asks almost nothing of it, which is what shipped and stable earns.
 
 ## What changes here
 
-1. **StzZql, by pin (decision 6.1).** RingScript embeds `stzZql`; when the grammar gets
-   its canonical home, that embedding becomes a pinned consumption — version recorded,
-   fixtures as the gate — closing the lineage ambiguity in which two projects embed
-   "the same" file with no contract saying so.
-2. **C3, one row.** The browser placement (`:local` in topology terms) is described
-   once in the Placement Contract; RingScript reviews that row for accuracy — its
-   resident-VM semantics (state survives navigation? memory model?) are what the row
-   must not misstate.
+1. **StzZql, by pin (decision 6.1). Done, 2026-08-17.** RingScript embedded `stzZql`
+   with no version recorded; the grammar now has its canonical home
+   (`D:\GitHub\stzzql`), and the embedding is a pinned consumption — version, source
+   commit, fixture hashes, and a conformance run against all 16 published verdicts.
+   See [`docs/ZQL_PIN.md`](docs/ZQL_PIN.md). Real drift was found (two `Describe()`
+   improvements made here in `da55420`/`d2dedcd`, never carried to the reference Ring
+   runtime) and reported rather than silently re-vendored — it touches no fixture and
+   does not block the pin.
+2. **C3, one row. Reviewed, 2026-08-17.** The browser placement row in
+   `softanza/contracts/placement.md` §2.1 describes a "local store" and a "topology
+   compiled into fetches" that this runtime does not have — persistence is entirely
+   the page author's, via `localStorage` and explicit `StateExport`/`StateImport` (or
+   now `PwaOutboxSnapshot`/`Restore`) calls, and every service call in the shipped
+   samples is a hand-written `fetch()`, not generated from a topology. The
+   synchronicity and no-guaranteed-restart claims are accurate and independently
+   verified by this repository's own test harnesses. Reported to Central rather than
+   edited — the contract is co-authored and belongs to none of its authors.
 
 ## What must not change
 

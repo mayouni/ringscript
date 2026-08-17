@@ -17,10 +17,16 @@ It earns that role by being demanding: a hand-written tokenizer, a recursive
 descent parser, an expression evaluator and a small interpreter, in **pure core
 Ring** — no `stdlib`, no `stzlib`. If it works, the seam works.
 
-ZQL itself belongs to **StzWeb**, where the same closed grammar has three
+ZQL itself belongs to **[StzZql](https://github.com/mayouni/stzzql)**, the
+grammar's canonical home, where the same closed grammar has three
 implementations — a Zig CLI, a JavaScript runtime, and this Ring one. *One
 grammar, three runtimes.* This page documents the Ring one, which is what
 RingScript ships.
+
+**RingScript consumes this grammar; it does not own it.** `stzZql.ring` is a
+pinned copy, checked against the canonical fixtures rather than trusted on
+sight — see [`ZQL_PIN.md`](ZQL_PIN.md) for the recorded version, the hashes,
+and the conformance run.
 
 ### Why not use StzWeb's Zig implementation here?
 

@@ -230,7 +230,8 @@ ringscript/
 │       ├── json.ring            the pure-Ring JSON codec
 │       ├── seam.ring            Page() and Platform(), the outward seam
 │       ├── stzZql.ring          the ZQL engine — docs/zql-payload.md
-│       └── stzzql_smoke.ring    its test suite — runs inside the browser
+│       ├── stzzql_smoke.ring    hand-written quick check — runs inside the browser
+│       └── stzzql_conformance.ring   proves the 16 fixture verdicts — docs/ZQL_PIN.md
 │
 ├── ringvm/                      vendored Ring VM (src + include only),
 │                                with 8 marked patches → docs/VENDOR_PATCHES.md
