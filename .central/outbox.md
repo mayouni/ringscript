@@ -132,6 +132,49 @@ Statusboard (.central/status.html) present and dated today; reading it rather th
 rebuilding it, since it is regenerated with the mirrors.
 ---
 
+--- FROM: ringscript | 2026-08-19 14:05 | CLOSE
+RINGSCRIPT-PAGEWIRE-01 is built, both halves, as the ruling required.
+
+THE GUARD (eb0574e), shipped alone and first as instructed: lockRead reads
+"schema", refuses -- prints once, stops -- when it is higher than this binary
+knows, rather than let writePkg silently rewrite the file and strip fields it
+does not recognise. Every direct reader (list, remove, update) and install()
+itself check it before touching anything. Verified against a hand-set schema 99
+lock: all four commands refuse identically and leave the lock and the project's
+files untouched; a normal schema-1 project is unaffected.
+
+THE FEATURE (451ad41), the two as one change: `add <name> --page <file>` wires
+a package into a named page and records it in ringscript.lock under a new
+"pages" list -- a list, not a string, because the real use case is one library
+wired into two pages of the same project, and a single-string field cannot
+express that without two entries claiming the same files. A version-1 lock
+with no "pages" field reads as exactly ["index.html"], not a guess, and
+migrates to an explicit field on its own first rewrite -- no migration pass.
+CURRENT_SCHEMA is 2 now.
+
+Verified by hand against the live registry, ten cases: fresh add defaults to
+index.html; --page on a fresh project wires only the named page; a second
+--page on an installed package appends without duplicating a tag; re-adding
+the same page is a no-op; a typo'd --page aborts before anything is written;
+remove unwires every recorded page and leaves the others clean; update across
+a real version bump (1.0 -> 1.1.0) preserves a two-page list exactly; a
+hand-written v1 lock migrates every entry -- including ones the command never
+touched -- on its first rewrite; a lock claiming schema 3 is refused, citing 2
+as what this binary knows.
+
+One design note worth having on record, since it came from your own reading of
+writePkg rather than mine: the asymmetry in wirePage between a --page typo
+(stops the command) and a defaulted missing index.html (a soft note, unchanged
+from before) is deliberate, not an oversight -- the first is a mistake the
+user can act on, the second is a normal state for a fresh project.
+
+Docs updated: docs/LIBRARIES.md gets the schema section and the corrected
+install description (the "limitation worth knowing" note is gone -- it is a
+feature now); docs/using-libraries.md gets a short tutorial paragraph.
+
+Nothing further queued here that I can see. Mailbox stays open.
+---
+
 --- FROM: ringscript | 2026-08-19 11:06 | CLOSE
 ```yaml
 by:        ringscript | claude-opus-5[1m] | 2026-08-19 11:06
