@@ -78,6 +78,19 @@ If the hash had not matched, nothing would have been written at all.
 > your pages — `server/ringscript-serve-*` in the starter kit. Rename it,
 > alias it, or call it by path; there is nothing to install.
 
+**More than one page?** Say which one:
+
+```bash
+ringscript add pwa --page reports.html
+```
+
+wires `pwa` into `reports.html` and leaves `index.html` alone — asking for
+one page does not mean wanting both. Run it again with a different
+`--page` on the same library and it adds to what that library reaches
+rather than replacing it; `ringscript.lock` keeps the whole list, so
+`remove` unwires every page it finds there, not just the last one you
+named.
+
 ## 3. Use it
 
 A library exposes one global and loads its own Ring half, so your page does

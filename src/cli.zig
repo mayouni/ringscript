@@ -34,7 +34,12 @@ const LOCK = "ringscript.lock";
 /// and drop every field it does not recognise. `lockRead` refuses instead.
 /// Bump this only alongside a change to what a lock entry means, never for
 /// its own sake.
-const CURRENT_SCHEMA: i64 = 1;
+///
+/// 2: a package entry gained "pages" -- the list of HTML files it is wired
+/// into. Schema 1 could only ever mean ["index.html"], because :wirePage
+/// hardcoded the filename; an absent field still reads that way exactly,
+/// so no migration pass is needed. See RINGSCRIPT-PAGEWIRE-01.
+const CURRENT_SCHEMA: i64 = 2;
 
 /// This runtime's version, checked against each registry entry's range so a
 /// library that needs a newer RingScript is refused here rather than failing
@@ -63,8 +68,20 @@ pub fn main() !void {
         const root = if (argv.len > 3) argv[3] else "playground";
         return serve.run(port, root);
     } else if (eq(verb, "add")) {
-        if (argv.len < 3) return usageFor("add <name|path> [project]");
-        try cmdAdd(a, argv[2], if (argv.len > 3) argv[3] else ".");
+        if (argv.len < 3) return usageFor("add <name|path> [project] [--page <file>]");
+        var project: []const u8 = ".";
+        var page: ?[]const u8 = null;
+        var i: usize = 3;
+        while (i < argv.len) : (i += 1) {
+            if (eq(argv[i], "--page")) {
+                i += 1;
+                if (i >= argv.len) return usageFor("add <name|path> [project] --page <file>");
+                page = argv[i];
+            } else {
+                project = argv[i];
+            }
+        }
+        try cmdAdd(a, argv[2], project, page);
     } else if (eq(verb, "update")) {
         // `update` with no name means every library here, so the one
         // optional argument is ambiguous. A folder that exists is the
@@ -113,6 +130,7 @@ fn usage() void {
         \\
         \\    ringscript serve [port] [root]     the dev server
         \\    ringscript add <name|path>         install a library and wire it in
+        \\    ringscript add <name> --page <f>   wire it into another page too
         \\    ringscript update [name]           move to the newest version
         \\    ringscript remove <name>           unwire it and delete its files
         \\    ringscript list                    what this project uses
@@ -269,17 +287,19 @@ fn cmdPack(a: std.mem.Allocator, dir: []const u8) !void {
 // on disk"; the remaining work — a script tag, a stylesheet link, an
 // importScripts line — is left to the reader and is where a beginner stalls.
 
-fn cmdAdd(a: std.mem.Allocator, spec: []const u8, project: []const u8) !void {
+/// `page` is the `--page <file>` argument, or null when none was given --
+/// see `install()` for what each case wires.
+fn cmdAdd(a: std.mem.Allocator, spec: []const u8, project: []const u8, page: ?[]const u8) !void {
     // A path to a library folder installs directly. That is how an author
     // tests before publishing, and it needs no network.
     const local = try std.fs.path.join(a, &.{ spec, "ringscript.json" });
     defer a.free(local);
     if (std.fs.cwd().access(local, .{})) |_| {
-        return install(a, spec, project, "path");
+        return install(a, spec, project, "path", page);
     } else |_| {}
 
-    addFromRegistry(a, spec, project) catch |e| {
-        out("  could not install {s}: {s}\n", .{ spec, @errorName(e) });
+    addFromRegistry(a, spec, project, page) catch |e| {
+        if (e != error.PageNotFound) out("  could not install {s}: {s}\n", .{ spec, @errorName(e) });
     };
 }
 
@@ -336,7 +356,7 @@ fn verOf(v: std.json.Value, key: []const u8) []const u8 {
     return if (x == .string) x.string else "";
 }
 
-fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
+fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8, page: ?[]const u8) !void {
     var reg = try registryFetch(a);
     defer reg.deinit();
 
@@ -344,7 +364,7 @@ fn addFromRegistry(a: std.mem.Allocator, name: []const u8, project: []const u8) 
 
     const tgz = (try fetchVerified(a, name, ver)) orelse return;
     defer a.free(tgz);
-    try unpackAndInstall(a, tgz, project, name, null);
+    try unpackAndInstall(a, tgz, project, name, null, page);
 }
 
 /// A deliberately small range check: ">=X.Y" or an exact version. Anything
@@ -372,15 +392,21 @@ fn compareVersions(a: []const u8, b: []const u8) i8 {
     }
 }
 
-fn install(a: std.mem.Allocator, libdir: []const u8, project: []const u8, source: []const u8) !void {
+/// `page` is the `--page <file>` argument, or null when none was given.
+///
+/// The pages a package ends up wired into: its own recorded pages if it is
+/// already installed (an update, or a plain re-add), plus `page` appended
+/// if it names one not already there. A brand-new package with no `page`
+/// defaults to `["index.html"]` -- the only thing schema 1 could ever mean.
+/// A brand-new package installed WITH `--page` is wired into exactly that
+/// page and nothing else; asking for one page does not imply wanting both.
+fn install(a: std.mem.Allocator, libdir: []const u8, project: []const u8, source: []const u8, page: ?[]const u8) !void {
     // Refuse before copying a single file. A guard that only fires once
     // lockWrite is reached would still have left new files on disk and a
     // page rewritten for a project this binary should not be touching.
-    {
-        var probe = try lockRead(a, project);
-        defer probe.deinit();
-        if (probe.refused) return;
-    }
+    var lock = try lockRead(a, project);
+    defer lock.deinit();
+    if (lock.refused) return;
 
     var man = try Manifest.load(a, libdir);
     defer man.deinit();
@@ -415,8 +441,38 @@ fn install(a: std.mem.Allocator, libdir: []const u8, project: []const u8, source
         try copied.append(a, try std.fmt.allocPrint(a, "lib/{s}/{s}", .{ name, base }));
     }
 
-    try wirePage(a, project, name, man);
-    try lockWrite(a, project, name, man.str("version"), source, copied.items);
+    // Find this package's own existing entry, if it has one, so its
+    // recorded pages survive an update or a plain re-add untouched.
+    var existing_pages: ?[]const []const u8 = null;
+    defer if (existing_pages) |ep| a.free(ep);
+    for (lock.packages()) |p| {
+        const pn = if (p.object.get("name")) |v| (if (v == .string) v.string else "") else "";
+        if (std.mem.eql(u8, pn, name)) {
+            existing_pages = try pagesOf(a, p);
+            break;
+        }
+    }
+
+    var pages: std.ArrayList([]const u8) = .empty;
+    defer pages.deinit(a);
+    if (existing_pages) |ep| {
+        try pages.appendSlice(a, ep);
+    }
+    if (page) |pg| {
+        var have = false;
+        for (pages.items) |x| {
+            if (std.mem.eql(u8, x, pg)) {
+                have = true;
+                break;
+            }
+        }
+        if (!have) try pages.append(a, pg);
+    } else if (existing_pages == null) {
+        try pages.append(a, "index.html");
+    }
+
+    try wirePage(a, project, name, man, pages.items, page);
+    try lockWrite(a, project, name, man.str("version"), source, copied.items, pages.items);
 
     out("  added {s} v{s} to {s}\n", .{ name, man.str("version"), project });
     const sw = man.str("sw");
@@ -426,40 +482,55 @@ fn install(a: std.mem.Allocator, libdir: []const u8, project: []const u8, source
 }
 
 /// One <script> per web entry before </body>, one <link> per stylesheet in
-/// <head>. Idempotent: adding twice does not duplicate a tag.
-fn wirePage(a: std.mem.Allocator, project: []const u8, name: []const u8, man: Manifest) !void {
-    const html_path = try std.fs.path.join(a, &.{ project, "index.html" });
-    defer a.free(html_path);
-    var html = std.fs.cwd().readFileAlloc(a, html_path, 1 << 22) catch {
-        out("  note: no index.html here — files copied, nothing wired\n", .{});
-        return;
-    };
-    defer a.free(html);
+/// <head>, in EVERY page in `pages`. Idempotent: adding twice does not
+/// duplicate a tag, and re-wiring a page a package is already in is a no-op.
+///
+/// `strict_page`, when non-null, is the one page the caller explicitly
+/// named with `--page`. A missing page is a typo in that case and stops
+/// the install before anything is recorded; a defaulted page that is
+/// missing (no index.html yet in a fresh project) is not an error and
+/// only prints a note, exactly as before this function took a list.
+fn wirePage(a: std.mem.Allocator, project: []const u8, name: []const u8, man: Manifest, pages: []const []const u8, strict_page: ?[]const u8) !void {
+    for (pages) |page| {
+        const html_path = try std.fs.path.join(a, &.{ project, page });
+        defer a.free(html_path);
+        var html = std.fs.cwd().readFileAlloc(a, html_path, 1 << 22) catch {
+            if (strict_page) |sp| {
+                if (std.mem.eql(u8, page, sp)) {
+                    out("  {s} does not exist -- nothing wired, nothing recorded\n", .{page});
+                    return error.PageNotFound;
+                }
+            }
+            out("  note: no {s} here — files copied, nothing wired\n", .{page});
+            continue;
+        };
+        defer a.free(html);
 
-    var changed = false;
-    for (man.arrayOf("web")) |v| {
-        if (v != .string) continue;
-        const tag = try std.fmt.allocPrint(a, "<script src=\"lib/{s}/{s}\"></script>", .{ name, std.fs.path.basename(v.string) });
-        defer a.free(tag);
-        if (std.mem.indexOf(u8, html, tag) != null) continue;
-        const next = try insertBefore(a, html, "</body>", tag);
-        a.free(html);
-        html = next;
-        changed = true;
-    }
-    for (man.arrayOf("css")) |v| {
-        if (v != .string) continue;
-        const tag = try std.fmt.allocPrint(a, "<link rel=\"stylesheet\" href=\"lib/{s}/{s}\">", .{ name, std.fs.path.basename(v.string) });
-        defer a.free(tag);
-        if (std.mem.indexOf(u8, html, tag) != null) continue;
-        const next = try insertBefore(a, html, "</head>", tag);
-        a.free(html);
-        html = next;
-        changed = true;
-    }
-    if (changed) {
-        try std.fs.cwd().writeFile(.{ .sub_path = html_path, .data = html });
-        out("  wired into index.html\n", .{});
+        var changed = false;
+        for (man.arrayOf("web")) |v| {
+            if (v != .string) continue;
+            const tag = try std.fmt.allocPrint(a, "<script src=\"lib/{s}/{s}\"></script>", .{ name, std.fs.path.basename(v.string) });
+            defer a.free(tag);
+            if (std.mem.indexOf(u8, html, tag) != null) continue;
+            const next = try insertBefore(a, html, "</body>", tag);
+            a.free(html);
+            html = next;
+            changed = true;
+        }
+        for (man.arrayOf("css")) |v| {
+            if (v != .string) continue;
+            const tag = try std.fmt.allocPrint(a, "<link rel=\"stylesheet\" href=\"lib/{s}/{s}\">", .{ name, std.fs.path.basename(v.string) });
+            defer a.free(tag);
+            if (std.mem.indexOf(u8, html, tag) != null) continue;
+            const next = try insertBefore(a, html, "</head>", tag);
+            a.free(html);
+            html = next;
+            changed = true;
+        }
+        if (changed) {
+            try std.fs.cwd().writeFile(.{ .sub_path = html_path, .data = html });
+            out("  wired into {s}\n", .{page});
+        }
     }
 }
 
@@ -502,8 +573,9 @@ fn cmdRemove(a: std.mem.Allocator, name: []const u8, project: []const u8) !void 
 
 /// Drops any line mentioning one of the removed files, which covers the
 /// script tag and the stylesheet link without reconstructing either exactly.
-fn unwirePage(a: std.mem.Allocator, project: []const u8, files: []std.json.Value) !void {
-    const html_path = try std.fs.path.join(a, &.{ project, "index.html" });
+/// Called once per page a package was wired into.
+fn unwirePage(a: std.mem.Allocator, project: []const u8, page: []const u8, files: []std.json.Value) !void {
+    const html_path = try std.fs.path.join(a, &.{ project, page });
     defer a.free(html_path);
     const html = std.fs.cwd().readFileAlloc(a, html_path, 1 << 22) catch return;
     defer a.free(html);
@@ -701,6 +773,7 @@ fn unpackAndInstall(
     project: []const u8,
     name: []const u8,
     replace: ?std.json.Value,
+    page: ?[]const u8,
 ) !void {
     const tmp = try std.fmt.allocPrint(a, "{s}/.ringscript-unpack", .{project});
     defer a.free(tmp);
@@ -717,8 +790,11 @@ fn unpackAndInstall(
     // strip_components: the tarball holds one <name>-<version>/ directory
     try std.tar.pipeToFileSystem(dir, &gz.reader, .{ .strip_components = 1 });
 
+    // Deleting the old files first (not the lock entry) is what lets
+    // install()'s own lockRead still find the old pages list right after --
+    // an update preserves what a package was wired into without being told.
     if (replace) |old| try removeFiles(a, old, name, project);
-    try install(a, tmp, project, "registry");
+    try install(a, tmp, project, "registry", page);
 }
 
 /// Delete what a lockfile entry recorded — its files, its tags, its folder.
@@ -727,8 +803,13 @@ fn unpackAndInstall(
 fn removeFiles(a: std.mem.Allocator, p: std.json.Value, name: []const u8, project: []const u8) !void {
     if (p.object.get("files")) |fv| {
         if (fv == .array) {
-            // unwire first, while the paths are still known
-            try unwirePage(a, project, fv.array.items);
+            // unwire every page this entry was ever wired into, while the
+            // paths are still known -- a v1 entry with no "pages" field
+            // reads as its one implied page, index.html
+            const pages = try pagesOf(a, p);
+            defer a.free(pages);
+            for (pages) |page| try unwirePage(a, project, page, fv.array.items);
+
             for (fv.array.items) |f| {
                 if (f != .string) continue;
                 const path = try std.fs.path.join(a, &.{ project, f.string });
@@ -740,6 +821,27 @@ fn removeFiles(a: std.mem.Allocator, p: std.json.Value, name: []const u8, projec
     const dir = try std.fmt.allocPrint(a, "{s}/lib/{s}", .{ project, name });
     defer a.free(dir);
     std.fs.cwd().deleteDir(dir) catch {};
+}
+
+/// The pages a lock entry is wired into. A version-1 entry predates the
+/// field entirely -- wirePage hardcoded "index.html" -- so an absent
+/// "pages" reads as exactly that page, not a guess: schema 1 was incapable
+/// of expressing anything else. The caller owns the returned slice; the
+/// strings inside it are borrowed from `p`, not copied.
+fn pagesOf(a: std.mem.Allocator, p: std.json.Value) ![]const []const u8 {
+    if (p.object.get("pages")) |v| {
+        if (v == .array and v.array.items.len > 0) {
+            var acc: std.ArrayList([]const u8) = .empty;
+            for (v.array.items) |item| {
+                if (item == .string) try acc.append(a, item.string);
+            }
+            if (acc.items.len > 0) return acc.toOwnedSlice(a);
+            acc.deinit(a);
+        }
+    }
+    const one = try a.alloc([]const u8, 1);
+    one[0] = "index.html";
+    return one;
 }
 
 // ==========================================================================
@@ -798,7 +900,9 @@ fn cmdUpdate(a: std.mem.Allocator, name: []const u8, project: []const u8) !void 
         };
         defer a.free(tgz);
 
-        try unpackAndInstall(a, tgz, project, pname, p);
+        // null: update never takes a --page of its own. install() reads the
+        // package's existing pages back out of the lock and preserves them.
+        try unpackAndInstall(a, tgz, project, pname, p, null);
         moved += 1;
     }
 
@@ -964,7 +1068,7 @@ fn lockRead(a: std.mem.Allocator, project: []const u8) !Lock {
     return .{ .parsed = parsed };
 }
 
-fn lockWrite(a: std.mem.Allocator, project: []const u8, name: []const u8, version: []const u8, source: []const u8, files: []const []const u8) !void {
+fn lockWrite(a: std.mem.Allocator, project: []const u8, name: []const u8, version: []const u8, source: []const u8, files: []const []const u8, pages: []const []const u8) !void {
     var buf: std.ArrayList(u8) = .empty;
     defer buf.deinit(a);
     const w = buf.writer(a);
@@ -976,7 +1080,7 @@ fn lockWrite(a: std.mem.Allocator, project: []const u8, name: []const u8, versio
     // silently rewrites a lock it does not understand, whoever calls it.
     if (lock.refused) return error.LockSchemaNewer;
 
-    try w.writeAll("{\n  \"schema\": 1,\n  \"packages\": [\n");
+    try w.print("{{\n  \"schema\": {d},\n  \"packages\": [\n", .{CURRENT_SCHEMA});
     var first = true;
     for (lock.packages()) |p| {
         const pn = if (p.object.get("name")) |v| (if (v == .string) v.string else "") else "";
@@ -991,6 +1095,11 @@ fn lockWrite(a: std.mem.Allocator, project: []const u8, name: []const u8, versio
         if (i > 0) try w.writeAll(", ");
         try w.print("\"{s}\"", .{f});
     }
+    try w.writeAll("], \"pages\": [");
+    for (pages, 0..) |pg, i| {
+        if (i > 0) try w.writeAll(", ");
+        try w.print("\"{s}\"", .{pg});
+    }
     try w.writeAll("] }\n  ]\n}\n");
 
     const path = try std.fs.path.join(a, &.{ project, LOCK });
@@ -1002,7 +1111,7 @@ fn lockWriteAll(a: std.mem.Allocator, project: []const u8, pkgs: []std.json.Valu
     var buf: std.ArrayList(u8) = .empty;
     defer buf.deinit(a);
     const w = buf.writer(a);
-    try w.writeAll("{\n  \"schema\": 1,\n  \"packages\": [\n");
+    try w.print("{{\n  \"schema\": {d},\n  \"packages\": [\n", .{CURRENT_SCHEMA});
     for (pkgs, 0..) |p, i| {
         if (i > 0) try w.writeAll(",\n");
         try writePkg(w, p);
@@ -1013,6 +1122,12 @@ fn lockWriteAll(a: std.mem.Allocator, project: []const u8, pkgs: []std.json.Valu
     try std.fs.cwd().writeFile(.{ .sub_path = path, .data = buf.items });
 }
 
+/// Rebuilds an entry field by field from the fields this binary knows --
+/// which is exactly the hazard CURRENT_SCHEMA and lockRead's refusal guard
+/// against: a lock this function does not fully understand must never
+/// reach it. "pages" is written explicitly even for a v1 entry that never
+/// had one, which is the migration: the first write after this binary
+/// touches a project turns an absent field into an explicit ["index.html"].
 fn writePkg(w: anytype, p: std.json.Value) !void {
     const n = if (p.object.get("name")) |v| (if (v == .string) v.string else "") else "";
     const ver = if (p.object.get("version")) |v| (if (v == .string) v.string else "") else "";
@@ -1025,6 +1140,19 @@ fn writePkg(w: anytype, p: std.json.Value) !void {
                 if (f == .string) try w.print("\"{s}\"", .{f.string});
             }
         }
+    }
+    try w.writeAll("], \"pages\": [");
+    if (p.object.get("pages")) |pv| {
+        if (pv == .array and pv.array.items.len > 0) {
+            for (pv.array.items, 0..) |pg, i| {
+                if (i > 0) try w.writeAll(", ");
+                if (pg == .string) try w.print("\"{s}\"", .{pg.string});
+            }
+        } else {
+            try w.writeAll("\"index.html\"");
+        }
+    } else {
+        try w.writeAll("\"index.html\"");
     }
     try w.writeAll("] }");
 }

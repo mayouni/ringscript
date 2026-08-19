@@ -105,13 +105,47 @@ releases, and needs a different permission surface.
 7. write `ringscript.lock` — name, version, tag, hash;
 8. record what was touched, so `remove` undoes exactly that and no more.
 
-**A limitation worth knowing.** `add` wires `index.html`, because that is
-the page a one-page project has. A folder holding several pages gets the tag
-on `index.html` only — which may not be the page that wanted it. Installing
-`table` into `playground/` put a script tag on the Playground itself and
-none on the register that actually uses it. Either move the tag by hand, or
-load the library's Ring half from the page that needs it, which is what the
-register does.
+**A multi-page project names its page.** `add` wires `index.html` by
+default, because that is the page a one-page project has. A folder holding
+several pages says which one with `--page`:
+
+```
+ringscript add pwa --page reports.html
+```
+
+wires `pwa` into `reports.html` only — not `index.html` too, since asking
+for one page does not imply wanting both. Run `add --page` again for the
+same library on a second page and it *adds* to what that library is wired
+into rather than replacing it: `ringscript.lock` records every page a
+package reaches, not just the last one, and `remove` unwires every page it
+finds there. Installing `table` into `playground/` before this existed put
+a script tag on the Playground itself and none on the register that
+actually used it — `--page register.html` is what that install should have
+been.
+
+RINGSCRIPT-PAGEWIRE-01 (2026-08-19): the flag was ruled granted only
+together with this lockfile record, specifically because a flag with no
+persistence would make `remove` and `update` silently wire the wrong page —
+a defect a green run cannot catch. See the schema note just below.
+
+### The lockfile schema, and why an old binary refuses a new lock
+
+`ringscript.lock` carries a `"schema"` number, now **2** — a package entry
+gained `"pages"` when `--page` did. A lock with no `schema` field predates
+the field entirely and reads as `1`, which could only ever mean
+`["index.html"]`: nothing else was expressible before this change, so an
+absent `pages` on a version-1 entry is exact, not a guess, and needs no
+migration pass — the first `add`, `remove` or `update` after this binary
+touches the project writes it out explicitly.
+
+**A binary refuses a lock whose schema is higher than it understands**,
+rather than rewriting it. `writePkg` rebuilds every entry field by field
+from the fields it knows; without the refusal, an *older* binary opening a
+*newer* lock would not fail loudly — it would rewrite the file and silently
+drop `pages` from every package in the project, not just the one it was
+asked about. Downgrading a binary is ordinary, so this shipped ahead of the
+schema bump itself: every 1.x binary already in the wild by the time schema
+2 exists inherits the protection for free.
 
 Gzip, tar, sha256 and TLS are all in Zig's standard library. No vendored
 dependency, consistent with how the runtime itself is built.
