@@ -28,6 +28,14 @@ const serve = @import("serve.zig");
 const REGISTRY_URL = "https://raw.githubusercontent.com/mayouni/ringscript-registry/main/registry.json";
 const LOCK = "ringscript.lock";
 
+/// The highest lockfile schema THIS binary understands. `writePkg` rebuilds
+/// every entry field by field from the fields it knows, so an older binary
+/// opening a newer lock would not fail -- it would silently rewrite the file
+/// and drop every field it does not recognise. `lockRead` refuses instead.
+/// Bump this only alongside a change to what a lock entry means, never for
+/// its own sake.
+const CURRENT_SCHEMA: i64 = 1;
+
 /// This runtime's version, checked against each registry entry's range so a
 /// library that needs a newer RingScript is refused here rather than failing
 /// later in a browser.
@@ -365,6 +373,15 @@ fn compareVersions(a: []const u8, b: []const u8) i8 {
 }
 
 fn install(a: std.mem.Allocator, libdir: []const u8, project: []const u8, source: []const u8) !void {
+    // Refuse before copying a single file. A guard that only fires once
+    // lockWrite is reached would still have left new files on disk and a
+    // page rewritten for a project this binary should not be touching.
+    {
+        var probe = try lockRead(a, project);
+        defer probe.deinit();
+        if (probe.refused) return;
+    }
+
     var man = try Manifest.load(a, libdir);
     defer man.deinit();
     const name = man.str("name");
@@ -459,6 +476,7 @@ fn insertBefore(a: std.mem.Allocator, hay: []const u8, mark: []const u8, what: [
 fn cmdRemove(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
     var lock = try lockRead(a, project);
     defer lock.deinit();
+    if (lock.refused) return;
 
     const pkgs = lock.packages();
     var found = false;
@@ -518,6 +536,7 @@ fn unwirePage(a: std.mem.Allocator, project: []const u8, files: []std.json.Value
 fn cmdList(a: std.mem.Allocator, project: []const u8) !void {
     var lock = try lockRead(a, project);
     defer lock.deinit();
+    if (lock.refused) return;
     const pkgs = lock.packages();
     if (pkgs.len == 0) {
         out("  no libraries installed here\n", .{});
@@ -733,6 +752,7 @@ fn removeFiles(a: std.mem.Allocator, p: std.json.Value, name: []const u8, projec
 fn cmdUpdate(a: std.mem.Allocator, name: []const u8, project: []const u8) !void {
     var lock = try lockRead(a, project);
     defer lock.deinit();
+    if (lock.refused) return;
     const pkgs = lock.packages();
     if (pkgs.len == 0) {
         out("  no libraries installed here\n", .{});
@@ -902,6 +922,11 @@ fn cacheAge(path: []const u8) []const u8 {
 
 const Lock = struct {
     parsed: ?std.json.Parsed(std.json.Value),
+    /// The lockfile's schema is newer than CURRENT_SCHEMA. Every field this
+    /// binary would write is already lost from `parsed`, so the only correct
+    /// move for a caller is to stop -- `packages()` deliberately returns
+    /// nothing rather than a truncated view that looks complete.
+    refused: bool = false,
 
     fn deinit(self: *Lock) void {
         if (self.parsed) |*p| p.deinit();
@@ -914,12 +939,28 @@ const Lock = struct {
     }
 };
 
+/// A missing "schema" predates the field and reads as 1 -- the only value
+/// that has ever existed. Refusal prints its own message so every caller
+/// can just check `.refused` and stop.
 fn lockRead(a: std.mem.Allocator, project: []const u8) !Lock {
     const path = try std.fs.path.join(a, &.{ project, LOCK });
     defer a.free(path);
     const text = std.fs.cwd().readFileAlloc(a, path, 1 << 20) catch return .{ .parsed = null };
     defer a.free(text);
-    const parsed = std.json.parseFromSlice(std.json.Value, a, text, .{}) catch return .{ .parsed = null };
+    var parsed = std.json.parseFromSlice(std.json.Value, a, text, .{}) catch return .{ .parsed = null };
+
+    const schema: i64 = if (parsed.value.object.get("schema")) |v|
+        (if (v == .integer) v.integer else 1)
+    else
+        1;
+    if (schema > CURRENT_SCHEMA) {
+        out(
+            "  this project's lockfile was written by a newer ringscript (schema {d}, this one knows {d}) -- refusing rather than rewriting it\n",
+            .{ schema, CURRENT_SCHEMA },
+        );
+        parsed.deinit();
+        return .{ .parsed = null, .refused = true };
+    }
     return .{ .parsed = parsed };
 }
 
@@ -930,6 +971,10 @@ fn lockWrite(a: std.mem.Allocator, project: []const u8, name: []const u8, versio
 
     var lock = try lockRead(a, project);
     defer lock.deinit();
+    // The guard belongs in `install()`, before any file is touched -- this
+    // is a second, defensive check so lockWrite can never be the thing that
+    // silently rewrites a lock it does not understand, whoever calls it.
+    if (lock.refused) return error.LockSchemaNewer;
 
     try w.writeAll("{\n  \"schema\": 1,\n  \"packages\": [\n");
     var first = true;
