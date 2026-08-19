@@ -1,0 +1,1 @@
+{"session":"2026-08-19-ringscript-keeper-01","worker":"ringscript-keeper","repo":"ringscript","model":"claude-opus-5[1m]","opened":"2026-08-19T10:04Z","closed":"2026-08-19T10:12Z","turns":8,"in":null,"out":null,"cache_read":null,"outcome":"delivered","artefacts":[".central/outbox.md",".central/runs/20260819-1106-ringscript.md"],"log_lines":0,"by":"agent"}

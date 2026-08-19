@@ -15,3 +15,6 @@ playground/ringscript-capped.wasm
 # The rivals harness pulls its engines from npm; the deps stay out of git.
 tests/rivals/node_modules/
 _site/
+
+# The autopilot run log -- local evidence, not repository history.
+.central/runs/

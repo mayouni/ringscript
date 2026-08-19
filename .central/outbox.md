@@ -131,3 +131,129 @@ so no correction owed.
 Statusboard (.central/status.html) present and dated today; reading it rather than
 rebuilding it, since it is regenerated with the mirrors.
 ---
+
+--- FROM: ringscript | 2026-08-19 11:06 | CLOSE
+```yaml
+by:        ringscript | claude-opus-5[1m] | 2026-08-19 11:06
+
+subject:   RINGSCRIPT-PAGEWIRE-01 -- the recommended shape: a pages LIST, a
+           read-tolerant default that is a fact rather than a guess, and a
+           schema number that is finally read
+
+why:       the desk is right that this is schema 1 -> 2 and not a flag. Two
+           further local facts change the shape it should take, and one of them
+           is a data-loss hazard that arrives with the version bump itself
+
+did:
+  - Read the three sites the desk named and the two it did not: wirePage
+    (cli.zig:411-447), unwirePage (:487-513), lockWrite (:928-956),
+    lockWriteAll (:958-971) and writePkg (:973-990).
+  - Confirmed the desk's finding exactly: index.html is hardcoded at :414 and
+    :488, and the lock record written at :944 carries name, version, source,
+    files and nothing else.
+  - Wrote no code. This is the recommendation the memo asked for, not a build.
+
+THE TWO FACTS THE DESK'S READING DID NOT REACH:
+
+  FACT ONE -- remove is not the only caller. cmdUpdate calls removeFiles at
+  :701, and removeFiles calls unwirePage at :712. So the same silent
+  mis-unwiring fires on `ringscript update` as well as on `remove`. That does
+  not change the shape of the fix; it doubles the blast radius of shipping the
+  flag without it.
+
+  FACT TWO -- and this one changes the shape. A lock entry's identity today is
+  its NAME alone: lockWrite skips the old entry by name (:938) and cmdRemove
+  matches by name (:469). The actual reason anyone wants an arbitrary page is a
+  project with more than one page, and there the same library is wired into two
+  of them. Add it twice and the second add silently overwrites the first
+  entry -- the first page keeps its tags, and nothing in the lock records them,
+  so they can never be removed. A single "page" string does not survive its own
+  use case.
+
+RECOMMENDATION -- the field:
+
+  "pages": ["index.html", "reports.html"]    -- a list, not a string
+
+  The key stays `name`. This is not a style preference: the FILES are per
+  package and per project, copied once into lib/<name>/ however many pages
+  reference them. If the key became (name, page), two entries would each claim
+  the same files and removing either would delete files the other still needs.
+  A list keeps deletion correct by construction -- the files go when the entry
+  goes, and the entry goes when the last page is unwired.
+
+  add --page <file>, on a package already recorded, appends to `pages` and
+  wires that page. Copying is idempotent already, so re-adding is safe.
+
+  remove <name> unwires EVERY page in the list, then deletes. That keeps the
+  promise the code comment at :455 makes -- remove undoes exactly what add
+  recorded -- because what add recorded is now a set of pages.
+
+  remove <name> --page <file>, unwiring one page and deleting files only when
+  the list empties, is a SECOND feature. Recommend leaving it out of this
+  change. It is easy to add later on top of a list, impossible on top of a
+  string, and nobody has asked for it.
+
+RECOMMENDATION -- what remove does with a version-1 lock:
+
+  A missing `pages` reads as ["index.html"]. That is not a default and not a
+  guess -- schema 1 was INCAPABLE of expressing anything else, because :414
+  hardcoded the filename. The old data is therefore recoverable exactly, and no
+  migration command is needed.
+
+  Migration is then free: lockWrite and lockWriteAll rewrite the file whole on
+  every add, update and remove, so a version-1 lock becomes version 2 at the
+  first mutation and never needs a pass of its own. Do not rewrite the file on
+  read; a read command that writes is a surprise.
+
+RECOMMENDATION -- the part that outlives the feature, and the hazard:
+
+  MAKE THE SCHEMA NUMBER LOAD-BEARING IN THIS CHANGE, because this is the first
+  moment it can ever differ. Today "schema": 1 is written at :935 and :963 and
+  READ NOWHERE.
+
+  The hazard is writePkg (:973). It reconstructs each entry field by field from
+  the four fields it knows and silently drops every field it does not. So an
+  OLDER binary opening a version-2 lock does not fail -- it rewrites the file
+  and deletes the `pages` record of every package in the project, including the
+  ones it was not asked about. The wiring then cannot be undone by anything.
+  Downgrading a binary is ordinary; users do it.
+
+  So: lockRead must read `schema`, and a lock whose schema is higher than the
+  binary knows must stop the command with a plain message -- "this project's
+  lockfile was written by a newer ringscript" -- rather than be rewritten. That
+  one guard is what makes the number worth having, and it must land WITH the
+  bump rather than after it, since after it is too late for every 1.x binary
+  already in the wild.
+
+  Reading forward-tolerantly (unknown fields preserved through writePkg) would
+  be the more generous fix and I am not recommending it: it means carrying
+  arbitrary json through a writer whose whole virtue at :900 is that a human can
+  read the output and a diff is legible.
+
+state:
+  the field:        recommended as `pages`, a list, key unchanged at `name`
+  v1 locks:         read as ["index.html"], exact, migrated by first write
+  schema number:    recommended to become load-bearing, refusing newer locks
+  the code:         unchanged this run -- nothing built, per your instruction
+  update command:   affected identically to remove, via removeFiles at :701
+
+waiting:
+  - RINGSCRIPT-PAGEWIRE-01: is the pages LIST accepted over a single page
+    string, and does the schema guard land with the bump -> the Principal
+    decides [routed: this memo is the routing]
+
+next:
+  - me:         build it on a ruling, in one change: the list, the read
+                default, the schema guard, and the wirePage/unwirePage
+                signature taking the page from the lock entry rather than a
+                constant. I will not start before the ruling.
+  - central:    carry this to the desk
+  - principal:  rule on the list-vs-string question and on the schema guard
+
+note:      one detail for whoever writes it. wirePage prints "no index.html
+           here -- files copied, nothing wired" and continues. When the page was
+           NAMED on the command line, a missing page is a typo and should stop
+           the command; when it was defaulted, the existing note is right. The
+           difference is worth keeping.
+```
+---
