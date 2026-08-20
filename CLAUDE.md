@@ -75,7 +75,7 @@ state:
   entity:     its current state   (named system things only)
 
 waiting:
-  - TASK-ID: the question -> who decides [routed | not routed]
+  - TASK-ID: the question -> who decides [routed | not routed | withdrawn]
 
 next:
   - me:      what I will do without being asked
@@ -92,7 +92,11 @@ the mirror, file the journal entry -- then DO it and report it in did, or name i
 with `me:` as actor. Never leave an obvious mechanical step implied. The stranger test
 governs every line: plain words, no idiom, parseable by a reader who missed the
 conversation. **Speak and file**: append every memo to
-`D:\GitHub\softanza\journal\YYYY-MM-DD.md`. Full law: `D:\GitHub\softanza\protocol\STYLE.md`
+`D:\GitHub\softanza\journal\YYYY-MM-DD.md` -- **unless you are an unattended run**, in which
+case your memo goes in `.central\outbox.md` and Central folds it into that journal by
+reference. AUTOPILOT rule 3a rules this: rule 3 forbids a run writing outside its own
+repository, and writing the memo twice would be two sources of truth. An attended session
+files it itself. Full law: `D:\GitHub\softanza\protocol\STYLE.md`
 *This repository: `ringscript`.*
 <!-- /BANGALO-BLOCK -->
 
