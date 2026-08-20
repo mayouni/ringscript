@@ -165,6 +165,24 @@ and `samples/stock-count`; exercised by `tests/orders-app.js` and
   verdict, not an error and not a second effect. This is stated in the library's
   README as the server contract, because at-least-once without server-side
   dedupe is at-least-once duplication.
+- **Retention is the server's *other* half, and this design does not choose it.**
+  Dedupe by entry id makes delivery correct. It says nothing about whether the
+  store keeps what it accepted. A sync log — derived by triggers, holding row
+  images, compacted on a floor that moves by design — and an inalterable journal
+  offer the *same* append-and-replay surface, and nothing in that surface tells
+  the caller which one is behind the endpoint. Replay into a trimmable store is
+  idempotent and the record is still destroyed later, silently, by compaction
+  working exactly as specified. So the README states the server contract as
+  **two** obligations rather than one: dedupe by entry id, **and** declare the
+  retention floor — whether an accepted entry can ever be removed by a mechanism
+  the client never calls. A world whose entries are a legal record must not point
+  `endpoint` at a store that answers yes. The client cannot detect the difference
+  and this library will not pretend to; naming the obligation is the whole of what
+  a client can do about it. (The distinction is `ringserv`'s, routed here by
+  Central on 2026-08-19 before this was built; its `docs/COMMONS.md` designs
+  `Journal()` as a store *beside* the shape log rather than a setting on it,
+  because a French inalterability rule disqualifies a movable floor by
+  construction. Unpushed at the time of writing, so taken on report, not read.)
 
 **Storage-full, mid-service** (brief §7 Q5): `queue()` persists **before**
 returning. If the persist fails, the entry is refused —
