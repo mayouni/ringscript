@@ -441,6 +441,31 @@ but every call above names a decision already made here (proxy not mock,
 injected clock, event-order assertion, id-count assertion), so the next session
 builds it without re-deciding it.
 
+### Built, 2026-08-22 — and the first run sharpened the reconcile contract
+
+`tests/partition-harness.js` (with `tests/partition/`: the TCP proxy, a
+scripted server carrying the dedupe contract, a real SSE client over Node's
+http, and the world under test). Twenty checks, **0.7 s wall, 5/5 stable
+runs** — every assertion in the sketch above, over real severed sockets, on
+the real wasm VM, against the shipped v2 library.
+
+**What executing the design taught, which reading it did not**: the first
+run reconciled away the device's own pending order. An id absent from the
+healing snapshot is *not* automatically a ghost — a locally-placed order
+that has not reached the server yet is absent **by definition**; it is an
+intent still in the outbox, and dropping it eats the exact work the outbox
+exists to protect. The rule that survives the harness, kind-aware and made
+in the world's Ring where business judgement lives: **an unconfirmed id
+with an entity-creating entry (`order`) still queued or in flight is en
+route, kept; an unconfirmed id whose only outbox presence is a `transition`
+is a ghost, purged — a transition mutates what must already exist, and
+protecting a ghost because a transition rides on it re-opens Law 3's trap.**
+The stand-in server carries the same surface as RestoLean's Commons
+(snapshot-first SSE, per-entry batch verdicts, id-keyed dedupe), so pointing
+the proxy at the real `commons/serveur.js` is a target swap, not a rebuild —
+that run executes in RestoLean's repository, and is named rather than owned
+here.
+
 ## 6. Divergences between the prompt and this tree
 
 Reported, per the kit's own instruction, rather than silently resolved:

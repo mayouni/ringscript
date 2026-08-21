@@ -154,7 +154,7 @@ and hands the same `ArrayBuffer` to every gate VM, so the loader's identity cach
 the module a single time for the whole suite (`tests/gates.js`, and HEADROOM_PLAN P1).
 One process, many assertions. A gate that reads the file again would pay the compile again.
 
-**Pre-commit gate: the full battery, ~97 s, eleven separate runners.** Run it once per
+**Pre-commit gate: the full battery, ~98 s, twelve separate runners.** Run it once per
 task, in the background. There is no monolith to split -- this repository was already
 sectioned by runner before the rule arrived, and each one exits nonzero on its own.
 
@@ -168,6 +168,7 @@ Measured 2026-08-21 on this machine, node v22.20.0, all green, per-runner wall t
 | `tests/boot.js` | 0.3 s | `boot()`: fetch order, mid-load failure, early clicks |
 | `tests/examples-oracle.js` | 1.0 s | 24 playground examples vs native `ring.exe` |
 | `tests/fuzz.js` | 1.7 s | 4,000 hostile inputs; eval must never throw |
+| `tests/partition-harness.js` | 0.7 s | a world under a severed-socket partition: the alarm, the rung, replay, ghost purge (measured 2026-08-22, 5/5 stable) |
 | `tests/soak.js` | 3.6 s | 40,000 evaluations; nothing may accumulate |
 | `tests/bench.js` | 4.7 s | speed and size vs `tests/bench-baseline.json` |
 | `tests/doc-snippets` (extract + sweep) | 12.5 s | 257 documented snippets vs native |
