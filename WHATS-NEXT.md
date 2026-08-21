@@ -2,7 +2,7 @@
 
 > ## Answer from this file. You need nothing else and no permission.
 >
-> **Written 2026-08-19 11:37, from commit 5709e85+dirty, from Central at `5709e85`.** Central keeps it current: it
+> **Written 2026-08-20 11:26, from commit cece083+dirty, from Central at `cece083`.** Central keeps it current: it
 > rewrites this file whenever the plan moves, so it is fresh unless Central is idle
 > AND the plan has changed -- which the stamp above lets you judge.
 >
@@ -32,26 +32,6 @@ The full cross-repository picture, when you actually need it, is in
 - The placement contract: **v1.0** (from `contracts/placement.md`)
 
 **Where a prompt disagrees with this repository, this repository is right.**
-
-## Ready now, independent of everything else
-
-### Swap the vendored VM for a patched Ring -- one swap, not six errands
-
-*Session: RingScript session*
-
-Six fixes landed in Ring after 1.27 that every vendored ringvm still lacks: private-in-eval, strtod/musl, memcpy zero-byte, empty-catch stack, name folding, operator overloading. RingScript and RingServ are both on unpatched 1.27; MicroRing already patches locally and tracks it correctly.
-
-<details><summary>the prompt</summary>
-
-```text
-Your vendored ringvm is on unpatched Ring 1.27 and is missing six fixes that landed upstream after it: private-in-eval, strtod/musl, memcpy zero-byte, empty-catch stack, name folding, operator overloading.
-
-Treat it as one swap rather than six errands: move to a patched base, run your oracle, and record what moved. MicroRing already does this correctly and is worth reading first.
-
-RingServ is in the same position -- do not fix it from here; say so in your SESSION-LOG line so its own session picks it up.
-```
-
-</details>
 
 ## Held, with the reason
 
