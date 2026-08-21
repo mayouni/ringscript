@@ -177,9 +177,13 @@ function finish() {
     var q = ask("StockFinish", $("who").value || "unknown");
     if (!q.ok) { log("bad", esc(q.problem)); return; }
 
-    var r = pwa.queue("count", q);
-    log("queue", "Queued <b>" + esc(r.id) + "</b> — " + q.items + " lines, on the device.");
-    renderAll();
+    /* queue() answers a Promise in pwa 2.0: durable before ok, and a full
+       store refuses by name instead of losing the count */
+    pwa.queue("count", q).then(function (r) {
+        if (!r.ok) { log("bad", esc(r.problem)); return; }
+        log("queue", "Queued <b>" + esc(r.id) + "</b> — " + q.items + " lines, on the device.");
+        renderAll();
+    });
 }
 
 function syncNow() {
@@ -231,9 +235,10 @@ async function boot() {
        replaced about eighty lines of this file and all of sw.js but its
        cache list. See lib/pwa/. */
     pwa = await Pwa.attach(ring, {
+        world: "stock-count",                   /* the storage identity (2.0) */
         device: $("who").value || "device",
         sw: "sw.js",
-        storageKey: STORAGE_KEY + ".outbox",
+        storageKey: STORAGE_KEY + ".outbox",    /* so a 1.x queue imports once */
         syncTag: "pwa-flush",
         send: Server.send,
         onChange: function () { if (pwa) { renderAll(); } }

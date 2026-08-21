@@ -390,16 +390,17 @@ way.
 | | |
 |---|---|
 | registry | [ringscript-registry](https://github.com/mayouni/ringscript-registry) — one JSON file, a pull request is the review |
-| first library | [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) v1.0 |
+| first library | [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) — v2.0.0, partition-tolerant by default per [PARTITION-FOUNDATIONS.md](PARTITION-FOUNDATIONS.md) |
 
 ```
 $ ringscript search outbox
 
   Libraries matching "outbox":
 
-    pwa  1.1.0
-      Install to the home screen, work offline, and a durable outbox with
-      rollback - one entry at a time or a batch the server answers per entry.
+    pwa  2.0.0
+      Partition-tolerant by default: a durable outbox with ordered idempotent
+      replay, the degraded-mode rung readable by Ring rules, snapshot/stream
+      with the 8-second alarm, and storage that names its origin risk.
 
   Install it:  ringscript add pwa
 ```

@@ -278,12 +278,16 @@ function queueOrder() {
     if (!r) return;
     if (!r.ok) { log("local", "Not queued: " + esc(r.error)); renderOrder(); return; }
 
-    var q = pwa.queue("order", r.payload);
-    log("local", "Order <b>" + esc(q.id) + "</b> queued for " + money(r.total) +
-        " — written to storage, not to the network.");
-    selectedCustomer = null;
-    save();
-    renderAll();
+    /* queue() answers a Promise in pwa 2.0: the entry is DURABLE before ok,
+       and a store that cannot hold it says so instead of losing it */
+    pwa.queue("order", r.payload).then(function (q) {
+        if (!q.ok) { log("bad", "Not queued: " + esc(q.problem)); renderAll(); return; }
+        log("local", "Order <b>" + esc(q.id) + "</b> queued for " + money(r.total) +
+            " — written to storage, not to the network.");
+        selectedCustomer = null;
+        save();
+        renderAll();
+    });
 }
 
 function pullReference() {
@@ -385,9 +389,10 @@ function setOnline(v) {
        stock-count is the one about installing. The library is happy
        without one. */
     pwa = await Pwa.attach(ring, {
+        world: "route-orders",                  /* the storage identity (2.0) */
         device: "van-3",
         sw: null,
-        storageKey: STORAGE_KEY + ".outbox",
+        storageKey: STORAGE_KEY + ".outbox",    /* so a 1.x queue imports once */
         onChange: function () { if (pwa && ring) { renderOutbox(); renderStats(); } }
     });
     log("local", "ringscript-pwa " + Pwa.version + " attached — the queue, its ids and its storage.");

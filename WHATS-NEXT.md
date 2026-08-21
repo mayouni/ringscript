@@ -2,7 +2,7 @@
 
 > ## Answer from this file. You need nothing else and no permission.
 >
-> **Written 2026-08-20 11:26, from commit cece083+dirty, from Central at `cece083`.** Central keeps it current: it
+> **Written 2026-08-21 23:44, from commit 639bbcf+uncommitted, from Central at `639bbcf`.** Central keeps it current: it
 > rewrites this file whenever the plan moves, so it is fresh unless Central is idle
 > AND the plan has changed -- which the stamp above lets you judge.
 >

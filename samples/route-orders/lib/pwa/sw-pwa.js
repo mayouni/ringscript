@@ -24,7 +24,6 @@ function PwaServiceWorker(config) {
     var SHELL = config.shell || [];
     var ENDPOINT = config.endpoint;
     var TAG = config.syncTag || "pwa-flush";
-    var OUTBOX = "pwa-outbox";
 
     if (!CACHE) { throw new Error("PwaServiceWorker: a cache name is required"); }
 
@@ -43,7 +42,7 @@ function PwaServiceWorker(config) {
         e.waitUntil(
             caches.keys().then(function (names) {
                 return Promise.all(names.map(function (n) {
-                    if (n !== CACHE && n !== OUTBOX) { return caches.delete(n); }
+                    if (n !== CACHE) { return caches.delete(n); }
                 }));
             }).then(function () { return self.clients.claim(); })
         );
@@ -75,31 +74,58 @@ function PwaServiceWorker(config) {
     ** The app queued work and may since have been closed; the browser
     ** fires this when it next sees a connection.
     **
-    ** This worker knows nothing about what the work means. It moves
-    ** already-decided payloads that the app left in the handover store.
+    ** This worker knows nothing about what the work means. It reads the
+    ** SAME IndexedDB record the app writes on every save — v1 round-tripped
+    ** payloads through the Cache API because a worker cannot read
+    ** localStorage; with the IndexedDB driver that handover is gone, and
+    ** the worker and the app can never disagree about what is owed.
     ** The rules stayed in Ring.
     */
     self.addEventListener("sync", function (e) {
-        if (e.tag === TAG && ENDPOINT) { e.waitUntil(flush()); }
+        if (e.tag === TAG) { e.waitUntil(flush()); }
     });
 
+    function readWorlds() {
+        return new Promise(function (resolve, reject) {
+            var req = indexedDB.open("ringscript-pwa", 1);
+            req.onupgradeneeded = function () { req.result.createObjectStore("worlds"); };
+            req.onsuccess = function () {
+                var db = req.result;
+                var tx = db.transaction("worlds", "readonly");
+                var all = tx.objectStore("worlds").getAll();
+                all.onsuccess = function () { resolve(all.result || []); };
+                all.onerror = function () { reject(all.error); };
+            };
+            req.onerror = function () { reject(req.error); };
+        }).catch(function () { return []; });
+    }
+
+    /* Sequential, in the record's order — the app's ordering contract
+       (at-least-once, seq order) holds even when the app is closed. A
+       failure stops this world's replay; the next sync tries again. */
     function flush() {
-        return caches.open(OUTBOX).then(function (c) {
-            return c.match("pending").then(function (r) { return r ? r.json() : []; });
-        }).then(function (items) {
-            return Promise.all(items.map(function (item) {
-                return fetch(ENDPOINT, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(item)
-                }).then(function (r) {
-                    if (!r.ok) { throw new Error("rejected"); }
-                    return tell({ type: "pwa-sent", id: item.id });
-                }).catch(function () {
-                    /* left in the store; the next sync tries again */
-                    return tell({ type: "pwa-failed", id: item.id });
+        return readWorlds().then(function (records) {
+            var chain = Promise.resolve();
+            records.forEach(function (rec) {
+                var target = rec.endpoint || ENDPOINT;
+                if (!target || !rec.pending) { return; }
+                rec.pending.forEach(function (item) {
+                    chain = chain.then(function (stopped) {
+                        if (stopped) { return stopped; }
+                        return fetch(target, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(item)
+                        }).then(function (r) {
+                            if (!r.ok) { throw new Error("rejected"); }
+                            return tell({ type: "pwa-sent", id: item.id }).then(function () { return false; });
+                        }).catch(function () {
+                            return tell({ type: "pwa-failed", id: item.id }).then(function () { return true; });
+                        });
+                    });
                 });
-            }));
+            });
+            return chain;
         });
     }
 

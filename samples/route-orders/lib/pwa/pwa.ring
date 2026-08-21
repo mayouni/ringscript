@@ -15,11 +15,34 @@
 # every output key is snake_case because atom keys reach JavaScript
 # lower-cased.
 
-# [ id, kind, payload, state, seq, note ]
+# [ id, kind, payload, state, seq, note, created ]
 # state: queued | sent | accepted | rejected
+# created: milliseconds, supplied by the browser half at add time (0 for
+# entries written before 2.0) -- Ring has no wall clock worth trusting here,
+# and the page's clock is injectable for tests, so time always arrives.
 aPwaOutbox = []
 cPwaDevice = "device"
 nPwaSeq    = 0
+
+# The degraded-mode rung, PARTITION-FOUNDATIONS.md section 4. Maintained by
+# the browser half (PwaRungSet on every transition) and READ BY WORLD RULES:
+# a refusal like "card payment needs the server" is a business rule, and
+# business rules live in this half, not in UI glue. "alone" is the honest
+# boot state -- the server has not spoken yet.
+#   alone -> streaming (first snapshot / first successful exchange)
+#   streaming -> unreachable (the silence alarm)
+#   unreachable -> streaming (the reconnection sequence completes)
+cPwaRung = "alone"
+
+# ------------------------------------------------------------------ rung
+func PwaRung p
+	return cPwaRung
+
+func PwaRungSet cRung
+	if isstring(cRung) and (cRung = "streaming" or cRung = "unreachable" or cRung = "alone")
+		cPwaRung = cRung
+	ok
+	return cPwaRung
 
 # --------------------------------------------------------------- identity
 # Called once, with something stable for this device or user. The id is
@@ -41,11 +64,14 @@ func PwaOutboxAdd cJson
 	aIn = JsonDecode(cJson)
 	cKind = ""
 	pPayload = ""
+	nNow = 0
 	for i = 1 to len(aIn)
 		if aIn[i][1] = "kind"
 			cKind = "" + aIn[i][2]
 		but aIn[i][1] = "payload"
 			pPayload = aIn[i][2]
+		but aIn[i][1] = "now"
+			if isnumber(aIn[i][2])  nNow = aIn[i][2]  ok
 		ok
 	next
 	if len(cKind) = 0
@@ -54,8 +80,21 @@ func PwaOutboxAdd cJson
 
 	nPwaSeq = nPwaSeq + 1
 	cId = cKind + "-" + cPwaDevice + "-" + nPwaSeq + "-" + clock()
-	aPwaOutbox + [ cId, cKind, pPayload, "queued", nPwaSeq, "" ]
+	aPwaOutbox + [ cId, cKind, pPayload, "queued", nPwaSeq, "", nNow ]
 	return JsonEncode([ :ok = 1, :id = cId, :kind = cKind ])
+
+# The entry never happened. Exists for exactly one caller: the browser half
+# rolls an add back when the persist that must accompany it fails, because
+# an entry held only in memory is a durability lie with a countdown
+# (PARTITION-FOUNDATIONS.md section 2.3, the storage-full contract).
+func PwaOutboxDrop cId
+	for i = 1 to len(aPwaOutbox)
+		if aPwaOutbox[i][1] = cId
+			del(aPwaOutbox, i)
+			return JsonEncode([ :ok = 1, :id = cId ])
+		ok
+	next
+	return JsonEncode([ :ok = 0, :problem = "no such entry" ])
 
 # ------------------------------------------------------------------ read
 func PwaOutboxList p
@@ -85,6 +124,24 @@ func PwaOutboxPending p
 		ok
 	next
 	return n
+
+# Seconds the oldest queued entry has waited, given the page's idea of now
+# (milliseconds). -1 when nothing is queued. An entry from before 2.0 has no
+# created stamp and reports as 0 -- "unknown" must never inflate the figure
+# a banner shows.
+func PwaOutboxOldest nNow
+	nOldest = -1
+	for i = 1 to len(aPwaOutbox)
+		if aPwaOutbox[i][4] = "queued"
+			nAge = 0
+			if aPwaOutbox[i][7] > 0 and isnumber(nNow)
+				nAge = floor((nNow - aPwaOutbox[i][7]) / 1000)
+				if nAge < 0  nAge = 0  ok
+			ok
+			if nAge > nOldest  nOldest = nAge  ok
+		ok
+	next
+	return nOldest
 
 # ---------------------------------------------------------------- verdict
 func PwaOutboxSent cId
@@ -214,10 +271,14 @@ func PwaOutboxRestore cJson
 			nPwaSeq = aIn[i][2]
 		but aIn[i][1] = "entries"
 			aPwaOutbox = aIn[i][2]
-			# entries written before 1.1 have no note column
+			# entries written before 1.1 have no note column, and
+			# entries written before 2.0 have no created stamp
 			for k = 1 to len(aPwaOutbox)
 				if len(aPwaOutbox[k]) < 6
 					aPwaOutbox[k] + ""
+				ok
+				if len(aPwaOutbox[k]) < 7
+					aPwaOutbox[k] + 0
 				ok
 			next
 		ok
