@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The local-first set: three libraries, one registry, every piece consumed — RingScript blog</title>
+<meta name="description" content="pwa 2.0, table and money are published, and every one is consumed by a shipped sample. What a local-first application needs from its libraries, why the outbox learned partition tolerance from a real restaurant outage, and why 19% of 137 750 F is now 26 173 F by a rule instead of 26 172.4999… by luck.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.26">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    .standfirst { font-size: var(--read); color: var(--ink-soft); margin: -.2rem 0 .9rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem;
+                             border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    .scroll { overflow-x: auto; }
+    .try-it { border: 1px solid var(--accent); border-radius: 12px;
+              background: var(--accent-soft); padding: 1.3rem 1.4rem; margin: 2rem 0; }
+    .try-it h3 { margin: 0 0 .5rem; }
+    .try-it p { margin: 0 0 1rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="local-first.html">Local-first apps</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>The local-first set is complete</h1>
+
+<p class="standfirst">Three libraries, one registry, and every piece
+consumed by a shipped sample before its tag settled.</p>
+
+<p class="meta"><span class="label">For app programmers</span> August 2026 · from the RingScript project</p>
+
+<p class="first">When the <a href="blog-libraries.html">library ecosystem
+opened</a>, we sketched the set a local-first developer actually needs: the
+machinery of working offline, the machinery of working with rows, and the
+machinery of working with money. All three are now published, and the claim
+this post exists to make is not &ldquo;they exist&rdquo; &mdash; it is that
+<b>every one of them is consumed by a shipped sample application</b>, which
+is the only review a library API respects.</p>
+
+<div class="scroll"><table class="m">
+<tr><th>library</th><th>what it decides</th><th>consumed by</th></tr>
+<tr><td><a href="https://github.com/mayouni/ringscript-pwa" target="_blank" rel="noopener"><code>pwa</code></a> 2.0.0</td>
+    <td>what a queued unit of work is, when it counts as sent, what a
+    degraded mode is called</td>
+    <td>Route&nbsp;Orders, Stock&nbsp;Count</td></tr>
+<tr><td><a href="https://github.com/mayouni/ringscript-table" target="_blank" rel="noopener"><code>table</code></a> 1.2.0</td>
+    <td>filtering, sorting, paging, grouping rows on the device &mdash; with
+    the index that keeps a sorted read from going quadratic</td>
+    <td>the Ledger</td></tr>
+<tr><td><a href="https://github.com/mayouni/ringscript-money" target="_blank" rel="noopener"><code>money</code></a> 1.0.0</td>
+    <td>what an amount is, where a rounding decision happens, how a total
+    splits without losing a centime</td>
+    <td>Route&nbsp;Orders</td></tr>
+</table></div>
+
+<h2>The outbox grew up: partition-tolerant by default</h2>
+
+<p>The big change since the ecosystem post is <code>pwa</code> 2.0, and it
+was not designed at a whiteboard. It was designed against
+<b>field evidence from a real restaurant</b>: on 15 August a faulty
+refrigerator kept tripping a breaker in a Lyon couscous restaurant, every
+router reboot changed the server&rsquo;s address, and because browsers bind
+storage to the <em>origin</em>, two hours of the owner&rsquo;s notes became
+unreachable. The design that came out of that incident is written up in
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/PARTITION-FOUNDATIONS.md" target="_blank" rel="noopener">PARTITION-FOUNDATIONS.md</a>,
+and 2.0 is that document executed:</p>
+
+<p><b>Replay is ordered and idempotent.</b> Entries transmit strictly in
+queue order, one request in flight, and a failure <em>stops</em> the replay
+&mdash; a later entry must never overtake an earlier one&rsquo;s retry. The
+entry id is minted on the device before the first send, so a server that
+sees it twice returns the original verdict instead of creating a second
+order.</p>
+
+<p><b>A full store refuses loudly.</b> <code>queue()</code> persists the
+entry <em>before</em> answering ok; a store that cannot hold it says
+<code>storage-full</code> by name instead of accepting work it cannot keep.
+1.x could lose that quietly. 2.0 cannot.</p>
+
+<p><b>The degraded mode has a name, and Ring can read it.</b> The library
+maintains a rung &mdash; <code>alone</code>, <code>streaming</code>,
+<code>unreachable</code> &mdash; and pushes it <em>into the VM</em>, because
+a rule like &ldquo;card payment needs the server; pay cash, or wait&rdquo;
+is a business rule, and business rules live in Ring, not in UI glue. The
+connection-lost banner fires only after eight seconds of true silence
+&mdash; the exact number a restaurant owner&rsquo;s complaint tuned.</p>
+
+<p>And it is tested the way outages actually happen: a harness drives a real
+world, on the real VM, through a real TCP proxy whose <code>sever()</code>
+destroys live sockets mid-stream. Twenty checks in 0.7 seconds, including
+the one the first run failed &mdash; which found a genuine design gap about
+what a reconnecting device may forget. The fix is a rule now, not a
+patch.</p>
+
+<h2>Money, because doubles are not an accounting policy</h2>
+
+<p>The newest library is the smallest and the most opinionated. An amount is
+<b>integer minor units plus a currency</b> &mdash;
+<code>{"m":1250,"c":"EUR"}</code> &mdash; and four rules carry the rest:
+a typed price is <em>parsed exactly</em> while a computed value is
+<em>rounded on purpose</em>; there is exactly one rounding function in the
+whole library; currencies never mix silently; and an allocation always sums
+to the whole &mdash; 100&nbsp;F split three ways is 34&nbsp;+&nbsp;33&nbsp;+&nbsp;33,
+and no centime has ever gone missing between three people who can count.</p>
+
+<p>Route Orders now prices with it, and the one visible change is the honest
+one. The tax on a 137&nbsp;750&nbsp;F order used to be
+26&nbsp;172.4999&hellip; in a double, passing its test on tolerance; it is
+now <b>26&nbsp;173&nbsp;F</b>, by a half-up rule with a name, applied where
+you can see it. It knows XOF has no subdivision and Tunisian dinars carry
+three decimals, and it will refuse <code>"12.50"</code> as an XOF amount
+rather than round somebody&rsquo;s typed price.</p>
+
+<pre><code>mLine  = MoneyMul(mPrice, 10 * 0.95)     # a case of ten, 5% off: rounds ONCE
+mTax   = MoneyPercent(mLine, 19)         # integer arithmetic, half-up at the end
+mTotal = MoneyAdd(mLine, mTax)
+aParts = MoneySplit(mTotal, 3)           # the parts sum EXACTLY</code></pre>
+
+<h2>The habit that built all three</h2>
+
+<p>Publish, then <em>immediately</em> consume, then let the tag rest. Every
+release in this set moved a real sample onto itself before anything
+downstream could pin it, and the habit has paid three times: the second
+application found the duplicate-send bug that became pwa&nbsp;1.0.1; moving
+Route Orders onto 2.0 caught a batch API the refactor had dropped, while the
+tag was still cheap to re-cut; and the partition harness&rsquo;s first run
+corrected the reconcile contract itself. A library with no consumer moving
+against it is a library whose regressions are all still in the future.</p>
+
+<p>The other half of the habit is that <b>the installer keeps the
+promises</b>. Every download is verified against the registry&rsquo;s sha256
+before a byte is unpacked; <code>update</code> fetches and verifies the new
+version before deleting the old, so a failed download leaves the project
+exactly as it was; <code>remove</code> unwires every page an install ever
+touched and leaves <code>index.html</code> byte-identical. The second
+project on a laptop installs from the package cache with no network at all
+&mdash; which, for tooling that exists to build offline-capable
+applications, is not a nice-to-have.</p>
+
+<div class="try-it">
+  <h3>Try the set</h3>
+  <p>From any folder with an <code>index.html</code>, using the binary
+  already in the starter kit:</p>
+  <pre><code>ringscript add pwa
+ringscript add table
+ringscript add money</code></pre>
+  <p style="margin-top:1rem">
+    <a class="btn primary" href="samples/route-orders/" target="_blank" rel="noopener">Route Orders <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="btn ghost" href="ledger.html">The Ledger</a>
+    <a class="btn ghost" href="samples/stock-count/" target="_blank" rel="noopener">Stock Count <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </p>
+</div>
+
+<p>The format and the tooling are documented in
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/LIBRARIES.md" target="_blank" rel="noopener">LIBRARIES.md</a>,
+the hands-on tutorial in
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/using-libraries.md" target="_blank" rel="noopener">using-libraries.md</a>,
+and the partition design &mdash; the storage survey, the outbox contract,
+the rung, the test story &mdash; in
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/PARTITION-FOUNDATIONS.md" target="_blank" rel="noopener">PARTITION-FOUNDATIONS.md</a>.
+The registry is still one JSON file, and a pull request is still the whole
+of the review.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+</body>
+</html>

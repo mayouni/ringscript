@@ -38,9 +38,10 @@ ringscript search outbox
 ```
   Libraries matching "outbox":
 
-    pwa  1.1.0
-      Install to the home screen, work offline, and a durable outbox with
-      rollback - one entry at a time or a batch the server answers per entry.
+    pwa  2.0.0
+      Partition-tolerant by default: a durable outbox with ordered idempotent
+      replay, the degraded-mode rung readable by Ring rules, and
+      snapshot/stream with the 8-second alarm.
 
   Install it:  ringscript add pwa
 ```
@@ -54,10 +55,10 @@ ringscript add pwa
 ```
 
 ```
-  fetching pwa v1.1.0
-  verified 12684 bytes against the registry hash
+  fetching pwa v2.0.0
+  verified 23506 bytes against the registry hash
   wired into index.html
-  added pwa v1.1.0 to .
+  added pwa v2.0.0 to .
   service-worker half at lib/pwa/sw-pwa.js — importScripts it from your sw.js
 ```
 
@@ -98,18 +99,23 @@ not fetch or `eval` anything:
 
 ```js
 const pwa = await Pwa.attach(ring, {
+    world:  "route-orders",             // REQUIRED — the storage identity:
+                                        // storage is keyed by this name,
+                                        // never by where the page is served
     device: "van-3",                    // stable per device or user
+    endpoint: "/api/orders",            // same-origin; flush() sends one
+                                        // ordered batch, answered per entry
     sw: "sw.js",                        // your service worker, or null
-    send: (payload) => fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    }).then(r => { if (!r.ok) throw new Error("rejected"); }),
     onChange: render                    // called whenever the queue changes
 });
 
-pwa.queue("order", { shop: "m03", total: 4200 });   // works with no network
+const q = await pwa.queue("order", { shop: "m03", total: 4200 });
+if (!q.ok) show(q.problem);             // "storage-full" is loud, never lost
 ```
+
+`queue()` answers a Promise because the entry is **durable before `ok`** —
+a store that cannot hold it refuses by name instead of accepting work it
+cannot keep. Everything else about the call works with no network at all.
 
 Note `ring` is passed **in**. One page has one VM, and the library uses
 yours rather than starting its own.
@@ -133,11 +139,11 @@ update pwa` — just that library. Either way it prints a line per package, so a
 run that changes nothing still tells you where you stand:
 
 ```
-  pwa v1.0 -> v1.1.0
-  fetching pwa v1.1.0
-  verified 12684 bytes against the registry hash
+  pwa v1.1.0 -> v2.0.0
+  fetching pwa v2.0.0
+  verified 23506 bytes against the registry hash
   wired into index.html
-  added pwa v1.1.0 to .
+  added pwa v2.0.0 to .
   table v1.2.0 — current
 ```
 
@@ -153,7 +159,7 @@ download that fails mid-update prints
 
 ```
   could not download it (ConnectionRefused)
-  kept v1.0.0 — the new version could not be fetched
+  kept v1.1.0 — the new version could not be fetched
 ```
 
 and your project is exactly as it was: files, script tag, lockfile entry. This
@@ -163,7 +169,7 @@ a window in the middle where the library is gone.
 **It will not touch a library you installed from a folder.** Those say
 
 ```
-  pwa v1.0 — installed from a path; re-add it from that folder to refresh
+  pwa v2.0.0 — installed from a path; re-add it from that folder to refresh
 ```
 
 because nothing here can know whether that folder still exists, or still holds

@@ -72,7 +72,8 @@ Its own repository — `ringscript-registry` — holding one file:
       "author": "Mansour Ayouni",
       "license": "MIT",
       "versions": [
-        { "version": "1.0", "tag": "v1.0", "ringscript": ">=0.9",
+        { "version": "2.0.0", "tag": "v2.0.0", "ringscript": ">=0.9",
+          "url": "…/releases/download/v2.0.0/ringscript-pwa-2.0.0.tar.gz",
           "sha256": "…" }
       ]
     }
@@ -303,14 +304,17 @@ the tag; `remove` leaves `index.html` **byte-identical** to before the
 install. TLS was proved by pointing the registry URL at a real file and
 parsing it.
 
-**The install path, proved against the published library:**
+**The install path, proved against the published library** — first on the
+day the registry opened (pwa v1.0, 10 755 bytes), and re-proved at every
+release since; today it prints:
 
 ```
 $ ringscript add pwa
-  fetching pwa v1.0
-  verified 10755 bytes against the registry hash
+  fetching pwa v2.0.0
+  verified 23506 bytes against the registry hash
   wired into index.html
-  added pwa v1.0 to .
+  added pwa v2.0.0 to .
+  service-worker half at lib/pwa/sw-pwa.js — importScripts it from your sw.js
 ```
 
 And the three refusals, which are the part worth having:
@@ -390,7 +394,14 @@ way.
 | | |
 |---|---|
 | registry | [ringscript-registry](https://github.com/mayouni/ringscript-registry) — one JSON file, a pull request is the review |
-| first library | [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) — v2.0.0, partition-tolerant by default per [PARTITION-FOUNDATIONS.md](PARTITION-FOUNDATIONS.md) |
+| [ringscript-pwa](https://github.com/mayouni/ringscript-pwa) 2.0.0 | partition-tolerant by default, per [PARTITION-FOUNDATIONS.md](PARTITION-FOUNDATIONS.md): the durable outbox with ordered idempotent replay, the rung, snapshot/stream |
+| [ringscript-table](https://github.com/mayouni/ringscript-table) 1.2.0 | rows on the device: filter, sort, page, aggregate, group |
+| [ringscript-money](https://github.com/mayouni/ringscript-money) 1.0.0 | integer minor units: exact parsing, one rounding rule, allocation that never loses a centime |
+
+Every library is consumed by a shipped sample — route-orders prices with
+`money` and queues with `pwa`; the ledger sorts and groups with `table`;
+stock-count installs and syncs with `pwa` — so each release meets a real
+consumer before its tag settles.
 
 ```
 $ ringscript search outbox
