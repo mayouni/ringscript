@@ -35,6 +35,7 @@ Read them in order — each builds on the previous one:
 | 7 | [The ZQL payload](zql-payload.md) | The library baked into the wasm: why it is there, and the grammar it accepts |
 | 8 | [The StzZql pin](ZQL_PIN.md) | A consumed grammar, not an owned one: the recorded version, the hashes, the 16-fixture conformance run |
 | 9 | [Partition foundations](PARTITION-FOUNDATIONS.md) | The client plane under a dead network: the storage survey and its origin ruling, the outbox v2 contract, snapshot/stream, the rung surface, the test harness — with a [runnable example](partition-example/README.md) |
+| 10 | [The restaurant challenge](partition-case-study.md) | The case study behind it all: how a field failure in a restaurant in France was faced, captured as laws, built into the library, and made teachable — with the [Café Tickets tutorial](../samples/cafe-tickets/README.md) |
 
 Worked examples and measurement:
 

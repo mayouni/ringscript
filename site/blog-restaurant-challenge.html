@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A breaker tripped in a restaurant. Our runtime learned partition tolerance. — RingScript blog</title>
+<meta name="description" content="During a real field trial in a restaurant in France, a faulty refrigerator kept tripping the breaker — and hours of work vanished behind a changed network address. How that evening became laws, the laws became a library, and the library became a 70-line tutorial app.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=0.9.26">
+<style>
+    article { max-width: 44rem; }
+    article p { color: var(--ink-soft); }
+    article p.first { font-size: var(--read); color: var(--ink); }
+    .meta { font-size: var(--floor); color: var(--ink-soft); margin: -.4rem 0 1.8rem; }
+    .meta .label { color: var(--accent); font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .05em; font-size: var(--floor); margin-right: .7rem; }
+    .standfirst { font-size: var(--read); color: var(--ink-soft); margin: -.2rem 0 .9rem; }
+    blockquote {
+        margin: 1.6rem 0; padding: .2rem 0 .2rem 1.1rem;
+        border-left: 3px solid var(--accent); font-size: var(--read); color: var(--ink);
+    }
+    pre {
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 9px;
+        padding: .9rem 1rem; overflow-x: auto; font-size: var(--mono-size); line-height: 1.5;
+    }
+    table.m { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: var(--read); }
+    table.m th, table.m td { text-align: left; padding: .5rem .7rem;
+                             border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.m th { font-size: var(--floor); text-transform: uppercase; letter-spacing: .04em;
+                 color: var(--ink-soft); font-weight: 600; }
+    .scroll { overflow-x: auto; }
+    .try-it { border: 1px solid var(--accent); border-radius: 12px;
+              background: var(--accent-soft); padding: 1.3rem 1.4rem; margin: 2rem 0; }
+    .try-it h3 { margin: 0 0 .5rem; }
+    .try-it p { margin: 0 0 1rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="26" height="26">Ring<span>Script</span></a>
+    <a href="start.html">Start here</a>
+    <a href="local-first.html">Local-first apps</a>
+    <a href="why-ring.html">Why Ring?</a>
+    <a href="faq.html">Q&amp;A</a>
+    <a class="active" href="blog.html">Blog</a>
+    <a class="cta" href="playground/" target="_blank" rel="noopener">Playground <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </div>
+</nav>
+
+<section class="wrap">
+<article>
+
+<h1>A breaker tripped in a restaurant.<br>Our runtime learned partition&nbsp;tolerance.</h1>
+
+<p class="standfirst">The story of one failure's whole journey: a real
+evening in a real service, seven laws paid for in the field, a library that
+carries them so applications don&rsquo;t have to, and a 70-line tutorial
+app you can break on purpose.</p>
+
+<p class="meta"><span class="label">Field notes</span> August 2026 · from the RingScript project</p>
+
+<p class="first">RestoLean is a point-of-sale platform for neighbourhood
+food businesses, and its first field trial ran in a restaurant in France
+&mdash; real services, real orders, browser apps on the venue&rsquo;s own
+Wi-Fi: a remote control on the customer&rsquo;s phone, a kitchen display on
+a tablet, a dashboard for the owner. On 15 August, a faulty refrigerator
+started tripping the circuit breaker.</p>
+
+<p>Each trip rebooted the internet box. Each reboot handed the server a new
+address. And here is the part that turns an annoyance into a lesson:
+browsers bind storage to the <b>origin</b> &mdash; scheme, host, port,
+exactly. The notes the owner had been writing all evening lived under
+<code>http://&hellip;10.111:8770</code>. When the box came back as
+<code>&hellip;10.104</code>, those two hours were gone. Not deleted &mdash;
+worse. Intact, in the browser&rsquo;s storage, under an address nobody
+could serve any more.</p>
+
+<p>The owner&rsquo;s reaction was not a bug report. It was a requirement,
+from a man who has watched cables get cut in the street and building
+technicians unplug the wrong socket:</p>
+
+<blockquote>A single cut can wreck an entire service. The system must stop
+depending on the network at all &mdash; by design.</blockquote>
+
+<h2>What the analysis actually found</h2>
+
+<p>&ldquo;The network&rdquo; is five different failure domains wearing one
+name, and the one everybody discusses &mdash; the internet going down
+&mdash; is the one a LAN-based system already survives. What stops a
+restaurant is <b>the router</b> and <b>the one machine acting as
+server</b>, and those fail far more often than streets get vandalised.
+Add the two facts that make restaurants unforgiving &mdash; a service is
+time-boxed (an order lost at 12:40 is not delayed, it is gone) and trust
+is the product (a tool that fails once during a rush is replaced by a paper
+pad the same afternoon) &mdash; and the requirement sharpens: not
+&ldquo;offline support&rdquo;, but <b>partition tolerance between the
+devices in the room</b>.</p>
+
+<p>The evening became seven laws, each one paid for in the field before it
+was written down. Three of them give the flavour:</p>
+
+<p><b>Write locally before any network attempt, and never be silent about
+pending state.</b> The first version tried the network first and queued on
+failure. Data loss followed. The rewrite journals first, always, and shows
+a visible count of what has not left the device.</p>
+
+<p><b>A server snapshot replaces local state; it never merges.</b> A
+kitchen display that merged its restored queue with the server&rsquo;s
+truth resurrected a four-day-old ticket as a ghost. When the authority
+speaks, local caches are replaced &mdash; local state exists to survive an
+outage, not to argue afterwards.</p>
+
+<p><b>Distinguish a blip from an outage.</b> The connection-lost banner
+used to fire on every reconnection &mdash; several times a minute on flaky
+Wi-Fi &mdash; and the owner reported the <em>banner</em> as the
+malfunction. Alarm fatigue is a real failure mode: it trains people to
+ignore the one warning that matters. The alarm now waits eight seconds of
+true silence.</p>
+
+<h2>From laws to a foundation</h2>
+
+<p>Laws in a document protect nobody. They became
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/PARTITION-FOUNDATIONS.md" target="_blank" rel="noopener">a design</a>,
+and the design became
+<a href="https://github.com/mayouni/ringscript-pwa" target="_blank" rel="noopener"><b>ringscript-pwa&nbsp;2.0</b></a>
+&mdash; the partition library of the RingScript runtime, installed with one
+command, carrying the whole evening so no application has to relive it:</p>
+
+<div class="scroll"><table class="m">
+<tr><th>what the library guarantees</th><th>the law it carries</th></tr>
+<tr><td><code>queue()</code> persists <b>before</b> answering ok; a full store refuses by name</td>
+    <td>write locally first; never be silent</td></tr>
+<tr><td>replay is ordered and idempotent &mdash; ids minted on the device, a retry can never become a second order</td>
+    <td>the till may hear a ticket twice; it must act once</td></tr>
+<tr><td>storage keyed by a <b>world name</b>, never the serving address; a bare-IP origin raises a named warning; a file mirror for what must survive anything</td>
+    <td>15 August itself &mdash; the origin is a fault domain</td></tr>
+<tr><td>snapshots replace, orphans get reconciled with a safe exit</td>
+    <td>no ghost tickets</td></tr>
+<tr><td>the degraded mode is a named <b>rung</b> &mdash; <code>alone / streaming / unreachable</code> &mdash; on screen and <b>readable from Ring rules</b></td>
+    <td>never a freeze; and refusals are business rules</td></tr>
+<tr><td>the alarm fires after 8 seconds of true silence, not on a blip</td>
+    <td>alarm fatigue is a failure mode</td></tr>
+</table></div>
+
+<p>And because a promise like this is worthless untested, the outage itself
+became a test: a harness drives a real application, on the real VM, through
+a <b>real TCP proxy whose <code>sever()</code> destroys live sockets
+mid-stream</b> &mdash; 15 August, reproducible on demand, twenty
+assertions in 0.7 seconds. Its very first run caught a design gap the
+document could not see: a reconciliation that ate the device&rsquo;s own
+undelivered orders. The rule that survived &mdash; a <em>ghost</em> is
+restored state nothing is carrying; an <em>intent</em> is your own work
+still en route, and only ghosts are purged &mdash; exists because the test
+ran, not because someone was clever.</p>
+
+<h2>Using it: a café ticket pad in 70 lines of Ring</h2>
+
+<p>The tutorial app, <b>Café Tickets</b>, is the smallest thing that
+survives a dead network &mdash; and the point is how little of it there
+is. The application author writes the rules; here is the only one that
+mentions the network at all:</p>
+
+<pre><code>func TicketCancel cId
+    if PwaRung(1) != "streaming"
+        return JsonEncode([ :ok = 0,
+            :refuse = "a cancellation needs the till -- it will be" +
+                      " possible again when the connection returns" ])
+    ok
+    ...</code></pre>
+
+<p>Placing a ticket never waits &mdash; a waiter&rsquo;s hand does not stop
+writing because the router rebooted. Serving is monotonic &mdash; food that
+left the kitchen does not roll back. But a <em>cancellation</em> touches
+the till&rsquo;s totals, so it needs the till &mdash; and that decision is
+three lines of Ring, next to the rules it belongs with, reading the rung
+the library maintains. Not an <code>if&nbsp;(navigator.onLine)</code>
+scattered through UI code: a business rule, where business rules live.</p>
+
+<p>Everything else is one attach and one send function. Then you break it:
+cut the connection, keep taking tickets, watch the counter climb and the
+banner name the mode after eight honest seconds, try a cancel and read the
+refusal, restore the connection and watch the queue drain itself &mdash;
+in order, exactly once each. Reload mid-outage: nothing is lost, because
+nothing was ever acknowledged before it was durable.</p>
+
+<div class="try-it">
+  <h3>Break it yourself</h3>
+  <p>The tutorial builds the whole app step by step and ends with the
+  five-step demolition script above.</p>
+  <p style="margin-top:1rem">
+    <a class="btn primary" href="samples/cafe-tickets/" target="_blank" rel="noopener">Café Tickets <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a class="btn ghost" href="https://github.com/mayouni/ringscript/blob/main/samples/cafe-tickets/README.md" target="_blank" rel="noopener">The tutorial <span class="newtab" aria-hidden="true">&#8599;</span></a>
+  </p>
+</div>
+
+<h2>The lesson we would give anyone</h2>
+
+<p>The hard parts of surviving a dead network &mdash; durability before
+acknowledgement, ordered replay, idempotency, honest degraded modes, the
+origin trap &mdash; are the same for every application. They belong in a
+library, written once, tested by severing real sockets. What should remain
+for the application author is exactly the part that is theirs: <b>what the
+application means</b>. A field failure is only expensive once if you
+capture it; the whole trail &mdash; incident, laws, design, library,
+harness, tutorial &mdash; is in
+<a href="https://github.com/mayouni/ringscript/blob/main/docs/partition-case-study.md" target="_blank" rel="noopener">the case study</a>.</p>
+
+</article>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>RingScript 0.9 — MIT</span>
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mayouni/ringscript/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://ring-lang.github.io/" target="_blank" rel="noopener">Ring language <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <a href="https://github.com/mayouni/stzlib" target="_blank" rel="noopener">Softanza <span class="newtab" aria-hidden="true">&#8599;</span></a>
+    <span class="sp">a Softanza project by Mansour Ayouni</span>
+  </div>
+</footer>
+
+<script src="playground/ring-highlight.js"></script>
+<script src="code.js"></script>
+</body>
+</html>

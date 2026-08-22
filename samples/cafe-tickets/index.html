@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Tickets — a partition-tolerance tutorial in RingScript</title>
+<meta name="description" content="The smallest app that survives a dead network: tickets queue durably on the device, the degraded mode has a name on screen, and one business rule refuses politely until the till is back.">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+    :root { --ink:#1c1917; --soft:#57534e; --line:#e7e5e4; --accent:#0e7490;
+            --warn-bg:#fef3c7; --warn-ink:#92400e; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 system-ui, sans-serif; color: var(--ink);
+           max-width: 34rem; margin: 0 auto; padding: 1.2rem; }
+    h1 { font-size: 1.35rem; margin: .2rem 0 .1rem; }
+    p.tag { color: var(--soft); margin: 0 0 1rem; font-size: .92rem; }
+    #banner { background: var(--warn-bg); color: var(--warn-ink);
+              border-radius: 8px; padding: .6rem .8rem; margin: 0 0 .8rem;
+              font-weight: 600; font-size: .95rem; }
+    #state { color: var(--soft); font-size: .85rem; margin: 0 0 1rem; }
+    form { display: flex; gap: .5rem; margin: 0 0 1rem; }
+    input, button, select { font: inherit; padding: .45rem .6rem;
+              border: 1px solid var(--line); border-radius: 8px; }
+    #item { flex: 1; }
+    button { background: var(--accent); color: #fff; border: 0; cursor: pointer; }
+    #cut { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { padding: .5rem .2rem; border-bottom: 1px solid var(--line); }
+    li b { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+           color: var(--soft); margin: 0 .4rem; }
+    li.served { color: var(--soft); }
+    li.cancelled { color: var(--soft); text-decoration: line-through; }
+    li button { font-size: .8rem; padding: .2rem .5rem; margin-left: .3rem;
+                background: #fff; color: var(--accent);
+                border: 1px solid var(--accent); }
+    #log { color: #b3261e; min-height: 1.4em; font-size: .92rem; }
+    footer { margin-top: 1.6rem; font-size: .85rem; color: var(--soft); }
+    footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>Café Tickets</h1>
+<p class="tag">The smallest app that survives a dead network. Take tickets,
+cut the connection, keep taking tickets.</p>
+
+<p id="banner" hidden></p>
+<p id="state">starting…</p>
+
+<form id="place">
+    <select id="table-no">
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+        <option>5</option><option>6</option><option>7</option><option>8</option>
+    </select>
+    <input id="item" placeholder="un café · a mint tea · the dish of the day" required>
+    <button type="submit">Ticket</button>
+</form>
+
+<p><button id="cut" type="button">Cut the connection</button></p>
+<p id="log"></p>
+
+<ul id="tickets"></ul>
+
+<footer>
+    Built with <a href="https://github.com/mayouni/ringscript-pwa">ringscript-pwa</a> —
+    the tutorial is in <a href="README.md">README.md</a>, the rules are 70 lines of
+    <a href="tickets.ring">Ring</a>.
+</footer>
+
+<script src="app.js"></script>
+<script src="lib/pwa/pwa.js"></script>
+</body>
+</html>
