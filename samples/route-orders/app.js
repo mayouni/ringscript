@@ -378,6 +378,11 @@ function setOnline(v) {
     var wasm = await (await fetch(RUNTIME + "ringscript.wasm")).arrayBuffer();
     ring = await RingScript.load(wasm, { onOutput: function () {} });
 
+    /* the money rules first -- orders.ring prices with ringscript-money,
+       so the library's Ring half must be resident before the first
+       OrderView. Money.attach loads it from beside its own script. */
+    await Money.attach(ring);
+
     var rules = await (await fetch("orders.ring")).text();
     var loaded = ring.eval(rules);
     if (!loaded.ok) { log("fail", "orders.ring: " + esc(loaded.error)); return; }

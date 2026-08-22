@@ -243,7 +243,12 @@ func OrderRemoveLine nIndex
 func OrderView p
 	nTierCol = TierColumnOf(cOrderCustomer)
 	aRows = []
-	nSub = 0
+	# Every amount below is ringscript-money: integer minor units, one
+	# explicit rounding rule. Prices arrive as XOF minor already, so the
+	# arithmetic is exact by construction rather than exact by luck --
+	# 19% of 143 500 F is 27 265 F because minor*19/100 stays in integers,
+	# not because a double happened to land.
+	mSub = MoneyFromMinor(0, cCurrency)
 	aWarn = []
 	for i = 1 to nLines
 		nRow = ProductRowOf(aLineSku[i])
@@ -254,9 +259,10 @@ func OrderView p
 		if aProdCase[nRow] > 0 and nQty >= aProdCase[nRow]
 			nDisc = 5
 		ok
-		nGross = nUnit * nQty
-		nNet = nGross - (nGross * nDisc / 100)
-		nSub = nSub + nNet
+		mGross = MoneyFromMinor(nUnit * nQty, cCurrency)
+		mNet = MoneySub(mGross, MoneyPercent(mGross, nDisc))
+		nNet = MoneyMinor(mNet)
+		mSub = MoneyAdd(mSub, mNet)
 		# RULE: never promise stock that is not there — but do not block it
 		# either, because a backorder is a real thing a shop may still want
 		cFlag = ""
@@ -267,8 +273,11 @@ func OrderView p
 		aRows + [ aProdSku[nRow], aProdName[nRow], nQty, aProdUnit[nRow],
 		          nUnit, nDisc, nNet, cFlag ]
 	next
-	nTax = nSub * nTaxRate
-	nTotal = nSub + nTax
+	mTax = MoneyMul(mSub, nTaxRate)
+	mTotal = MoneyAdd(mSub, mTax)
+	nSub = MoneyMinor(mSub)
+	nTax = MoneyMinor(mTax)
+	nTotal = MoneyMinor(mTotal)
 
 	# RULE: the credit limit. This is the one that has to work with the
 	# cable out — a representative cannot phone the office from a market.

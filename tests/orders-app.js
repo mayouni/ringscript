@@ -23,6 +23,9 @@ const reference = fs.readFileSync(path.join(sample, "reference.json"), "utf8");
 // the page loads it before orders.ring. This harness must do the same, or it
 // tests an application the browser never runs.
 const library = fs.readFileSync(path.join(sample, "lib", "pwa", "pwa.ring"), "utf8");
+// orders.ring prices with ringscript-money since money 1.0.0 — the page
+// loads it via Money.attach, so the harness loads what the page loads.
+const moneyLib = fs.readFileSync(path.join(sample, "lib", "money", "money.ring"), "utf8");
 
 let failures = 0;
 function check(name, cond, detail) {
@@ -36,6 +39,8 @@ async function newApp() {
     const ring = await RingScript.load(bytes, { onOutput: () => {} });
     const lib = ring.eval(library);
     if (!lib.ok) throw new Error("pwa.ring failed to load: " + lib.error);
+    const mny = ring.eval(moneyLib);
+    if (!mny.ok) throw new Error("money.ring failed to load: " + mny.error);
     const r = ring.eval(source);
     if (!r.ok) throw new Error("orders.ring failed to load: " + r.error);
     const call = (fn, arg) => {
