@@ -91,6 +91,21 @@ Central sets the budget and the duty to disclose, never how you test: which sect
 on a diet is yours. Missing a budget owes a number and a plan, not permission. Full law:
 `D:\GitHub\softanza\protocol\PX.md`
 
+## This machine stops dead under memory pressure -- it does not slow down
+
+**A 2 GB page file against 31.6 GB of RAM.** On a normal machine, overcommitting memory
+costs swapping and a slow build. Here there is almost no swap to fall back on, so the
+failure is not a slow build: **the machine freezes and costs a restart**, taking every
+unsaved buffer and every running session on it with you. It froze three times on
+2026-08-21, the third on an already-capped `zig build -j2` with nothing else running.
+
+So: **cap the parallelism of anything that compiles, links or holds a large corpus in
+memory** -- `-j2` rather than the default fan-out, one heavy job at a time, and never a
+second one "just to see". If a build needs more than that to finish in reasonable time,
+say so in your memo as a number; do not buy the time with the machine. Raised by ringpp
+as its parting finding and ruled into this block 2026-08-23 (`CENTRAL-HEADROOM-BLOCK-01`)
+because it was true of every repository while being written down in only one log line.
+
 ## Talk in the memo style
 
 A substantive message is a memo: a closed yaml-like structure, spaced for the eye.
