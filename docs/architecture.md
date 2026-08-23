@@ -186,6 +186,16 @@ zig build -Ddebug    # debug build of the wasm, when you need one
 zig build -Dmax-heap=64   # a 64 MB-capped wasm for the endurance page
 ```
 
+**On a machine with little swap headroom, cap the fan-out.** Zig parallelises
+across every logical core by default, and `zig build dist` is the heaviest thing
+in this repository -- one cross-compile per shipped platform. The estate's build
+machine runs a 2 GB page file against 31.6 GB of RAM, so overcommitting there does
+not swap and slow down, it freezes the machine and costs a restart. Pass `-j2` on
+such a host (`zig build -j2`, `zig build dist -j2`) and run one heavy job at a
+time. This is a property of the host, not of this project: on a machine with an
+ordinary page file the plain commands above are correct and faster. Ruled
+2026-08-23, `CENTRAL-HEADROOM-BLOCK-01`.
+
 **Release is the default on purpose**: `playground/ringscript.wasm` and
 `bin/ringscript-serve-*` are committed release artifacts (RingPM
 downloads them as-is, with no build step on the user's machine), so an
