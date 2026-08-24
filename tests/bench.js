@@ -197,6 +197,43 @@ const BENCHES = [
     },
 ];
 
+/* ------------------------------------------------------------- build mode
+**
+** MICRORING-DEBUGBENCH-01 (stz-principal decisions/LEDGER.md line 106): a
+** repository publishing benchmark numbers PRINTS THE BUILD MODE WHERE THE
+** NUMBERS ARE READ -- beside them, not in a build file the reader must go
+** and find.
+**
+** build.zig defaults to ReleaseSmall here, so the usual accident (a Debug
+** default nobody noticed) cannot happen. But -Ddebug is one flag away in
+** anyone's tree, and a debug wasm moves every row below by +68% to +310%.
+** So the mode is READ OFF THE BINARY rather than asserted: Zig emits DWARF
+** custom sections (.debug_info and friends) in Debug and none in any
+** release mode. A comment can be edited into a lie; the sections cannot. */
+function wasmBuildEvidence(buf) {
+    const dwarf = [];
+    try {
+        let p = 8;                                    // magic + version
+        while (p + 1 < buf.length) {
+            const id = buf[p++];
+            let size = 0, shift = 0, b;
+            do { b = buf[p++]; size |= (b & 0x7f) << shift; shift += 7; } while (b & 0x80);
+            const end = p + size;
+            if (end <= p || end > buf.length) break;   // malformed: claim nothing
+            if (id === 0) {                            // custom section: name first
+                let q = p, nlen = 0, ns = 0, c;
+                do { c = buf[q++]; nlen |= (c & 0x7f) << ns; ns += 7; } while (c & 0x80);
+                if (q + nlen <= end) {
+                    const name = buf.toString("utf8", q, q + nlen);
+                    if (name.startsWith(".debug")) dwarf.push(name);
+                }
+            }
+            p = end;
+        }
+    } catch (e) { return { debug: false, unreadable: true, sections: [] }; }
+    return { debug: dwarf.length > 0, unreadable: false, sections: dwarf };
+}
+
 /* -------------------------------------------------------------------- main */
 
 (async () => {
@@ -214,7 +251,23 @@ const BENCHES = [
     console.log("RingScript benchmarks" + (QUICK ? "  (quick)" : ""));
     console.log("  " + os.cpus()[0].model.trim());
     console.log("  node " + process.versions.node + " on " + process.platform +
-                "   wasm " + buf.length.toLocaleString() + " bytes\n");
+                "   wasm " + buf.length.toLocaleString() + " bytes");
+    const build = wasmBuildEvidence(buf);
+    console.log("  build mode  " + (build.unreadable
+        ? "UNKNOWN -- the wasm section table would not parse"
+        : build.debug
+            ? "DEBUG (" + build.sections.length + " DWARF sections present) -- " +
+              "the numbers below are NOT comparable to the baseline"
+            : "release, no DWARF sections in the binary " +
+              "(build.zig defaults to ReleaseSmall; -Ddebug opts out)") + "\n");
+
+    // A debug build must never become the committed baseline: it would move
+    // every row at once, and hide the next real regression underneath itself.
+    if (UPDATE && build.debug) {
+        console.log("  REFUSED  the baseline is not re-recorded from a debug build.");
+        console.log("           Rebuild without -Ddebug, then run --update again.");
+        process.exit(1);
+    }
 
     // Calibrate first, and again at the end, so a machine that throttles or
     // gets busy mid-run is visible rather than silently blamed on the code.

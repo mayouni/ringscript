@@ -21,6 +21,10 @@ ranked by *where* it lives:
 And the size gate stays: ReleaseSmall was chosen over a 6.2× binary
 for ~15% speed. Nothing here re-litigates that without new numbers.
 
+*Every number in this file is a **ReleaseSmall** build (build.zig's
+default); `tests/bench.js` reads the mode off the wasm and prints it
+beside its results.*
+
 ## Root causes, measured
 
 | gap ([rivals.md](rivals.md)) | root cause (verified) |

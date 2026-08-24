@@ -6,12 +6,20 @@ compiled to WebAssembly, under the same measurement discipline
 (minimum of many runs, correctness probed before any timing is
 believed). Harness: [`tests/rivals/`](../tests/rivals/run.js).*
 
-Two honesty rules, or a page like this is marketing:
+Three honesty rules, or a page like this is marketing:
 
 - **Each language gets idiomatic code** — the same algorithm, written
   the way that language's programmer would write it.
 - **Losses are published with the wins.** The point is to find the
   headroom, not to win.
+- **Every engine here is a release build**, and a comparison is worth
+  nothing until that is said out loud: `ringscript.wasm` is
+  **ReleaseSmall** (build.zig's default, and `tests/bench.js` reads the
+  mode off the binary rather than trusting the setting); Lua is
+  **wasmoon's** shipped `glue.wasm`; JS is
+  **`quickjs-wasmfile-release-sync`**, which names its own mode in the
+  package. Unequal deoptimisation is the one defect a break-even table
+  cannot survive, so the modes travel with the numbers.
 
 ## The scoreboard, kept current
 

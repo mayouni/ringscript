@@ -351,7 +351,17 @@ and the file stays runnable with `ring.exe` on its own.
 
 Recorded baselines, not aspirations: `tests/bench.js` measures these on
 every run and fails if one regresses beyond 40%. Taken on an Intel Core
-5 210H, Node 22, `ringscript.wasm` at 396,030 bytes.
+5 210H, Node 22, and **`ringscript.wasm` built in ReleaseSmall** --
+build.zig's default -- at 396,935 bytes when the baseline was recorded.
+The committed artifact is 396,761 bytes today, inside the 2% size gate.
+
+The build mode is named here because a number published without one
+cannot be checked by the person reading it, and a `-Ddebug` build is one
+flag away in anyone's tree. It is not a claim on trust: `tests/bench.js`
+**reads the mode off the binary** -- Zig emits DWARF custom sections in
+Debug and none in any release mode -- prints it above the table on every
+run, and refuses `--update` from a debug build, so the baseline cannot be
+re-recorded from one by accident.
 
 | | min | what it exercises |
 |---|---|---|

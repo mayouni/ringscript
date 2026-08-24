@@ -85,8 +85,10 @@ the runtime were contributed back to Ring as
 
 ## 5. Practical expectations
 
-- **Startup**: ~340 KB of wasm, instantiated in tens of milliseconds;
-  a Playground eval round-trip is typically 1–3 ms.
+- **Startup**: ~390 KB of wasm (~134 KB gzipped), instantiated in tens
+  of milliseconds; a Playground eval round-trip is typically 1-3 ms.
+  That is the committed ReleaseSmall artifact -- the same file RingPM
+  downloads, measured rather than estimated.
 - **Memory**: flat across sustained use — 40,000 evaluations of
   page-shaped work leave the wasm heap unchanged, in Node and in a
   browser alike (gated, and re-runnable on your own device with
