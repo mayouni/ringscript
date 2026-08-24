@@ -2,7 +2,7 @@
 
 > ## Answer from this file. You need nothing else and no permission.
 >
-> **Written 2026-08-21 23:44, from commit 639bbcf+uncommitted, from Central at `639bbcf`.** Central keeps it current: it
+> **Written 2026-08-24 16:04, from commit 1290e02+uncommitted, from Central at `1290e02`.** Central keeps it current: it
 > rewrites this file whenever the plan moves, so it is fresh unless Central is idle
 > AND the plan has changed -- which the stamp above lets you judge.
 >
@@ -59,4 +59,4 @@ a preference is not a disagreement. Central answers with `ACCEPT` or `INSIST`; y
 `CLOSE`. Three messages, never a fourth, and you never disagree twice. **If Central
 does not answer, proceed and record what you did.**
 
-Report conclusions -- not activity -- as one line in `softanza\dashboard\SESSION-LOG.md`.
+Report conclusions -- not activity -- as one line in `softanza\dashboard\CONCLUSIONS.md`.
