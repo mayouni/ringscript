@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "packages": [
-    { "name": "pwa", "version": "2.0.0", "source": "registry", "files": ["lib/pwa/pwa.ring", "lib/pwa/pwa.js", "lib/pwa/sw-pwa.js"], "pages": ["index.html"] },
-    { "name": "money", "version": "1.0.0", "source": "registry", "files": ["lib/money/money.ring", "lib/money/money.js"], "pages": ["index.html"] }
+    { "name": "money", "version": "1.0.0", "source": "registry", "files": ["lib/money/money.ring", "lib/money/money.js"], "pages": ["index.html"] },
+    { "name": "pwa", "version": "2.0.1", "source": "registry", "files": ["lib/pwa/pwa.ring", "lib/pwa/pwa.js", "lib/pwa/sw-pwa.js"], "pages": ["index.html"] }
   ]
 }

@@ -4,7 +4,7 @@
 ** One global, one entry point:
 **
 **     <script src="lib/pwa/pwa.js"></script>
-**     const pwa = await Pwa.attach(ring, { world: "cousbox-remote",
+**     const pwa = await Pwa.attach(ring, { world: "orders-remote",
 **                                          device: "phone-7",
 **                                          endpoint: "/api/orders" });
 **
@@ -142,7 +142,7 @@
     };
 
     global.Pwa = {
-        version: "2.0.0",
+        version: "2.0.1",
         drivers: drivers,
 
         /*

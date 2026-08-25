@@ -4,7 +4,7 @@
 ** One global, one entry point:
 **
 **     <script src="lib/pwa/pwa.js"></script>
-**     const pwa = await Pwa.attach(ring, { world: "cousbox-remote",
+**     const pwa = await Pwa.attach(ring, { world: "orders-remote",
 **                                          device: "phone-7",
 **                                          endpoint: "/api/orders" });
 **
@@ -142,7 +142,7 @@
     };
 
     global.Pwa = {
-        version: "2.0.0",
+        version: "2.0.1",
         drivers: drivers,
 
         /*
@@ -309,6 +309,24 @@
             /* ---------------------------------------------------- the api */
             var inFlight = null;
 
+            async function batchWith(sendBatch) {
+                var batch = ask("PwaOutboxBatch", 0);
+                if (batch.count === 0) { return null; }
+                ask("PwaOutboxMarkSending", 0);
+                try {
+                    var answer = await sendBatch(batch);
+                    var summary = ask("PwaOutboxApply", JSON.stringify(answer));
+                    noteAlive();
+                    await save(); onChange(api);
+                    return summary;
+                } catch (err) {
+                    ask("PwaOutboxRollbackAll", 0);
+                    noteSilence();
+                    await save(); onChange(api);
+                    throw err;
+                }
+            }
+
             var api = {
                 world: world,
                 on: on,
@@ -403,28 +421,29 @@
                    round trips on a bad link, same guarantee: a refused
                    entry is marked refused, a failed REQUEST rolls the whole
                    batch back (nothing was received; nothing was sent). */
-                flushBatchOnce: async function () {
-                    var batch = ask("PwaOutboxBatch", 0);
-                    if (batch.count === 0) { return null; }
-                    ask("PwaOutboxMarkSending", 0);
-                    try {
-                        var res = await fetchFn(endpoint, {
+                flushBatchOnce: function () {
+                    return batchWith(function (batch) {
+                        return fetchFn(endpoint, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify(batch)
+                        }).then(function (res) {
+                            if (!res.ok) { throw new Error("HTTP " + res.status); }
+                            return res.json();
                         });
-                        if (!res.ok) { throw new Error("HTTP " + res.status); }
-                        var answer = await res.json();
-                        var summary = ask("PwaOutboxApply", JSON.stringify(answer));
-                        noteAlive();
-                        await save(); onChange(api);
-                        return summary;
-                    } catch (err) {
-                        ask("PwaOutboxRollbackAll", 0);
-                        noteSilence();
-                        await save(); onChange(api);
-                        throw err;
-                    }
+                    });
+                },
+
+                /* The same batch contract over a transport the app owns —
+                   sendBatch(batch) must resolve with
+                   { results: [ { id, status, note } ] }. Shares the
+                   in-flight guard with flush(). */
+                flushBatch: function (sendBatch) {
+                    if (inFlight) { return inFlight; }
+                    inFlight = batchWith(sendBatch);
+                    var clear = function () { inFlight = null; };
+                    inFlight.then(clear, clear);
+                    return inFlight;
                 },
 
                 pending: function () { return ask("PwaOutboxPending", 0); },
