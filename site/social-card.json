@@ -1,0 +1,25 @@
+{
+  "logo": "../ringscript-logo.png",
+  "out": "social-card.png",
+  "split": "auto",
+
+  "background": "#ffffff",
+  "ink": "#1c2126",
+  "muted": "#6a737d",
+  "accent": "#1a7f5a",
+
+  "tagline": [
+    "Script your frontend in Ring.",
+    "Not in JavaScript."
+  ],
+  "meta": "Runs in the browser  ·  WebAssembly  ·  Local-first",
+  "url": "github.com/mayouni/ringscript",
+
+  "bar": 12,
+  "bar_stops": [
+    [0.0,  "#0b6bcb"],
+    [0.35, "#0e6f8e"],
+    [0.70, "#127a56"],
+    [1.0,  "#1a7f5a"]
+  ]
+}
