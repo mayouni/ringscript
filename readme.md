@@ -351,6 +351,35 @@ with AI assistance. The design and its execution are recorded in
 during hardening were contributed back as
 [ring-lang/ring#1639](https://github.com/ring-lang/ring/pull/1639).
 
+## Standing on named shoulders
+
+Two files, zero dependencies — because the dependencies are inside,
+vendored and pinned, and owed their names:
+
+**Mahmoud Fayed** and the Ring team — for
+[Ring](https://ring-lang.github.io/) itself: the language, and the
+compiler + VM vendored whole in [`ringvm/`](ringvm/README.md), which is
+the heart of this project. It is his design this runtime is built *on*,
+not around — the same C source that powers `ring.exe`, which is why the
+oracle can hold the browser byte-identical to native. The exchange runs
+both ways: bugs found here go upstream through pull requests and the Ring
+Group, and ten contributions have landed to date, each credited by name in
+Ring's own commits.
+
+**Youssef Saeed ([`@ysdragon`](https://github.com/ysdragon))** — whose
+review of the name-folding fix turned one reported case-sensitivity defect
+into four, including a failure mode worse than the one originally found;
+the fix landed as
+[`b6aea3d`](https://github.com/ring-lang/ring/commit/b6aea3d58fce7b544bd2381f7c1b27655ce2c094),
+credited to both, and this runtime's vendored VM carries it.
+
+**Andrew Kelley** and the [Zig](https://ziglang.org) team — for the one
+toolchain behind everything here: it compiles the Ring VM to
+`wasm32-wasi` (with the wasi-libc it ships), builds the dev server and
+the `ringscript` CLI, and cross-compiles the starter kit's five platform
+binaries from a single machine. There is no `build.zig.zon` and nothing
+is fetched at build time; Zig *is* the build.
+
 ## License
 
 MIT License.
