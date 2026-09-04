@@ -18,3 +18,4 @@ _site/
 
 # The autopilot run log -- local evidence, not repository history.
 .central/runs/
+docs/probes/*/*.wasm
